@@ -27,8 +27,6 @@
 
 #define TIP	"Use !tankhud to toggle the tank HUD"
 
-native L4DReady_IsGamePaused();
-
 static	Handle:g_hTwoTanks, Handle:g_hTankHealth, Handle:g_hVsBonusHealth, bool:g_bCvarTwoTanks, Float:g_fTankHealth = 6000.0,
 		bool:g_bShowTankHud[MAXPLAYERS+1], bool:g_bHudEnabled;
 

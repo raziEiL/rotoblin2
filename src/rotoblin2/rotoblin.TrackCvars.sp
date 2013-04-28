@@ -26,7 +26,7 @@
  */
 
 #define		TC_TAG		"[TrackCvars]"
-#define		SILENT	1
+#define		SILENT		1
 
 static		Handle:g_hConVarArray, Handle:g_hConVarArrayEx, bool:g_bLockConVars;
 
@@ -47,12 +47,13 @@ static const g_aStaticVars[][CVAR_STRUCTURE] =
 	{ "sb_all_bot_team",					1 }, // disable hibernation
 	{ "sb_separation_danger_min_range",		120 },
 	{ "sb_separation_danger_max_range",		0 }
+	//{ "sv_hibernate_when_empty",		0 }
 };
 
 _TrackCvars_OnPluginStart()
 {
 	RegServerCmd("rotoblin_track_variable",		CmdTrackVariable,		"Add a convar to track");
-	RegServerCmd("rotoblin_track_variable_ex",	CmdTrackVariableEx,	"Add a convar to track but ignore a global lock");
+	RegServerCmd("rotoblin_track_variable_ex",	CmdTrackVariableEx,		"Add a convar to track but ignore a global lock");
 	RegServerCmd("rotoblin_lock_variables",		CmdLockVariable,		"Lock all tracked convar to changes");
 	RegServerCmd("rotoblin_unlock_variables",	CmdUnlockVariable,		"Unlock all tracked convar to changes");
 	RegServerCmd("rotoblin_reset_variables",		CmdResetVariable,		"Reset all tracked convars to its default value");

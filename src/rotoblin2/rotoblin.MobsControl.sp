@@ -183,10 +183,10 @@ static _MC_ToggleHordes(bool:bVal)
 
 public Native_R2comp_GetMobTimer(Handle:plugin, numParams)
 {
-	return GetMobTimer();
+	return MC_GetMobTimer();
 }
 
-GetMobTimer()
+MC_GetMobTimer()
 {
 	return g_iTick == -1 ? -1 : g_iCvarMobTime - g_iTick;
 }
@@ -242,7 +242,7 @@ static _MC_ToggleEvents(bool:bHook)
 #if R2_DEBUG
 public Action:CmdGetMobTimer(client, args)
 {
-	ReplyToCommand(client, "Mob timer: %d (-1 = Disabled)", GetMobTimer());
+	ReplyToCommand(client, "Mob timer: %d (-1 = Disabled)", MC_GetMobTimer());
 	return Plugin_Handled;
 }
 #endif

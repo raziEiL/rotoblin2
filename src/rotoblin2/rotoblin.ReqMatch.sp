@@ -225,6 +225,7 @@ PreLoadMatch()
 	BuldMatchPatch(PLUGINS);
 
 	CreateTimer(1.0, RM_t_ReadOptionalCvars);
+	CreateTimer(2.0, RM_t_CallFWD);
 }
 
 public Action:RM_t_ReadOptionalCvars(Handle:timer)
@@ -236,11 +237,14 @@ public Action:RM_t_ReadOptionalCvars(Handle:timer)
 	BuldMatchPatch(MATCH);
 	BuldMatchPatch(MAIN);
 
+	DebugLog("%s Successfully!", RQ_TAG);
+}
+
+public Action:RM_t_CallFWD(Handle:timer)
+{
 	Call_StartForward(g_fwdOnMatchStarts);
 	Call_PushString(sMatchName);
 	Call_Finish();
-
-	DebugLog("%s Successfully!", RQ_TAG);
 }
 
 _RM_OnConfigsExecuted()

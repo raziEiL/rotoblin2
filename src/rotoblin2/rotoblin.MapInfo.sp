@@ -192,21 +192,27 @@ bool:IsEntOutSideSafeRoom(const Float:vOrg[3])
 
 bool:IsEntInStartSafeRoomEx(iEnt)
 {
-	static Float:vOrg[3];
-
+	decl Float:vOrg[3];
 	GetEntityOrg(iEnt, vOrg);
 
-	return GetVectorDistance(g_vStartSafeRoom, vOrg) < START_ROOM_RADIUS;
+	return IsEntInStartSafeRoom(vOrg);
+}
+
+bool:IsEntInEndSafeRoomEx(iEnt)
+{
+	decl Float:vOrg[3];
+	GetEntityOrg(iEnt, vOrg);
+
+	return IsEntInEndSafeRoom(vOrg);
 }
 
 stock bool:IsEntOutSideSafeRoomEx(iEnt)
 {
-	static Float:vOrg[3];
-
+	decl Float:vOrg[3];
 	GetEntityOrg(iEnt, vOrg);
+
 	return !IsEntInStartSafeRoom(vOrg) && !IsEntInEndSafeRoom(vOrg);
 }
-
 
 GetSafeRoomOrg(Float:vOrg[3], bool:bStartRoom)
 {
@@ -222,6 +228,33 @@ GetSafeRoomOrg(Float:vOrg[3], bool:bStartRoom)
 		vOrg[1] = g_vEndSafeRoom[1];
 		vOrg[2] = g_vEndSafeRoom[2];
 	}
+}
+
+public Native_R2comp_IsStartEntity(Handle:plugin, numParams)
+{
+	new iEnt = GetNativeCell(1);
+
+	if (!IsValidEntity(iEnt))
+		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid entity index %d", iEnt);
+
+	return IsEntInStartSafeRoomEx(iEnt);
+}
+
+public Native_R2comp_IsEndEntity(Handle:plugin, numParams)
+{
+	new iEnt = GetNativeCell(1);
+
+	if (!IsValidEntity(iEnt))
+		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid entity index %d", iEnt);
+
+	return IsEntInEndSafeRoomEx(iEnt);
+}
+
+public Native_R2comp_GetSafeRoomOrigin(Handle:plugin, numParams)
+{
+	decl Float:vOrg[3];
+	GetSafeRoomOrg(vOrg, GetNativeCell(2));
+	SetNativeArray(1, vOrg, 3);
 }
 
 #if R2_DEBUG
@@ -268,5 +301,10 @@ public Action:MI_t_DrawMarker(Handle:timer)
 	new purpleColor[4]	= {139, 0, 255, 255};
 	TE_SetupBeamRingPoint(g_vStartSafeRoom, 1.0, 3.0, g_iLaserCache, 0, 0, 1, 1.0, 1.0, 1.0, purpleColor, 0, 0);
 	TE_SendToAll();
+}
+
+GetLaserCaheIndex()
+{
+	return g_iLaserCache;
 }
 #endif

@@ -1,4 +1,4 @@
-#define READY_VERSION "1.0"
+#define READY_VERSION "1.0.3"
 
 #pragma semicolon 1
 
@@ -131,8 +131,8 @@ public OnPluginStart()
 
 	RUP_SetupSignature();
 
-	fwdOnReadyRoundRestarted = CreateGlobalForward("OnReadyRoundRestarted", ET_Event);
-	fwdOnRoundIsLive			= CreateGlobalForward("OnRoundIsLive", ET_Event);
+	fwdOnReadyRoundRestarted	= CreateGlobalForward("L4DReady_OnReadyRoundRestarted", ET_Ignore);
+	fwdOnRoundIsLive			= CreateGlobalForward("L4DReady_OnRoundIsLive", ET_Ignore);
 
 	teamPlacementTrie	= CreateTrie();
 	casterTrie			= CreateTrie();
@@ -165,7 +165,7 @@ public OnPluginStart()
 	cvarPauseMetod					= CreateConVar("l4d_ready_pause_metod",				"0",		"0=defualt, 1=RUP turn on while game in pause",											CONVAR_FLAGS_PLUGIN);
 
 	HookConVarChange(cvarEnforceReady,			ConVarChange_ReadyEnabled);
-	HookConVarChange(cvarReadyCompetition,	ConVarChange_ReadyCompetition);
+	HookConVarChange(cvarReadyCompetition,		ConVarChange_ReadyCompetition);
 	HookConVarChange(cvarSearchKey,				ConVarChange_SearchKey);
 
 	HookEvent("round_start",			eventRSLiveCallback, EventHookMode_PostNoCopy);
@@ -209,11 +209,11 @@ public OnPluginStart()
 	RegAdminCmd("sm_toready", 	CmdToReady, ADMFLAG_KICK);
 }
 
-native bool:BaseComm_IsGagged(client);
+native bool:BaseComm_IsClientGagged(client);
 
 public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 {
-	MarkNativeAsOptional("BaseComm_IsGagged");
+	MarkNativeAsOptional("BaseComm_IsClientGagged");
 	MarkNativeAsOptional("L4D_IsInMatchVoteMenu");
 	CreateNative("L4DReady_IsGamePaused", nativeIsGamePaused);
 	CreateNative("L4DReady_IsReadyMode", nativeIsRUP);
@@ -503,6 +503,9 @@ public Action:eventRoundEndCallback(Handle:event, const String:name[], bool:dont
 
 public Action:eventRSLiveCallback(Handle:event, const String:name[], bool:dontBroadcast)
 {
+	if (isSecondRound)
+		CreateTimer(2.0, RUP_t_Respectate);
+
 	#if READY_DEBUG
 	DebugPrintToAll("[DEBUG] Event round has started");
 	#endif
@@ -558,6 +561,24 @@ public Action:eventRSLiveCallback(Handle:event, const String:name[], bool:dontBr
 	}
 
 	return Plugin_Continue;
+}
+
+public Action:RUP_t_Respectate(Handle:timer)
+{
+	//respectate trick to get around spectator camera being stuck
+	//also make sure to block pause troller
+
+	for (new i = 1; i <= MaxClients; i++){
+
+		if (IsClientInGame(i) && GetClientTeam(i) == 1){
+
+			temporarilyBlocked[i] = true;
+			CreateTimer(0.2, Timer_UnlockClient, i);
+
+			ChangePlayerTeam(i, L4D_TEAM_INFECTED);
+			CreateTimer(0.1, Timer_Respectate, i, TIMER_FLAG_NO_MAPCHANGE);
+		}
+	}
 }
 
 public Action:_RUP_t_SafeTime(Handle:timer)
@@ -808,16 +829,6 @@ public Action:Command_Spectate(client, args)
 		CPrintToChatAll("[SM] Player {blue}%N{default} has become a spectator", client);
 		if(readyMode) checkStatus();
 	}
-	//respectate trick to get around spectator camera being stuck
-	//also make sure to block pause troller
-	else
-	{
-		temporarilyBlocked[client] = true;
-		CreateTimer(0.2, Timer_UnlockClient, client);
-
-		ChangePlayerTeam(client, L4D_TEAM_INFECTED);
-		CreateTimer(0.1, Timer_Respectate, client, TIMER_FLAG_NO_MAPCHANGE);
-	}
 
 	return Plugin_Handled;
 }
@@ -836,9 +847,9 @@ public Action:Timer_Respectate(Handle:timer, any:client)
 
 bool:OptIsGagged(client)
 {
-	if (GetFeatureStatus(FeatureType_Native, "BaseComm_IsGagged") == FeatureStatus_Available)
+	if (GetFeatureStatus(FeatureType_Native, "BaseComm_IsClientGagged") == FeatureStatus_Available)
 	{
-		return BaseComm_IsGagged(client);
+		return BaseComm_IsClientGagged(client);
 	}
 
 	return false;
@@ -862,7 +873,7 @@ public Action:Command_Say(client, args)
 		if (!IsClientCaster(client) && GetConVarBool(cvarBlockSpecGlobalChat))
 		{
 			//Command_Teamsay(client, args); for l4d2
-				
+
 			decl String:sText[256];
 			GetCmdArg(1, sText, sizeof(sText));
 			if ((IsChatTrigger() && sText[0] == '/') //Ignore if it is a server message or a silent chat trigger
@@ -870,11 +881,11 @@ public Action:Command_Say(client, args)
 			{
 				return Plugin_Continue;
 			}
-		
+
 			decl String:text[192];
 			GetCmdArgString(text, 192);
 			FakeClientCommandEx(client,"say_team %s", text);
-		
+
 			if (!isPaused)
 				PrintHintText(client, "Spectators cannot global chat in ready modes");
 			else
@@ -1182,7 +1193,7 @@ DrawReadyPanelList()
 		DrawPanelText(panel, sCFGName);
 		DrawPanelText(panel, "       ");
 	}
-	
+
 	if(ready)
 	{
 		DrawPanelText(panel, "READY");
@@ -1252,7 +1263,7 @@ DrawReadyPanelList()
 		#if !L4D
 			FormatEx(versionInfo, sizeof(versionInfo), "!rmatch / !addon");
 		#else
-			FormatEx(versionInfo, sizeof(versionInfo), "%s", !GetRandomInt(0, 1) ? "Created by Downtown1 & Frustian" : "Continued by AtomicStryker & raziEiL");
+			FormatEx(versionInfo, sizeof(versionInfo), "%s", !GetRandomInt(0, 1) ? "Ready Up Created by:\nDowntown1 & Frustian" : "Ready Up Continued by:\nAtomicStryker, raziEiL");
 		#endif
 	}
 	else
@@ -1278,18 +1289,20 @@ DrawReadyPanelList()
 			else
 				SetFailState("r2comp mod not found!");
 
-			FormatEx(versionInfo, sizeof(versionInfo), "%s v%s", !iVal ? "Ready Up Modification" : "Rotoblin 2 Competitive Mod", !iVal ? READY_VERSION : sVersion);
+			FormatEx(versionInfo, sizeof(versionInfo), "%s v%s", !iVal ? "Ready Up" : "R2 CompMod", !iVal ? READY_VERSION : sVersion);
 		#endif
 	}
 	scrollingText = !scrollingText;
 	DrawPanelText(panel, versionInfo);
 
+	new bool:bVMAvalible = GetFeatureStatus(FeatureType_Native, "L4D_IsInMatchVoteMenu") == FeatureStatus_Available;
+
 	for (new i = 1; i < L4D_MAXCLIENTS_PLUS1; i++)
 	{
 		if(IsClientInGameHuman(i))
 		{
-			// privat for votemenu
-			if ((GetFeatureStatus(FeatureType_Native, "L4D_IsInMatchVoteMenu") == FeatureStatus_Available && L4D_IsInMatchVoteMenu(i))) continue;
+			// private for votemenu
+			if (bVMAvalible && L4D_IsInMatchVoteMenu(i)) continue;
 
 			SendPanelToClient(panel, i, Menu_ReadyPanel, READY_LIST_PANEL_LIFETIME);
 		}
@@ -1411,7 +1424,7 @@ readyOn()
 }
 
 #if L4D
-public SharedPlugin:__pl_r2compmod = 
+public SharedPlugin:__pl_r2compmod =
 {
 	name = "r2compmod",
 	file = "r2compmod.smx",
@@ -2208,7 +2221,7 @@ ToggleFreezePlayer(client, freeze)
 		SetEntityFlags(client, (iFlags |= FL_ATCONTROLS));
 	}
 	else if (!freeze && iFlags & FL_ATCONTROLS){
-	
+
 		DebugPrintToAll("%N unfreezed!", client);
 		SetEntityFlags(client, (iFlags &= ~FL_ATCONTROLS));
 	}

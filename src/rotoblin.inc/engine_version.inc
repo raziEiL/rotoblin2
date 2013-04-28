@@ -67,9 +67,8 @@ public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 
 				CloseHandle(hFile);
 				g_bLoadLater = late;
-				RegPluginLibrary("r2compmod");
-				MarkNativeAsOptional("L4DReady_IsGamePaused");
-				CreateNative("R2comp_GetMobTimer", Native_R2comp_GetMobTimer);
+				RegR2Lib();
+
 				return APLRes_Success;
 			}
 		}
@@ -79,6 +78,23 @@ public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 	FormatEx(error, err_max, "FATAL ERROR 0x%x.", iResult);
 
 	return APLRes_Failure;
+}
+
+native bool:L4DReady_IsGamePaused();
+native bool:L4D_IsInMatchVoteMenu();
+
+static RegR2Lib()
+{
+	RegPluginLibrary("r2compmod");
+
+	MarkNativeAsOptional("L4DReady_IsGamePaused");
+	MarkNativeAsOptional("L4D_IsInMatchVoteMenu");
+
+	CreateNative("R2comp_GetMobTimer", Native_R2comp_GetMobTimer);
+	CreateNative("R2comp_IsStartEntity", Native_R2comp_IsStartEntity);
+	CreateNative("R2comp_IsEndEntity", Native_R2comp_IsEndEntity);
+	CreateNative("R2comp_GetSafeRoomOrigin", Native_R2comp_GetSafeRoomOrigin);
+	CreateNative("R2comp_GetMatchName", Native_R2comp_GetMatchName);
 }
 
 static GenerateKey(String:sValue[12])

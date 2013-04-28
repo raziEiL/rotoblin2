@@ -53,3 +53,12 @@ new const String:sMatchCfg[_PATCH][] =
 };
 
 new 		String:sMatchName[48];
+
+public Native_R2comp_GetMatchName(Handle:plugin, numParams)
+{
+	new iLen = GetNativeCell(2);
+
+	decl String:sBuff[iLen];
+	strcopy(sBuff, iLen, sMatchName);
+	SetNativeString(1, sBuff, iLen);
+}

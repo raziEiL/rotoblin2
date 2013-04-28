@@ -39,7 +39,7 @@ static const String:sMapList[][] =
 	"l4d_river01_docks"
 };
 
-static 		Handle:g_hAllowLoader, Handle:g_fwdOnServerEmpty;
+static 		Handle:g_hAllowLoader, Handle:g_fwdOnServerEmpty, Handle:g_hResetTimer;
 
 _AutoLoader_OnPluginStart()
 {
@@ -90,18 +90,30 @@ ExecuteScritp(const String:sBuffer[])
 
 _AL_OnClientDisconnect(client)
 {
-	if (!IsFakeClient(client))
-		CreateTimer(RESETTIME, AL_t_ResetWhenEmpty);
+	if (!IsFakeClient(client)){
+
+		if (g_hResetTimer != INVALID_HANDLE){
+		
+			KillTimer(g_hResetTimer);
+			DebugLog("%s Timer killed. hndl %x", AL_TAG, g_hResetTimer);
+		}
+
+		g_hResetTimer = CreateTimer(RESETTIME, AL_t_ResetWhenEmpty);
+		DebugLog("%s Client %L leave. Timer created. hndl %x", AL_TAG, client, g_hResetTimer);
+	}
 }
 
 public Action:AL_t_ResetWhenEmpty(Handle:timer)
 {
+	g_hResetTimer = INVALID_HANDLE;
+
 	if (IsClientsOnServer()) return;
 
 	Call_StartForward(g_fwdOnServerEmpty);
 	Call_Finish();
 
 	DebugLog("%s Server is empty!", AL_TAG);
+	LogMessage("Server becomes empty. Map reseted by r2compmod plugin.");
 
 	new iMapIndex = GetRandomInt(0, sizeof(sMapList) - 1);
 	

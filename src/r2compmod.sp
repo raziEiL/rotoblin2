@@ -55,7 +55,7 @@ new const String:MAIN_TAG[]		=	"[Rotoblin]";
 #define PLUGIN_SHORTNAME			"rotoblin"								// Shorter version of the full name, used in file paths, and other things
 #define PLUGIN_AUTHOR				"Rotoblin Team, raziEiL [disawar1]"		// Author of the plugin
 #define PLUGIN_DESCRIPTION			"A Fresh competitive mod for L4D"		// Description of the plugin
-#define PLUGIN_VERSION				"1.1.8"									// http://wiki.eclipse.org/Version_Numbering
+#define PLUGIN_VERSION				"1.2"									// http://wiki.eclipse.org/Version_Numbering
 #define PLUGIN_URL					"https://code.google.com/p/rotoblin2/"	// URL associated with the project
 #define PLUGIN_CVAR_PREFIX			PLUGIN_SHORTNAME					// Prefix for cvars
 #define PLUGIN_CMD_PREFIX			PLUGIN_SHORTNAME					// Prefix for cmds
@@ -208,9 +208,10 @@ public OnClientPostAdminCheck(client)
 
 public OnClientDisconnect(client)
 {
+	if (!client) return;
 	_AL_OnClientDisconnect(client); // always change map when server is emtpy
 	
-	/*if (!g_bIsPluginEnabled || !client) return;
+	/*if (!g_bIsPluginEnabled) return;
 	 *
 	 *		Some code here...
 	 */

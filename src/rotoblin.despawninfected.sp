@@ -5,7 +5,7 @@
  *
  *  File:			rotoblin.despawninfected.sp
  *  Type:			Module
- *  Description:	Despawn infected commons who is too far behind the 
+ *  Description:	Despawn infected commons who is too far behind the
  *					survivors.
  * 	Credits:		SRSMod team for the original source for L4D2
  *					(http://code.google.com/p/srsmod/).
@@ -33,6 +33,8 @@
 //       Private
 // --------------------
 
+#define DI_TAG		"[DespawnInfected]"
+
 static	const	String:	CLASSNAME_INFECTED[]				= "infected";
 static	const	String:	CLASSNAME_WITCH[]					= "witch";
 static	const	String:	CLASSNAME_PHYSPROPS[]				= "prop_physics";
@@ -54,6 +56,11 @@ static			Float:	g_fLastLowestSurvivorFlow			= 0.0;
 static					g_iDebugChannel						= 0;
 static	const	String:	DEBUG_CHANNEL_NAME[]				= "DespawnInfected";
 
+static Handle:g_hDIEnable, bool:g_bCvarDIEnabled;
+
+#if R2_DEBUG
+	static Handle:g_hDebugArray;
+#endif
 // **********************************************
 //                   Forwards
 // **********************************************
@@ -65,8 +72,17 @@ static	const	String:	DEBUG_CHANNEL_NAME[]				= "DespawnInfected";
  */
 _DespawnInfected_OnPluginStart()
 {
+	g_hDIEnable = CreateConVarEx("despawn_infected", "0", "Despawn infected commons who is too far behind the survivors.", _, true, 0.0, true, 1.0);
+	g_bCvarDIEnabled = GetConVarBool(g_hDIEnable);
+
 	g_iDebugChannel = DebugAddChannel(DEBUG_CHANNEL_NAME);
 	DebugPrintToAllEx("Module is now setup");
+	
+	#if R2_DEBUG
+		RegConsoleCmd("sm_diwipemarkers", Command_WipeAllMarkers);
+		g_hDebugArray = CreateArray(3);
+		CreateTimer(1.0, DI_t_DebugMarkers, _, TIMER_REPEAT);
+	#endif
 }
 
 /**
@@ -76,12 +92,10 @@ _DespawnInfected_OnPluginStart()
  */
 _DI_OnPluginEnabled()
 {
-	for (new i = MaxClients + 1; i <= MAX_EDICTS; i++) g_fCommonLifetime[i] = 0.0;
+	HookConVarChange(g_hDIEnable, DI_OnCvarChange_Enabled);
 
-	g_hCommonTimer = CreateTimer(COMMON_CHECK_INTERVAL, _DI_Check_Timer, _, TIMER_REPEAT);
-
-	HookEvent("round_start", _DI_RoundStart_Event, EventHookMode_PostNoCopy);
-	DebugPrintToAllEx("Module is now loaded");
+	if (g_bLoadLater && g_bCvarDIEnabled)
+		_DI_ToogleHook(true);
 }
 
 /**
@@ -91,10 +105,40 @@ _DI_OnPluginEnabled()
  */
 _DI_OnPluginDisabled()
 {
-	CloseHandle(g_hCommonTimer);
+	UnhookConVarChange(g_hDIEnable, DI_OnCvarChange_Enabled);
 
-	UnhookEvent("round_start", _DI_RoundStart_Event, EventHookMode_PostNoCopy);
-	DebugPrintToAllEx("Module is now unloaded");
+	if (g_bCvarDIEnabled)
+		_DI_ToogleHook(false);
+}
+
+_DI_ToogleHook(bool:bHook)
+{
+	if (bHook){
+
+		for (new i = MaxClients + 1; i <= MAX_EDICTS; i++) g_fCommonLifetime[i] = 0.0;
+
+		g_hCommonTimer = CreateTimer(COMMON_CHECK_INTERVAL, _DI_Check_Timer, _, TIMER_REPEAT);
+
+		HookEvent("round_start", _DI_RoundStart_Event, EventHookMode_PostNoCopy);
+		DebugPrintToAllEx("Module is now loaded");
+		DebugLog("%s ENABLED", DI_TAG);
+	}
+	else {
+		CloseHandle(g_hCommonTimer);
+
+		UnhookEvent("round_start", _DI_RoundStart_Event, EventHookMode_PostNoCopy);
+		DebugPrintToAllEx("Module is now unloaded");
+		DebugLog("%s DISABLED", DI_TAG);
+	}
+}
+
+public DI_OnCvarChange_Enabled(Handle:hHandle, const String:sOldVal[], const String:sNewVal[])
+{
+	if (StrEqual(sOldVal, sNewVal)) return;
+	g_bCvarDIEnabled = GetConVarBool(hHandle);
+
+	if (IsPluginEnabled())
+		_DI_ToogleHook(g_bCvarDIEnabled);
 }
 
 /**
@@ -106,7 +150,7 @@ _DI_OnPluginDisabled()
  */
 _DI_OnEntityCreated(entity, const String:classname[])
 {
-	if (!StrEqual(classname, CLASSNAME_INFECTED, false)) return;
+	if (!g_bCvarDIEnabled || !StrEqual(classname, CLASSNAME_INFECTED, false)) return;
 	g_fCommonLifetime[entity] = GetGameTime();
 }
 
@@ -118,6 +162,7 @@ _DI_OnEntityCreated(entity, const String:classname[])
  */
 _DI_OnEntityDestroyed(entity)
 {
+	if (!g_bCvarDIEnabled) return;
 	g_fCommonLifetime[entity] = 0.0;
 }
 
@@ -131,13 +176,17 @@ _DI_OnEntityDestroyed(entity)
  */
 public _DI_RoundStart_Event(Handle:event, const String:name[], bool:dontBroadcast)
 {
+	#if R2_DEBUG
+		DI_ClearDebugArray();
+	#endif
+
 	for (new i = MaxClients + 1; i <= MAX_EDICTS; i++) g_fCommonLifetime[i] = 0.0;
 	DebugPrintToAllEx("Round start, resetting common life time");
 }
 
 /**
  * Called when check commons interval has elapsed.
- * 
+ *
  * @param timer			Handle to the timer object.
  * @return				Plugin_Stop to stop repeating, any other value for
  *						default behavior.
@@ -177,7 +226,7 @@ public Action:_DI_Check_Timer(Handle:timer)
 
 /**
  * Called when respawn commons interval has elapsed.
- * 
+ *
  * @param timer			Handle to the timer object.
  * @return				Plugin_Stop to stop repeating, any other value for
  *						default behavior.
@@ -268,6 +317,13 @@ static DespawningCommons(Float:lastSurvivorFlow, firstSurvivor)
 
 		if (IsVisibleToSurvivors(entity)) continue; // Common is visible to the survivors, continue
 
+		#if R2_DEBUG
+			decl Float:vOrg[3];
+			vOrg[2] += 10.0;
+			GetEntityOrg(entity, vOrg);
+			PushArrayArray(g_hDebugArray, vOrg);
+		#endif
+
 		// Remove common and add to respawn queue
 		SafelyRemoveEdict(entity);
 
@@ -334,7 +390,7 @@ static bool:IsVisibleTo(client, entity) // check an entity for being visible to 
 
 	// execute Trace
 	new Handle:trace = TR_TraceRayFilterEx(vOrigin, vAngles, MASK_SHOT, RayType_Infinite, _DI_TraceFilter);
-	
+
 	new bool:isVisible = false;
 	if (TR_DidHit(trace))
 	{
@@ -354,6 +410,34 @@ static bool:IsVisibleTo(client, entity) // check an entity for being visible to 
 	CloseHandle(trace);
 	return isVisible;
 }
+
+#if R2_DEBUG
+public Action:Command_WipeAllMarkers(client, args)
+{
+	DI_ClearDebugArray();
+	ReplyToCommand(client, "%s Markers removed.", DI_TAG);
+	return Plugin_Handled;
+}
+
+DI_ClearDebugArray()
+{
+	ClearArray(g_hDebugArray);
+}
+
+public Action:DI_t_DebugMarkers(Handle:timer)
+{
+	new iArraySize = GetArraySize(g_hDebugArray) - 1;
+	if (!iArraySize) return;
+	
+	decl Float:vOrg[3];
+	for (new i; i < iArraySize; i++){
+	
+		GetArrayArray(g_hDebugArray, i, vOrg);
+		TE_SetupBeamRingPoint(vOrg, 20.0, 22.0, GetLaserCaheIndex(), 0, 0, 1, 1.0, 1.0, 1.0, {255, 0, 0, 255}, 0, 0);
+		TE_SendToAll();
+	}
+}
+#endif
 
 /**
  * Wrapper for printing a debug message without having to define channel index

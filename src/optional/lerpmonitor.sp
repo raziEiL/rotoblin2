@@ -113,7 +113,7 @@ public Action:OnTeamChangeDelay(Handle:timer, any:client)
 		ProcessPlayerLerp(client);
 }
 
-public Action:OnRoundIsLive() {
+public L4DReady_OnRoundIsLive() {
 
 	if (!isMatchLife && GetConVarBool(cVarReadyUpLerpChanges) && GetConVarInt(cVarLerpChangeSpec) == 2)
 		CreateTimer(3.0, LM_t_NotifyDealy);

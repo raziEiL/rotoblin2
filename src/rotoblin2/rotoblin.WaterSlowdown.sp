@@ -25,7 +25,7 @@
  * ============================================================================
  */
 
-#define		FACTOR		145.0 // Valve coop l4d2 factor 115
+#define		FACTOR		145.0 // 170 mean ~187 in game it's 15% of slowdown, l4d2 coop 115, 145 r2beta
 
 static  	Handle:g_hWSDEnable, bool:g_bCvarWSDEnable, g_bBarge;
 
@@ -59,10 +59,7 @@ _WSD_OnMapStart()
 {
 	decl String:sMap[32];
 	GetCurrentMap(sMap, 32);
-
-	g_bBarge = false;
-	if (StrEqual(sMap, "l4d_river02_barge"))
-		g_bBarge = true;
+	g_bBarge = StrEqual(sMap, "l4d_river02_barge");
 }
 
 public Action:WS_ev_PlayerTeam(Handle:event, const String:name[], bool:dontBroadcast)

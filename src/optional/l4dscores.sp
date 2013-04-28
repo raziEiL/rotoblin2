@@ -2,7 +2,7 @@
 #include <sdktools>
 #include <left4downtown>
 
-#define SCORE_VERSION "1.1.3"
+#define SCORE_VERSION "1.1.4"
 
 #define SCORE_DEBUG 0
 #define SCORE_DEBUG_LOG 0
@@ -63,7 +63,7 @@ TODO:
 * - with RUP and after a !reready the first team's scores
 *   get overriden with default 200*multiplier scores
 */
-forward OnReadyRoundRestarted();
+forward L4DReady_OnReadyRoundRestarted();
 
 public Plugin:myinfo =
 {
@@ -153,15 +153,12 @@ public OnPluginStart()
 
 	RegAdminCmd("sm_swapnext", Command_SwapNext, ADMFLAG_BAN, "sm_swapnext - swap the players between both teams");
 
-	RegAdminCmd("sm_changemap", Command_ChangeMap, ADMFLAG_CHANGEMAP, "sm_changemap <mapname> - change the current l4d map to mapname");
-
 	RegAdminCmd("sm_setnextmap", Command_NextMap, ADMFLAG_CHANGEMAP, "sm_nextmap [mapname] - gets/sets the next map in the mission");
 #endif
 
     /*
 	 * Commands
 	 */
-	RegServerCmd("changelevel", Command_Changelevel);
 	RegConsoleCmd("sm_printscores", Command_PrintScores, "sm_printscores");
 	RegConsoleCmd("sm_scores", Command_Scores, "sm_scores - bring up a list of round/campaign scores");
 
@@ -201,19 +198,41 @@ public OnPluginStart()
 	* Events
 	*/
 
-	HookEvent("round_start", Event_RoundStart);
-	HookEvent("round_end", Event_RoundEnd);
+	HookEvent("round_start", Event_RoundStart, EventHookMode_PostNoCopy);
+	HookEvent("round_end", Event_RoundEnd, EventHookMode_PostNoCopy);
 	HookEvent("player_team", Event_PlayerTeam);
+	HookEvent("vote_passed", ev_VotePassed, EventHookMode_PostNoCopy);
 
 	DebugPrintToAll("Map counter = %d", mapCounter);
+
+	AddCommandListener(cmdListenMap, "sm_map");
 }
 
+forward R2comp_OnMatchStarts(const String:sMatchName[]);
 
 public OnAllPluginsLoaded()
 {
 	CheckDependencyVersions(/*throw*/true);
 }
 
+public Action:cmdListenMap(client, const String:command[], argc)
+{
+	SaveTeams(true);
+}
+
+public R2comp_OnMatchStarts(const String:sMatchName[])
+{
+	SaveTeams(true);
+}
+
+public Action:ev_VotePassed(Handle:event, const String:sName[], bool:DontBroadCast)
+{
+	decl String:sDetals[128];
+	GetEventString(event, "details", sDetals, 128);
+
+	if (StrEqual(sDetals, "#L4D_vote_passed_mission_change"))
+		SaveTeams(true);
+}
 
 PrepareAllSDKCalls()
 {
@@ -319,8 +338,19 @@ public Action:Event_RoundStart(Handle:event, const String:name[], bool:dontBroad
 
 	DetectScoresSwappedDelayed();
 }
+
+static g_iRoundEndCount;
+
+stock bool:IsFinalMap()
+{
+	return FindEntityByClassname(-1, "info_changelevel") == INVALID_ENT_REFERENCE;
+}
+
 public Action:Event_RoundEnd(Handle:event, const String:name[], bool:dontBroadcast)
 {
+	if (IsFinalMap() && ++g_iRoundEndCount == 3)
+		SaveTeams(true);
+
 	new roundCounter = GetRoundCounter();
 	DebugPrintToAll("Round %d end, scores: A: %d, B: %d", roundCounter, GetTeamRoundScore(SCORE_TEAM_A), GetTeamRoundScore(SCORE_TEAM_B));
 
@@ -558,13 +588,6 @@ OnNewMission()
 	pendingNewMission = false;
 }
 
-public Action:L4D_OnSetCampaignScores(&scoreA, &scoreB)
-{
-	DebugPrintToAll("FORWARD: OnSetCampaignScores(%d,%d)", scoreA, scoreB);
-
-	return Plugin_Continue;
-}
-
 public Action:L4D_OnClearTeamScores()
 {
 	/*
@@ -604,14 +627,15 @@ public Action:Timer_GetCampaignScores(Handle:timer)
 	}
 }
 
-public OnReadyRoundRestarted()
+public L4DReady_OnReadyRoundRestarted()
 {
-	DebugPrintToAll("FORWARD: OnReadyRoundRestarted triggered");
+	DebugPrintToAll("FORWARD: L4DReady_OnReadyRoundRestarted triggered");
 	roundRestarting = true;
 }
 
 public OnMapStart()
 {
+	g_iRoundEndCount = 0;
 	DebugPrintToAll("ON MAP START");
 
 	if(!roundCounterReset)
@@ -756,11 +780,6 @@ public OnMapEnd()
 	}
 }
 
-public R2comp_OnMatchStarts(const String:sMatchName[])
-{
-	SaveTeams(true);
-}
-
 new bool:g_pendingSwapScores;
 
 CalculateNextMapTeamPlacement()
@@ -779,6 +798,7 @@ CalculateNextMapTeamPlacement()
 
 SaveTeams(bool:bNewMatch = false)
 {
+	LogMessage("SaveTeams()");
 	/*
 	* We place everyone on whatever team they should be on
 	* according to the set swapping type
@@ -842,63 +862,6 @@ public OnClientDisconnect(client)
 	*/
 	//DetectEmptyServerDelayed();
 }
-
-public OnClientConnected(client)
-{
-	/*
-	 * Clearly the server is not so empty anymore
-	 * So cancel the detection
-	 */
-	//DetectEmptyServerCancel();
-}
-
-/*
-* Detect empty server
-*
-* In this case we "reset" the score tracking
-*/
-/*
-new Handle:hDetectEmptyServer = INVALID_HANDLE;
-DetectEmptyServerDelayed()
-{
-	if(hDetectEmptyServer == INVALID_HANDLE)
-	{
-		hDetectEmptyServer = CreateTimer(SCORE_DELAY_EMPTY_SERVER, Timer_DetectEmptyServer, _, _);
-	}
-}
-
-DetectEmptyServerCancel()
-{
-	if(hDetectEmptyServer != INVALID_HANDLE)
-	{
-		KillTimer(hDetectEmptyServer);
-		hDetectEmptyServer = INVALID_HANDLE;
-	}
-}
-
-public Action:Timer_DetectEmptyServer(Handle:timer)
-{
-	DetectEmptyServer();
-	hDetectEmptyServer = INVALID_HANDLE;
-}
-
-DetectEmptyServer()
-{
-	if(GetClientCount(false) == 0)
-	{
-		//reset the score tracking when the map restarts
-		pendingNewMission = true;
-
-		DebugPrintToAll("EMPTY server detected!");
-
-		//treat it like the map restarted
-		OnMapStart();
-	}
-}
-*/
-/*
-* End of empty server detection functions
-*/
 
 /*
 * Try to detect if the campaign scores have been swapped
@@ -1468,53 +1431,6 @@ stock GetTeamMaxHumans(team)
 	}
 
 	return -1;
-}
-
-public Action:Command_ChangeMap(client, args)
-{
-	if(args == 0)
-	{
-		ReplyToCommand(client, "[SM] Usage: sm_changemap <mapname>");
-	}
-	if(args > 0)
-	{
-		decl String:map[128];
-		GetCmdArg(1, map, 128);
-
-		if(IsMapValid(map))
-		{
-			ReplyToCommand(client, "[SM] The map is now changing to %s", map);
-			ServerCommand("changelevel %s", map);
-
-			pendingNewMission = true;
-		}
-		else
-		{
-			ReplyToCommand(client, "[SM] The map specified is invalid");
-		}
-	}
-	return Plugin_Handled;
-}
-
-
-/*
-* Detect 'rcon changelevel' and print warning messages
-*/
-public Action:Command_Changelevel(args)
-{
-	if(args > 0)
-	{
-		decl String:map[128];
-		GetCmdArg(1, map, 128);
-
-		if(IsMapValid(map) && !skippingLevel)
-		{
-			DebugPrintToAll("Changelevel detected");
-
-			//PrintToServer("If you are using changelevel via RCON, you should be using sm_changemap instead to change maps!");
-		}
-	}
-	return Plugin_Continue;
 }
 
 public Action:Command_PrintScores(client, args)
