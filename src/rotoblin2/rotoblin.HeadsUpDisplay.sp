@@ -117,7 +117,7 @@ public Action:HUD_t_Timer(Handle:timer)
 
 static bool:HUD_DrawTankPanel()
 {
-	if (g_bBlackSpot || (GetFeatureStatus(FeatureType_Native, "L4DReady_IsGamePaused") == FeatureStatus_Available && L4DReady_IsGamePaused())) return true;
+	if (g_bBlackSpot || (IsNativeAvailable(IsGamePaused) && L4DReady_IsGamePaused())) return true;
 
 	new bool:bTankInGame, iTanksIndex[2], iSurvTeamHealth;
 

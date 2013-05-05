@@ -227,3 +227,14 @@ static _LHR_GetCvars()
 	g_iCvarLimit[WEAPINDEX_SMG] = GetConVarInt(g_hLimit[WEAPINDEX_SMG]);
 	g_iCvarLimit[WEAPINDEX_SNIPER] = GetConVarInt(g_hLimit[WEAPINDEX_SNIPER]);
 }
+
+stock _LHR_CvarDump()
+{
+	decl iVal;
+	if ((iVal = GetConVarInt(g_hLimit[WEAPINDEX_PUMP])) != g_iCvarLimit[WEAPINDEX_PUMP])
+		DebugLog("%d		|	%d		|	rotoblin_limit_pumpshotgun", iVal, g_iCvarLimit[WEAPINDEX_PUMP]);
+	if ((iVal = GetConVarInt(g_hLimit[WEAPINDEX_SMG])) != g_iCvarLimit[WEAPINDEX_SMG])
+		DebugLog("%d		|	%d		|	rotoblin_limit_submachinegun", iVal, g_iCvarLimit[WEAPINDEX_SMG]);
+	if ((iVal = GetConVarInt(g_hLimit[WEAPINDEX_SNIPER])) != g_iCvarLimit[WEAPINDEX_SNIPER])
+		DebugLog("%d		|	%d		|	rotoblin_limit_huntingrifle", iVal, g_iCvarLimit[WEAPINDEX_SNIPER]);
+}

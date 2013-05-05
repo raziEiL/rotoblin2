@@ -243,6 +243,13 @@ static UpdateNonFatiguedMeleePenalty()
 	DebugPrintToAllEx("Updated non fatigued melee penalty global var; %d", g_nonFatiguedMeleePenalty);
 }
 
+stock _MF_CvarDump()
+{
+	decl iVal;
+	if ((iVal = GetConVarInt(g_hNonFatiguedMeleePenalty_CVAR)) != g_nonFatiguedMeleePenalty)
+		DebugLog("%d		|	%d		|	rotoblin_melee_penalty", iVal, g_nonFatiguedMeleePenalty);
+}
+
 /**
  * Wrapper for printing a debug message without having to define channel index
  * everytime.

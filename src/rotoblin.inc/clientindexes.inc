@@ -38,8 +38,6 @@
 //       Public
 // --------------------
 
-#define TEAM_LIMIT		4
-
 new		SurvivorIndex[MAXPLAYERS+1], InfectedIndex[MAXPLAYERS+1], SpectateIndex[MAXPLAYERS+1],
 		SpectateCount, SurvivorCount, InfectedCount;
 

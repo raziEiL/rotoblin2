@@ -28,25 +28,27 @@
  *
  * ============================================================================
  */
-
+ 
 // **********************************************
-//                 Preprocessor
+//        Compiling options (Preprocessor)
 // **********************************************
-
-#pragma semicolon 1
+#pragma semicolon						1
+#define R2COMP_LOG					0
+#define DEBUG_COMMANDS				0	// r2comp_dump_cvar_status, r2comp_tp, r2comp_dis, r2comp_entdis.
+#define UNSCRABBLE_LOG				0
+#define UNSCRABBLE_MAX_FAILURE		3
+#define SCORES_COMMAND				1
+#define TEAM_LIMIT					4
 
 // **********************************************
 //                   Reference
 // **********************************************
 #define SERVER_INDEX					0 // The client index of the server
 #define FIRST_CLIENT					1 // First valid client index
-
-// The team list
 #define TEAM_SPECTATOR				1
 #define TEAM_SURVIVOR				2
 #define TEAM_INFECTED				3
-
-#define MAX_EDICTS		2048
+#define MAX_EDICTS					2048
 
 new const String:MAIN_TAG[]		=	"[Rotoblin]";
 
@@ -55,28 +57,26 @@ new const String:MAIN_TAG[]		=	"[Rotoblin]";
 #define PLUGIN_SHORTNAME			"rotoblin"								// Shorter version of the full name, used in file paths, and other things
 #define PLUGIN_AUTHOR				"Rotoblin Team, raziEiL [disawar1]"		// Author of the plugin
 #define PLUGIN_DESCRIPTION			"A Fresh competitive mod for L4D"		// Description of the plugin
-#define PLUGIN_VERSION				"1.2"									// http://wiki.eclipse.org/Version_Numbering
+#define PLUGIN_VERSION				"1.2.1"									// http://wiki.eclipse.org/Version_Numbering
 #define PLUGIN_URL					"https://code.google.com/p/rotoblin2/"	// URL associated with the project
 #define PLUGIN_CVAR_PREFIX			PLUGIN_SHORTNAME					// Prefix for cvars
 #define PLUGIN_CMD_PREFIX			PLUGIN_SHORTNAME					// Prefix for cmds
 #define PLUGIN_TAG					"Rotoblin"								// Tag for prints and commands
-#define	PLUGIN_GAMECONFIG_FILE	PLUGIN_SHORTNAME					// Name of gameconfig file
+#define	PLUGIN_GAMECONFIG_FILE	PLUGIN_SHORTNAME						// Name of gameconfig file
 
 // **********************************************
 //                    Includes
 // **********************************************
-
 #include <sourcemod>
-
 #include <sdktools>
-
 #include <sdkhooks>
-
 #include <left4downtown>
+#include <r2comp_api>
 
-#include "rotoblin.inc/rotoblin2"
+#undef REQUIRE_PLUGIN
 
 #include <l4d_lib>
+#include "rotoblin.inc/rotoblin2"
 
 public Plugin:myinfo =
 {
@@ -141,6 +141,7 @@ public OnPluginStart()
 	_DHostName_OnPluginStart();
 	_HeadsUpDisplay_OnPluginStart();
 	_ClientSettings_OnPluginStart();
+	_AntiScrabble_OnPluginStart();
 
 	SetPluginState(bEnable);
 }
@@ -164,6 +165,7 @@ public OnPluginEnd()
 	_DN_OnPluginEnd();
 	_AL_OnPluginEnd();
 	_RM_OnPluginEnd();
+	_AS_OnPluginEnd();
 }
 
 public OnMapStart()
@@ -175,6 +177,7 @@ public OnMapStart()
 	_MI_OnMapStart();
 	_CI_OnMapStart();
 	_WSD_OnMapStart();
+	_AS_OnMapStart();
 }
 
 
@@ -198,6 +201,7 @@ public OnClientPutInServer(client)
 	_FS_OnClientPutInServer(client);
 	_LHR_OnClientPutInServer(client);
 	_EF_OnClientPutInServer(client);
+	_AS_OnClientPutInServer(client);
 }
 
 public OnClientPostAdminCheck(client)
@@ -331,9 +335,13 @@ SetPluginState(bool:enabled)
 		_WSD_OnPluginEnabled();
 		_WT_OnPluginEnabled();
 		_TC_OnPluginStart();
+		_AS_OnPluginEnabled();
+		
+		DebugLog("%s All MODULES SETUPED!", MAIN_TAG);
 	}
 	else{
 
+		_TC_OnPluginDisabled();
 		_DI_OnPluginDisabled();
 		_FS_OnPluginDisabled();
 		_GT_OnPluginDisabled();
@@ -354,11 +362,11 @@ SetPluginState(bool:enabled)
 		_NET_OnPluginDisable();
 		_WSD_OnPluginDisabled();
 		_WT_OnPluginDisabled();
-		_TC_OnPluginDisabled();
 		
 		_DN_OnPluginDisabled();
 		_PM_OnPluginDisabled();
 		_CS_OnPluginDisabled();
+		_AS_OnPluginDisabled();
 	}
 }
 

@@ -73,17 +73,11 @@ _HealthControl_OnPluginStart()
 
 	g_hOSF_Style				=	CreateConVarEx("replace_outsidekits",	"0", _, _, true, -1.0, true, 2.0);
 	g_hSSR_Style				=	CreateConVarEx("replace_startkits",		"0", "1 - Replace all medkits at start safe room with pain pills, 2 - Remove medkits, 0 - Nothing to do", _, true, -1.0, true, 1.0);
-	g_hFSR_Style				=	CreateConVarEx("replace_finalekits",	"0", "1 - Replace medkits during finale with pain pills, 2 - Remove medkits, 0 - Nothing to do", _, true, -1.0, true, 1.0);
+	g_hFSR_Style				=	CreateConVarEx("replace_finalekits",		"0", "1 - Replace medkits during finale with pain pills, 2 - Remove medkits, 0 - Nothing to do", _, true, -1.0, true, 1.0);
 	g_hPills_Style			=	CreateConVarEx("pills_autogiver",		"0", "1 - Give pills to survivors after they leave start safe room, 0 - Disable", _, true, 0.0, true, 1.0);
 
 	// 1v1 match
 	g_h1v1WipePills =	CreateConVarEx("1v1_wipe_pills",		"0", "Number of pills that will be removed during the final (0: disable 1v1 features)", _, true, 0.0, true, 4.0);
-
-	UpdateOutSideStyleConVars();
-	UpdateStartKitsStyleConVars();
-	UpdateFinalKitsStyleConVars();
-	UpdateGivePillsToSurvConVars();
-	Update1v1WipePillsConVars();
 
 	AddConVarToReport(g_hOSF_Style); // Add to report status module
 
@@ -107,6 +101,7 @@ _HC_OnPluginEnabled()
 	HookConVarChange(g_hFSR_Style, 		_HC_FinalKitsStyle_CvarChange);
 	HookConVarChange(g_hPills_Style, 	_HC_GivePillsToSurv_CvarChange);
 	HookConVarChange(g_h1v1WipePills, 	_HC_1v1WipePills_CvarChange);
+	Update_HC_ConVars();
 
 	DebugLog("%s Module is now loaded", HC_TAG);
 }
@@ -155,13 +150,9 @@ new 	bool:g_bIsFinalMap;
 
 CheckIsFinalMap()
 {
-	g_bIsFinalMap = false;
+	g_bIsFinalMap = IsFinalMap();
 
-	if (FindEntityByClassname(-1, "info_changelevel") == -1){
-
-		g_bIsFinalMap = true;
-		DebugLog("%s Final map!", HC_TAG);
-	}
+	DebugLog("%s Final map? (%s)", HC_TAG, g_bIsFinalMap ? "YES" : "NO");
 }
 
 /**
@@ -338,6 +329,15 @@ public _HC_1v1WipePills_CvarChange(Handle:convar, const String:oldValue[], const
 	Update1v1WipePillsConVars();
 }
 
+static Update_HC_ConVars()
+{
+	UpdateOutSideStyleConVars();
+	UpdateStartKitsStyleConVars();
+	UpdateFinalKitsStyleConVars();
+	UpdateGivePillsToSurvConVars();
+	Update1v1WipePillsConVars();
+}
+
 static UpdateOutSideStyleConVars()
 {
 	g_iCvarOSF_Style = GetConVarInt(g_hOSF_Style);
@@ -369,6 +369,21 @@ static UpdateGivePillsToSurvConVars()
 static Update1v1WipePillsConVars()
 {
 	g_iCvarWipePills = GetConVarInt(g_h1v1WipePills);
+}
+
+stock _HC_CvarDump()
+{
+	decl iVal;
+	if ((iVal = GetConVarInt(g_hOSF_Style)) != g_iCvarOSF_Style)
+		DebugLog("%d		|	%d		|	rotoblin_replace_outsidekits", iVal, g_iCvarOSF_Style);
+	if ((iVal = GetConVarInt(g_hSSR_Style)) != g_iCvarSSR_Style)
+		DebugLog("%d		|	%d		|	rotoblin_replace_startkits", iVal, g_iCvarSSR_Style);
+	if ((iVal = GetConVarInt(g_hFSR_Style)) != g_iCvarFSR_Style)
+		DebugLog("%d		|	%d		|	rotoblin_replace_finalekits", iVal, g_iCvarFSR_Style);
+	if (bool:(iVal = GetConVarInt(g_hPills_Style)) != g_bCvarPills_Style)
+		DebugLog("%d		|	%d		|	rotoblin_pills_autogiver", iVal, g_bCvarPills_Style);
+	if ((iVal = GetConVarInt(g_h1v1WipePills)) != g_iCvarWipePills)
+		DebugLog("%d		|	%d		|	rotoblin_1v1_wipe_pills", iVal, g_iCvarWipePills);
 }
 
 /**

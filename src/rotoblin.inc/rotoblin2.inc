@@ -29,8 +29,6 @@
 #endif
 #define _rotoblin2_included
 
-#undef REQUIRE_PLUGIN
-
 // Helpers
 #include "rotoblin.inc/debug.inc"
 #include "rotoblin.inc/cmdmanager.inc"
@@ -60,6 +58,7 @@
 
 // New modules
 #include "rotoblin2/rotoblin.AutoLoader.sp"
+#include "rotoblin2/rotoblin.AntiScrabble.sp"
 #include "rotoblin2/rotoblin.MapInfo.sp"
 #include "rotoblin2/rotoblin.TrackCvars.sp"
 #include "rotoblin2/rotoblin.WaterSlowdown.sp"

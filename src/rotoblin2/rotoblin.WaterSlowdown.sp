@@ -24,8 +24,8 @@
  *
  * ============================================================================
  */
-
-#define		FACTOR		145.0 // 170 mean ~187 in game it's 15% of slowdown, l4d2 coop 115, 145 r2beta
+#define		WSD_TAG	"[WaterSlowdown]"
+#define		FACTOR		145.0 // 170 mean ~187 in game it's 15% of slowdown, l4d2 coop 115
 
 static  	Handle:g_hWSDEnable, bool:g_bCvarWSDEnable, g_bBarge;
 
@@ -39,8 +39,6 @@ _WSD_OnPluginEnabled()
 {
 	HookConVarChange(g_hWSDEnable, WSD_OnCvarChange_Factor);
 
-	HookEvent("player_team", WS_ev_PlayerTeam);
-
 	if (g_bLoadLater && g_bCvarWSDEnable)
 		_WSD_ToogleHook(true);
 }
@@ -48,8 +46,6 @@ _WSD_OnPluginEnabled()
 _WSD_OnPluginDisabled()
 {
 	UnhookConVarChange(g_hWSDEnable, WSD_OnCvarChange_Factor);
-
-	UnhookEvent("player_team", WS_ev_PlayerTeam);
 
 	if (g_bCvarWSDEnable)
 		_WSD_ToogleHook(false);
@@ -64,7 +60,7 @@ _WSD_OnMapStart()
 
 public Action:WS_ev_PlayerTeam(Handle:event, const String:name[], bool:dontBroadcast)
 {
-	if (!IsWSDEnable()) return;
+	if (g_bBarge) return;
 
 	new client = GetClientOfUserId(GetEventInt(event, "userid"));
 	if (!client) return;
@@ -81,14 +77,9 @@ public _WSD_SDKh_PreThinkPost(client)
 		SetEntPropFloat(client, Prop_Data, "m_flMaxspeed", FACTOR);
 }
 
-bool:IsWSDEnable()
-{
-	return g_bCvarWSDEnable && !g_bBarge;
-}
-
 _WSD_ToogleHook(bool:bHook)
 {
-	if (g_bBarge) return;
+	DebugLog("%s %s", WSD_TAG, bHook ? "ENABLED" : "DISABLED");
 
 	for (new client = 1; client <= MaxClients; client++){
 
@@ -99,6 +90,11 @@ _WSD_ToogleHook(bool:bHook)
 		else
 			SDKUnhook(client, SDKHook_PreThinkPost, _WSD_SDKh_PreThinkPost);
 	}
+
+	if (bHook)
+		HookEvent("player_team", WS_ev_PlayerTeam);
+	else
+		UnhookEvent("player_team", WS_ev_PlayerTeam);
 }
 
 public WSD_OnCvarChange_Factor(Handle:hHandle, const String:sOldVal[], const String:sNewVal[])
@@ -106,6 +102,12 @@ public WSD_OnCvarChange_Factor(Handle:hHandle, const String:sOldVal[], const Str
 	if (StrEqual(sOldVal, sNewVal)) return;
 	g_bCvarWSDEnable = GetConVarBool(g_hWSDEnable);
 
-	if (IsPluginEnabled())
-		_WSD_ToogleHook(g_bCvarWSDEnable);
+	_WSD_ToogleHook(g_bCvarWSDEnable);
+}
+
+stock _WSD_CvarDump()
+{
+	decl bool:iVal;
+	if ((iVal = GetConVarBool(g_hWSDEnable)) != g_bCvarWSDEnable)
+		DebugLog("%d		|	%d		|	rotoblin_water_slowdown", iVal, g_bCvarWSDEnable);
 }

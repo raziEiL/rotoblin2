@@ -428,6 +428,13 @@ static RestoreAllTier2()
 	DebugPrintToAllEx("Done restoring tier 2 weapons!");
 }
 
+stock _WC_CvarDump()
+{
+	decl iVal;
+	if (WEAPON_STYLE:(iVal = GetConVarInt(g_hWeaponStyle_Cvar)) != g_iWeaponStyle)
+		DebugLog("%d		|	%d		|	rotoblin_weapon_style", iVal, g_iWeaponStyle);
+}
+
 /**
  * Wrapper for printing a debug message without having to define channel index
  * everytime.

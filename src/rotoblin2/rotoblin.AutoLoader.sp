@@ -32,14 +32,14 @@
 static const String:sMapList[][] =
 {
 	"l4d_vs_hospital01_apartment",
-	//"l4d_garage01_alleys", // who cares?
+	"l4d_garage01_alleys",
 	"l4d_vs_airport01_greenhouse",
 	"l4d_vs_smalltown01_caves",
 	"l4d_vs_farm01_hilltop",
 	"l4d_river01_docks"
 };
 
-static 		Handle:g_hAllowLoader, Handle:g_fwdOnServerEmpty, Handle:g_hResetTimer;
+static 		Handle:g_hAllowLoader, Handle:g_hAllowReset, Handle:g_fwdOnServerEmpty, Handle:g_hResetTimer;
 
 _AutoLoader_OnPluginStart()
 {
@@ -47,7 +47,8 @@ _AutoLoader_OnPluginStart()
 
 	DebugLog("%s Rotoblin 2 competitive mode started :3", AL_TAG);
 
-	g_hAllowLoader		= CreateConVarEx("allow_autoloader", "", "Allow autoloader");
+	g_hAllowLoader		= CreateConVarEx("allow_autoloader", "", "Name of the match config uses by default. Empty this line to disable an autoloader (value: \"\").");
+	g_hAllowReset		= CreateConVarEx("allow_match_resets", "0", "");
 
 	ExecuteScritp(sMatchCfg[SETTINGS]);
 }
@@ -64,6 +65,11 @@ public _AutoLoader_OnAllPluginsLoaded()
 }
 
 public Action:AL_t_Delay(Handle:timer)
+{
+	AutoLoaderFunc();
+}
+
+static AutoLoaderFunc()
 {
 	decl String:sReqMatch[48];
 	GetConVarString(g_hAllowLoader, sReqMatch, 48);
@@ -113,14 +119,25 @@ public Action:AL_t_ResetWhenEmpty(Handle:timer)
 	Call_Finish();
 
 	DebugLog("%s Server is empty!", AL_TAG);
-	LogMessage("Server becomes empty. Map reseted by r2compmod plugin.");
 
+	if (GetConVarInt(g_hAllowReset)){
+
+		AutoLoaderFunc();
+		CreateTimer(7.0, AL_t_ChangeMap);
+	}
+}
+
+public Action:AL_t_ChangeMap(Handle:timer)
+{
 	new iMapIndex = GetRandomInt(0, sizeof(sMapList) - 1);
 	
-	if (IsMapValid(sMapList[iMapIndex]))
-		ForceChangeLevel(sMapList[iMapIndex], "R2: Server is empty");
+	if (IsMapValid(sMapList[iMapIndex])){
 
-	CreateTimer(5.0, AL_t_Delay);
+		DebugLog("%s Map changed to '%s'", AL_TAG, sMapList[iMapIndex]);
+		LogMessage("Server becomes empty. Map reseted by r2compmod plugin.");
+
+		ForceChangeLevel(sMapList[iMapIndex], "R2: Server is empty");
+	}
 }
 
 static bool:IsClientsOnServer()

@@ -529,3 +529,10 @@ static Unpause(client = 0)
 	SetConVarInt(g_hPausable, 0);
 	ResetPauseRequests();
 }
+
+stock _P_CvarDump()
+{
+	decl iVal;
+	if (bool:(iVal = GetConVarBool(g_hPauseEnable_Cvar)) != g_bIsPauseEnable)
+		DebugLog("%d		|	%d		|	rotoblin_pause_allowed", iVal, g_bIsPauseEnable);
+}

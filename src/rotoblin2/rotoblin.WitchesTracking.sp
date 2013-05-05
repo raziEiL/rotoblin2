@@ -169,3 +169,10 @@ static Update_WT_MaxWithesConVar()
 {
 	g_iCvarMaxWithes = GetConVarInt(g_hMaxWitches);
 }
+
+stock _WT_CvarDump()
+{
+	decl iVal;
+	if ((iVal = GetConVarInt(g_hMaxWitches)) != g_iCvarMaxWithes)
+		DebugLog("%d		|	%d		|	rotoblin_max_witches", iVal, g_iCvarMaxWithes);
+}

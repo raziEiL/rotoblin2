@@ -29,7 +29,7 @@
 
 #define		START_ROOM_RADIUS		150
 
-#if R2_DEBUG
+#if DEBUG_COMMANDS
 	static	Handle:g_hMarker, g_iLaserCache;
 #endif
 
@@ -47,10 +47,10 @@ _MapInfo_OnPluginStart()
 	RegAdminCmd("mapinfo", CmdMapInfo, ADMFLAG_ROOT);
 	RegAdminCmd("getmapinfo", GetMapInfo, ADMFLAG_ROOT);
 
-	#if R2_DEBUG
-		RegConsoleCmd("sm_tp", CmdTelToSafeRoom);
-		RegConsoleCmd("sm_dis", CmdMyDis);
-		RegConsoleCmd("sm_entdis", CmdEntDis);
+	#if DEBUG_COMMANDS
+		RegAdminCmd("r2comp_tp",		Command_TeleportToSafeRoom, ADMFLAG_ROOT);
+		RegAdminCmd("r2comp_dis",	Command_Distance, ADMFLAG_ROOT);
+		RegAdminCmd("r2comp_entdis",	Command_EntityDistance, ADMFLAG_ROOT);
 	#endif
 }
 
@@ -137,7 +137,7 @@ _MI_OnMapStart()
 
 	KvGoBack(g_hKv);
 
-	#if R2_DEBUG
+	#if DEBUG_COMMANDS
 		g_iLaserCache = PrecacheModel("materials/sprites/laserbeam.vmt");
 
 		if (g_hMarker != INVALID_HANDLE){
@@ -257,8 +257,8 @@ public Native_R2comp_GetSafeRoomOrigin(Handle:plugin, numParams)
 	SetNativeArray(1, vOrg, 3);
 }
 
-#if R2_DEBUG
-public Action:CmdMyDis(client, agrs)
+#if DEBUG_COMMANDS
+public Action:Command_Distance(client, agrs)
 {
 	decl Float:vOrg[3];
 	GetClientAbsOrigin(client, vOrg);
@@ -266,7 +266,7 @@ public Action:CmdMyDis(client, agrs)
 	return Plugin_Handled;
 }
 
-public Action:CmdEntDis(client, agrs)
+public Action:Command_EntityDistance(client, agrs)
 {
 	new ent = GetClientAimTarget(client, false);
 
@@ -280,7 +280,7 @@ public Action:CmdEntDis(client, agrs)
 	return Plugin_Handled;
 }
 
-public Action:CmdTelToSafeRoom(client, agrs)
+public Action:Command_TeleportToSafeRoom(client, agrs)
 {
 	TeleportEntity(client, !agrs ? g_vStartSafeRoom : g_vEndSafeRoom, NULL_VECTOR, NULL_VECTOR);
 	return Plugin_Handled;

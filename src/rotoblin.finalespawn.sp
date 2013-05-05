@@ -62,7 +62,6 @@ static			Handle:g_hFnalSpawn, bool:g_bCvarFinalSpawn;
 _FinaleSpawn_OnPluginStart()
 {
 	g_hFnalSpawn = CreateConVarEx("finalspawn_range",	"0", "Reduces the spawn range on finales to normal spawning range", _, true, 0.0, true, 1.0);
-	g_bCvarFinalSpawn = GetConVarBool(g_hFnalSpawn);
 }
 
 /**
@@ -77,6 +76,7 @@ _FS_OnPluginEnabled()
 	HookEvent("finale_start", _FS_OnFinaleStart_Event, EventHookMode_PostNoCopy);
 
 	HookConVarChange(g_hFnalSpawn, _FS_FinalSpawn_CvarChange);
+	Get_FS_Cvars();
 }
 
 /**
@@ -106,10 +106,10 @@ public _FS_FinalSpawn_CvarChange(Handle:convar, const String:oldValue[], const S
 			HookOrUnhookPreThinkPost(true);
 	}
 
-	g_bCvarFinalSpawn = GetConVarBool(g_hFnalSpawn);
+	Get_FS_Cvars();
 }
 
-HookOrUnhookPreThinkPost(bool:bHook)
+static HookOrUnhookPreThinkPost(bool:bHook)
 {
 	if (!g_bCvarFinalSpawn) return;
 
@@ -122,6 +122,11 @@ HookOrUnhookPreThinkPost(bool:bHook)
 		else
 			SDKUnhook(client, SDKHook_PreThinkPost, _FS_SDKh_OnPreThinkPost);
 	}
+}
+
+static Get_FS_Cvars()
+{
+	g_bCvarFinalSpawn = GetConVarBool(g_hFnalSpawn);
 }
 
 /**
@@ -233,4 +238,11 @@ static bool:IsGhostTooCloseToSurvivors(client)
 static SetPlayerGhostSpawnState(client, spawnState)
 {
 	SetEntProp(client, Prop_Send, "m_ghostSpawnState", spawnState);
+}
+
+stock _FS_CvarDebug()
+{
+	decl bool:iVal;
+	if ((iVal = GetConVarBool(g_hFnalSpawn)) != g_bCvarFinalSpawn)
+		DebugLog("%d		|	%d		|	rotoblin_finalspawn_range", iVal, g_bCvarFinalSpawn);
 }
