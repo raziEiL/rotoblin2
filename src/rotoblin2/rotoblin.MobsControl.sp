@@ -5,7 +5,7 @@
  *
  *  File:			rotoblin.MobsControl.sp
  *  Type:			Module
- *  Description:	Remove natural hord while tank in game.
+ *  Description:	Remove natural hordes while tank in game...
  *
  *  Copyright (C) 2012-2013 raziEiL <war4291@mail.ru>
  *
@@ -25,43 +25,51 @@
  * ============================================================================
  */
 
-#define		MC_TAG	"[MobsControl]"
+#define		MC_TAG	 "[MobsControl]"
 
-static		Handle:g_hNoMobs, Handle:g_hMobTimer, Handle:g_hAllowHordes, Handle:g_hTankHordes, g_iCvarMobTime, bool:g_bCvarTankHordes,
-			bool:g_bEvents, bool:g_bLeftStartArea, g_iTick;
+static		Handle:g_hNoMobs, Handle:g_hMobTimer, Handle:g_hAllowHordes, Handle:g_hTankHordes, Handle:g_hCvarNoStartsCI, 
+			g_iCvarMobTime, bool:g_bCvarTankHordes, bool:g_bCvarNoStartsCI, bool:g_bEvents, bool:g_bLeftStartArea, g_iTick;
 
 _MobsControl_OnPluginStart()
 {
-	g_hNoMobs			=	 FindConVar("director_no_mobs");
+	g_hNoMobs				= FindConVar("director_no_mobs");
 
-	g_hAllowHordes	=	CreateConVarEx("allow_natural_hordes", 	"0",	"Allow natural hordes to spawn.", _, true, 0.0);
-	g_hTankHordes	=	CreateConVarEx("disable_tank_hordes", 	"0",	"Disables natural hordes while tanks are in play.", _, true, 0.0, true, 1.0);
+	g_hAllowHordes		= CreateConVarEx("allow_natural_hordes",		"0", "Allow natural hordes to spawn.", _, true, 0.0);
+	g_hTankHordes		= CreateConVarEx("disable_tank_hordes",		"0", "Disables natural hordes while tanks are in play.", _, true, 0.0, true, 1.0);
+	g_hCvarNoStartsCI	= CreateConVarEx("remove_start_commons",		"0", "Removes all common infected near by a saferoom and returns them when one of survivors leaves a saferoom.", _, true, 0.0, true, 1.0);
 
-	#if R2_DEBUG
-		RegAdminCmd("sm_mobtimer", CmdGetMobTimer, ADMFLAG_ROOT);
+	#if DEBUG_COMMANDS
+		RegAdminCmd("sm_mobtimer", Cmmand_dGetMobTimer, ADMFLAG_ROOT);
 	#endif
 }
 
 _MC_OnPluginEnabled()
 {
+	g_bLeftStartArea = false;
+
 	HookEvent("round_start",					_MC_ev_RoundStart, EventHookMode_PostNoCopy);
 	HookEvent("player_left_start_area",		_MC_ev_PlayerLeftStartArea, EventHookMode_PostNoCopy);
 
 	HookConVarChange(g_hAllowHordes,		_MC_Enable_CvarChange);
-	HookConVarChange(g_hTankHordes,			_MC_TankHordes_CvarChange);
-	HookConVarChange(g_hNoMobs,				_MC_NoMobs_CvarChange);
+	HookConVarChange(g_hTankHordes,		_MC_TankHordes_CvarChange);
+	HookConVarChange(g_hNoMobs,			_MC_NoMobs_CvarChange);
+	HookConVarChange(g_hCvarNoStartsCI,	_MC_NoStartsCI_CvarChange);
 
 	Update_MC_EnableConVar();
 	Update_MC_TankHordesConVar();
+	Update_MC_NoStartsCIConVar();
 }
 
 _MC_OnPluginDisabled()
 {
+	g_bLeftStartArea = true;
+
 	UnhookEvent("round_start",				_MC_ev_RoundStart, EventHookMode_PostNoCopy);
 	UnhookEvent("player_left_start_area",	_MC_ev_PlayerLeftStartArea, EventHookMode_PostNoCopy);
 
 	UnhookConVarChange(g_hAllowHordes,		_MC_Enable_CvarChange);
 	UnhookConVarChange(g_hTankHordes,		_MC_TankHordes_CvarChange);
+	UnhookConVarChange(g_hCvarNoStartsCI,	_MC_NoStartsCI_CvarChange);
 
 	_MC_ToggleEvents(false);
 	_MC_ToggleHordes(false);
@@ -77,7 +85,9 @@ _MC_OnMapEnd()
 public Action:_MC_ev_RoundStart(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	g_bLeftStartArea = false;
-	CreateTimer(0.5, _MC_t_SlayCI, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+
+	if (g_bCvarNoStartsCI)
+		CreateTimer(0.5, _MC_t_SlayCI, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 
 	if (g_iCvarMobTime){
 
@@ -239,10 +249,31 @@ static _MC_ToggleEvents(bool:bHook)
 	}
 }
 
-#if R2_DEBUG
-public Action:CmdGetMobTimer(client, args)
+public _MC_NoStartsCI_CvarChange(Handle:convar, const String:oldValue[], const String:newValue[])
+{
+	if (StrEqual(oldValue, newValue)) return;
+
+	Update_MC_NoStartsCIConVar();
+}
+
+Update_MC_NoStartsCIConVar()
+{
+	g_bCvarNoStartsCI = GetConVarBool(g_hCvarNoStartsCI);
+}
+
+#if DEBUG_COMMANDS
+public Action:Cmmand_dGetMobTimer(client, args)
 {
 	ReplyToCommand(client, "Mob timer: %d (-1 = Disabled)", MC_GetMobTimer());
 	return Plugin_Handled;
 }
 #endif
+
+stock _MC_CvarDump()
+{
+	decl iVal;
+	if ((iVal = GetConVarInt(g_hAllowHordes)) != g_iCvarMobTime)
+		DebugLog("%d		|	%d		|	rotoblin_allow_natural_hordes", iVal, g_iCvarMobTime);
+	if (bool:(iVal = GetConVarBool(g_hTankHordes)) != g_bCvarTankHordes)
+		DebugLog("%d		|	%d		|	rotoblin_disable_tank_hordes", iVal, g_bCvarTankHordes);
+}

@@ -81,7 +81,14 @@ public _NET_Enable_CvarChange(Handle:convar, const String:oldValue[], const Stri
 	Update_NET_EnableConVar();
 }
 
-Update_NET_EnableConVar()
+static Update_NET_EnableConVar()
 {
 	g_bEnableNoEscTank = GetConVarBool(g_hEnableNoEscTank);
+}
+
+stock _NET_CvarDump()
+{
+	decl bool:iVal;
+	if ((iVal = GetConVarBool(g_hEnableNoEscTank)) != g_bEnableNoEscTank)
+		DebugLog("%d		|	%d		|	rotoblin_no_escape_tank", iVal, g_bEnableNoEscTank);
 }

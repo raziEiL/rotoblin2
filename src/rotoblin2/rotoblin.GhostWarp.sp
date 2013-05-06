@@ -105,7 +105,14 @@ public _GW_EnableConVarChange(Handle:convar, const String:oldValue[], const Stri
 	Update_GW_EnableConVars();
 }
 
-Update_GW_EnableConVars()
+static Update_GW_EnableConVars()
 {
 	g_bWarpEnable = GetConVarBool(g_hWarpEnable);
+}
+
+stock _GW_CvarDump()
+{
+	decl bool:iVal;
+	if ((iVal = GetConVarBool(g_hWarpEnable)) != g_bWarpEnable)
+		DebugLog("%d		|	%d		|	rotoblin_ghost_warp", iVal, g_bWarpEnable);
 }

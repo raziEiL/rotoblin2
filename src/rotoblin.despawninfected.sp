@@ -58,8 +58,8 @@ static	const	String:	DEBUG_CHANNEL_NAME[]				= "DespawnInfected";
 
 static Handle:g_hDIEnable, bool:g_bCvarDIEnabled;
 
-#if R2_DEBUG
-	static Handle:g_hDebugArray;
+#if DEBUG_COMMANDS
+	static Handle:g_hDebugArray, Handle:g_hDebugArray2, bool:g_bRespawnedMob;
 #endif
 // **********************************************
 //                   Forwards
@@ -73,14 +73,14 @@ static Handle:g_hDIEnable, bool:g_bCvarDIEnabled;
 _DespawnInfected_OnPluginStart()
 {
 	g_hDIEnable = CreateConVarEx("despawn_infected", "0", "Despawn infected commons who is too far behind the survivors.", _, true, 0.0, true, 1.0);
-	g_bCvarDIEnabled = GetConVarBool(g_hDIEnable);
 
 	g_iDebugChannel = DebugAddChannel(DEBUG_CHANNEL_NAME);
 	DebugPrintToAllEx("Module is now setup");
-	
-	#if R2_DEBUG
+
+	#if DEBUG_COMMANDS
 		RegConsoleCmd("sm_diwipemarkers", Command_WipeAllMarkers);
 		g_hDebugArray = CreateArray(3);
+		g_hDebugArray2 = CreateArray(3);
 		CreateTimer(1.0, DI_t_DebugMarkers, _, TIMER_REPEAT);
 	#endif
 }
@@ -93,6 +93,7 @@ _DespawnInfected_OnPluginStart()
 _DI_OnPluginEnabled()
 {
 	HookConVarChange(g_hDIEnable, DI_OnCvarChange_Enabled);
+	Get_DI_Cvars();
 
 	if (g_bLoadLater && g_bCvarDIEnabled)
 		_DI_ToogleHook(true);
@@ -111,36 +112,6 @@ _DI_OnPluginDisabled()
 		_DI_ToogleHook(false);
 }
 
-_DI_ToogleHook(bool:bHook)
-{
-	if (bHook){
-
-		for (new i = MaxClients + 1; i <= MAX_EDICTS; i++) g_fCommonLifetime[i] = 0.0;
-
-		g_hCommonTimer = CreateTimer(COMMON_CHECK_INTERVAL, _DI_Check_Timer, _, TIMER_REPEAT);
-
-		HookEvent("round_start", _DI_RoundStart_Event, EventHookMode_PostNoCopy);
-		DebugPrintToAllEx("Module is now loaded");
-		DebugLog("%s ENABLED", DI_TAG);
-	}
-	else {
-		CloseHandle(g_hCommonTimer);
-
-		UnhookEvent("round_start", _DI_RoundStart_Event, EventHookMode_PostNoCopy);
-		DebugPrintToAllEx("Module is now unloaded");
-		DebugLog("%s DISABLED", DI_TAG);
-	}
-}
-
-public DI_OnCvarChange_Enabled(Handle:hHandle, const String:sOldVal[], const String:sNewVal[])
-{
-	if (StrEqual(sOldVal, sNewVal)) return;
-	g_bCvarDIEnabled = GetConVarBool(hHandle);
-
-	if (IsPluginEnabled())
-		_DI_ToogleHook(g_bCvarDIEnabled);
-}
-
 /**
  * When an entity is created.
  *
@@ -152,6 +123,11 @@ _DI_OnEntityCreated(entity, const String:classname[])
 {
 	if (!g_bCvarDIEnabled || !StrEqual(classname, CLASSNAME_INFECTED, false)) return;
 	g_fCommonLifetime[entity] = GetGameTime();
+
+	#if DEBUG_COMMANDS
+		if (!g_bRespawnedMob) return;
+		CreateTimer(0.5, WI_t_DebugGetMobOrg, EntIndexToEntRef(entity));
+	#endif
 }
 
 /**
@@ -176,7 +152,7 @@ _DI_OnEntityDestroyed(entity)
  */
 public _DI_RoundStart_Event(Handle:event, const String:name[], bool:dontBroadcast)
 {
-	#if R2_DEBUG
+	#if DEBUG_COMMANDS
 		DI_ClearDebugArray();
 	#endif
 
@@ -235,8 +211,18 @@ public Action:_DI_RespawnInfected_Timer(Handle:timer)
 {
 	if (g_iCommonSpawnQueue < 1) return Plugin_Stop; // only work if there is a respawn needed, kill timer if not
 
-	CheatCommand(_, "z_spawn", "infected auto");
+	if (!SurvivorCount) return Plugin_Continue;
+
+	#if DEBUG_COMMANDS
+		g_bRespawnedMob = true;
+	#endif
+
+	CheatCommandEx(SurvivorIndex[0], "z_spawn", "infected auto");
 	g_iCommonSpawnQueue--;
+
+	#if DEBUG_COMMANDS
+		g_bRespawnedMob = false;
+	#endif
 
 	DebugPrintToAllEx("Respawned common. Commons left in queue %i", g_iCommonSpawnQueue);
 
@@ -294,32 +280,24 @@ static DespawningCommons(Float:lastSurvivorFlow, firstSurvivor)
 		return;
 	}
 
-	new entityCount = GetEntityCount();
-	decl String:classname[128];
 	decl Float:commonFlow;
+	new entity = -1;
 
-	for (new entity = MaxClients + 1; entity <= entityCount; entity++)
+	while ((entity = FindEntityByClassname(entity, CLASSNAME_INFECTED)) != INVALID_ENT_REFERENCE)
 	{
 		if (g_fCommonLifetime[entity] == 0.0) continue;
-
-		if (!IsValidEntity(entity)) continue;
-
-		GetEntityClassname(entity, classname, sizeof(classname));
-		if (!StrEqual(classname, CLASSNAME_INFECTED, false)) continue;
 
 		commonFlow = GetInfectedFlowDistance(entity);
 		if (commonFlow < 0) continue; // common is in a infected-only areas, continue
 
 		if ((lastSurvivorFlow - DESPAWN_DISTANCE) <= commonFlow) continue; // common is close to the survivors, continue
 
-		new Float:changeInLifetime = GetGameTime() - g_fCommonLifetime[entity];
-		if (changeInLifetime < MIN_COMMON_LIFETIME) continue; // common haven't been alive for enough time, continue
+		if ((GetGameTime() - g_fCommonLifetime[entity]) < MIN_COMMON_LIFETIME) continue; // common haven't been alive for enough time, continue
 
 		if (IsVisibleToSurvivors(entity)) continue; // Common is visible to the survivors, continue
 
-		#if R2_DEBUG
+		#if DEBUG_COMMANDS
 			decl Float:vOrg[3];
-			vOrg[2] += 10.0;
 			GetEntityOrg(entity, vOrg);
 			PushArrayArray(g_hDebugArray, vOrg);
 		#endif
@@ -411,33 +389,95 @@ static bool:IsVisibleTo(client, entity) // check an entity for being visible to 
 	return isVisible;
 }
 
-#if R2_DEBUG
+#if DEBUG_COMMANDS
 public Action:Command_WipeAllMarkers(client, args)
 {
 	DI_ClearDebugArray();
-	ReplyToCommand(client, "%s Markers removed.", DI_TAG);
+	ReplyToCommand(client, "%s Markers were removed.", DI_TAG);
 	return Plugin_Handled;
 }
 
 DI_ClearDebugArray()
 {
 	ClearArray(g_hDebugArray);
+	ClearArray(g_hDebugArray2);
 }
 
 public Action:DI_t_DebugMarkers(Handle:timer)
 {
-	new iArraySize = GetArraySize(g_hDebugArray) - 1;
+	new iArraySize = GetArraySize(g_hDebugArray);
 	if (!iArraySize) return;
-	
+
 	decl Float:vOrg[3];
 	for (new i; i < iArraySize; i++){
-	
+
 		GetArrayArray(g_hDebugArray, i, vOrg);
 		TE_SetupBeamRingPoint(vOrg, 20.0, 22.0, GetLaserCaheIndex(), 0, 0, 1, 1.0, 1.0, 1.0, {255, 0, 0, 255}, 0, 0);
 		TE_SendToAll();
 	}
+
+	iArraySize = GetArraySize(g_hDebugArray2);
+	if (!iArraySize) return;
+
+	for (new i; i < iArraySize; i++){
+
+		GetArrayArray(g_hDebugArray2, i, vOrg);
+		TE_SetupBeamRingPoint(vOrg, 20.0, 22.0, GetLaserCaheIndex(), 0, 0, 1, 1.0, 1.0, 1.0, {0, 255, 0, 255}, 0, 0);
+		TE_SendToAll();
+	}
+}
+public Action:WI_t_DebugGetMobOrg(Handle:timer, any:entity)
+{
+	if ((entity = EntRefToEntIndex(entity)) == INVALID_ENT_REFERENCE) return;
+
+	decl Float:vOrg[3];
+	GetEntityOrg(entity, vOrg);
+	vOrg[2] += 5.0;
+	//PrintToChatAll("%.1f %.1f %.1f", vOrg[0], vOrg[1], vOrg[2]);
+	PushArrayArray(g_hDebugArray2, vOrg);
 }
 #endif
+
+_DI_ToogleHook(bool:bHook)
+{
+	if (bHook){
+
+		for (new i = MaxClients + 1; i <= MAX_EDICTS; i++) g_fCommonLifetime[i] = 0.0;
+
+		g_hCommonTimer = CreateTimer(COMMON_CHECK_INTERVAL, _DI_Check_Timer, _, TIMER_REPEAT);
+
+		HookEvent("round_start", _DI_RoundStart_Event, EventHookMode_PostNoCopy);
+		DebugPrintToAllEx("Module is now loaded");
+		DebugLog("%s ENABLED", DI_TAG);
+	}
+	else {
+		CloseHandle(g_hCommonTimer);
+
+		UnhookEvent("round_start", _DI_RoundStart_Event, EventHookMode_PostNoCopy);
+		DebugPrintToAllEx("Module is now unloaded");
+		DebugLog("%s DISABLED", DI_TAG);
+	}
+}
+
+public DI_OnCvarChange_Enabled(Handle:hHandle, const String:sOldVal[], const String:sNewVal[])
+{
+	if (StrEqual(sOldVal, sNewVal)) return;
+	Get_DI_Cvars();
+
+	_DI_ToogleHook(g_bCvarDIEnabled);
+}
+
+static Get_DI_Cvars()
+{
+	g_bCvarDIEnabled = GetConVarBool(g_hDIEnable);
+}
+
+stock _DI_CvarDump()
+{
+	decl bool:iVal;
+	if ((iVal = GetConVarBool(g_hDIEnable)) != g_bCvarDIEnabled)
+		DebugLog("%d		|	%d		|	rotoblin_despawn_infected", iVal, g_bCvarDIEnabled);
+}
 
 /**
  * Wrapper for printing a debug message without having to define channel index

@@ -25,7 +25,7 @@
  * ============================================================================
  */
 
-#define			IC_TAG	"[IteamControl]"
+#define			IC_TAG		"[IteamControl]"
 
 #define GASCAN_MODEL			"models/props_junk/gascan001a.mdl"
 #define PROPANE_MODEL		"models/props_junk/propanecanister001a.mdl"
@@ -57,22 +57,24 @@ static const String:g_sName[MAX_ITEMS][] =
 static	Handle:g_hItemArray[MAX_ITEMS], Handle:g_hItem[MAX_ITEMS], Handle:g_hDensiny[MAX_ITEMS], g_iCvarItem[MAX_ITEMS],
 		Handle:g_hRemoveCannisters, Handle:g_hRemoveBarrels, Handle:g_hRemoveHuntingRiffle, Handle:g_hAlterSpawningLogic,
 		bool:g_bCvarRemoveCannisters, bool:g_bCvarRemoveBarrels, g_iCvarHuntingRiffle, Handle:g_hRemoveDualPistols,
-		bool:g_bCvarRemoveDualPistols, g_iLimit[MAX_ITEMS], g_iPickUp[MAX_ITEMS], bool:g_bAlterSpawningLogic;
+		bool:g_bCvarRemoveDualPistols, g_iLimit[MAX_ITEMS], g_iPickUp[MAX_ITEMS], bool:g_bAlterSpawningLogic,
+		Handle:g_hClusterCount;
 
 _ItemControl_OnPluginStart()
 {
 	g_hDensiny[WEAPINDEX_MOLOTOV]	= 	FindConVar("director_molotov_density");
 	g_hDensiny[WEAPINDEX_PIPEBOMB]	= 	FindConVar("director_pipe_bomb_density");
 	g_hDensiny[WEAPINDEX_PILLS]		= 	FindConVar("director_pain_pill_density");
+	g_hClusterCount						=	FindConVar("director_finale_item_cluster_count");
 
-	g_hItem[WEAPINDEX_MOLOTOV] 		=	CreateConVarEx("molotov_limit", 			"0",	"Limits the number of molotov on each map outside of safe rooms. (-1: remove all, 0: director settings, > 0: limit to cvar value)", _, true, -1.0);
-	g_hItem[WEAPINDEX_PIPEBOMB] 		=	CreateConVarEx("pipebomb_limit", 			"0",	"Limits the number of pipe-bomb on each map outside of safe rooms. (-1: remove all, 0: director settings, > 0: limit to cvar value)", _, true, -1.0);
-	g_hItem[WEAPINDEX_PILLS]			=	CreateConVarEx("pills_limit", 				"0",	"Limits the number of pills on each map outside of safe rooms. (-1: remove all, 0: director settings, > 0: limit to cvar value)", _, true, -1.0);
-	g_hRemoveCannisters 				=	CreateConVarEx("remove_cannisters", 		"0",	"Enables or disables cannisters (gascan, propane and oxygen)", _, true, 0.0, true, 1.0);
-	g_hRemoveBarrels 					=	CreateConVarEx("remove_explosive_barrels", 	"0", 	"Remove Sacrifice explosive barrels.", _, true, 0.0, true, 1.0);
-	g_hRemoveHuntingRiffle			=	CreateConVarEx("remove_huntingrifle", 		"0", 	"Removes all hunting rifles from start saferooms.", _, true, -1.0, true, 1.0);
-	g_hRemoveDualPistols				=	CreateConVarEx("remove_pistols", 			"0", 	"Removes all dual pistols.", _, true, 0.0, true, 1.0);
-	g_hAlterSpawningLogic				=	CreateConVarEx("spawning_logic", 			"0", 	"Enable alternative spawning logic for items", _, true, 0.0, true, 1.0);
+	g_hItem[WEAPINDEX_MOLOTOV] 		=	CreateConVarEx("molotov_limit",				"0",	"Limits the number of molotov on each map outside of safe rooms. (-1: remove all, 0: director settings, > 0: limit to cvar value)", _, true, -1.0);
+	g_hItem[WEAPINDEX_PIPEBOMB] 		=	CreateConVarEx("pipebomb_limit",				"0",	"Limits the number of pipe-bomb on each map outside of safe rooms. (-1: remove all, 0: director settings, > 0: limit to cvar value)", _, true, -1.0);
+	g_hItem[WEAPINDEX_PILLS]			=	CreateConVarEx("pills_limit",				"0",	"Limits the number of pills on each map outside of safe rooms. (-1: remove all, 0: director settings, > 0: limit to cvar value)", _, true, -1.0);
+	g_hRemoveCannisters 				=	CreateConVarEx("remove_cannisters",			"0",	"Enables or disables cannisters (gascan, propane and oxygen)", _, true, 0.0, true, 1.0);
+	g_hRemoveBarrels 					=	CreateConVarEx("remove_explosive_barrels",	"0", 	"Remove Sacrifice explosive barrels.", _, true, 0.0, true, 1.0);
+	g_hRemoveHuntingRiffle				=	CreateConVarEx("remove_huntingrifle", 		"0", 	"Removes all hunting rifles from start saferooms.", _, true, -1.0, true, 1.0);
+	g_hRemoveDualPistols				=	CreateConVarEx("remove_pistols",				"0", 	"Removes all dual pistols.", _, true, 0.0, true, 1.0);
+	g_hAlterSpawningLogic				=	CreateConVarEx("spawning_logic",				"0", 	"Enable alternative spawning logic for items", _, true, 0.0, true, 1.0);
 
 	IC_WipeArray(false);
 }
@@ -82,12 +84,12 @@ _IC_OnPluginEnabled()
 	HookEvent("round_start", IC_ev_RoundStart, EventHookMode_PostNoCopy);
 
 	HookConVarChange(g_hItem[WEAPINDEX_MOLOTOV],		IC_OnCvarChange_MolotovLimit);
-	HookConVarChange(g_hItem[WEAPINDEX_PIPEBOMB],	IC_OnCvarChange_PipeBombLimit);
-	HookConVarChange(g_hItem[WEAPINDEX_PILLS],		IC_OnCvarChange_PainPillsLimit);
+	HookConVarChange(g_hItem[WEAPINDEX_PIPEBOMB],		IC_OnCvarChange_PipeBombLimit);
+	HookConVarChange(g_hItem[WEAPINDEX_PILLS],			IC_OnCvarChange_PainPillsLimit);
 	HookConVarChange(g_hRemoveCannisters,				IC_OnCvarChange_RemoveCannisters);
 	HookConVarChange(g_hRemoveBarrels,					IC_OnCvarChange_RemoveBarrels);
 	HookConVarChange(g_hRemoveHuntingRiffle,			IC_OnCvarChange_RemoveHuntingRiffle);
-	HookConVarChange(g_hRemoveDualPistols,			IC_OnCvarChange_RemoveDualPistols);
+	HookConVarChange(g_hRemoveDualPistols,				IC_OnCvarChange_RemoveDualPistols);
 	HookConVarChange(g_hAlterSpawningLogic,			IC_OnCvarChange_AlterSpawningLogic);
 	GetCvars();
 }
@@ -96,18 +98,19 @@ _IC_OnPluginDisabled()
 {
 	UnhookEvent("round_start", IC_ev_RoundStart, EventHookMode_PostNoCopy);
 
-	UnhookConVarChange(g_hItem[WEAPINDEX_MOLOTOV],		IC_OnCvarChange_MolotovLimit);
-	UnhookConVarChange(g_hItem[WEAPINDEX_PIPEBOMB],		IC_OnCvarChange_PipeBombLimit);
-	UnhookConVarChange(g_hItem[WEAPINDEX_PILLS],			IC_OnCvarChange_PainPillsLimit);
-	UnhookConVarChange(g_hRemoveCannisters,				IC_OnCvarChange_RemoveCannisters);
-	UnhookConVarChange(g_hRemoveBarrels,					IC_OnCvarChange_RemoveBarrels);
-	UnhookConVarChange(g_hRemoveHuntingRiffle,			IC_OnCvarChange_RemoveHuntingRiffle);
-	UnhookConVarChange(g_hRemoveDualPistols,				IC_OnCvarChange_RemoveDualPistols);
+	UnhookConVarChange(g_hItem[WEAPINDEX_MOLOTOV],	IC_OnCvarChange_MolotovLimit);
+	UnhookConVarChange(g_hItem[WEAPINDEX_PIPEBOMB],	IC_OnCvarChange_PipeBombLimit);
+	UnhookConVarChange(g_hItem[WEAPINDEX_PILLS],		IC_OnCvarChange_PainPillsLimit);
+	UnhookConVarChange(g_hRemoveCannisters,			IC_OnCvarChange_RemoveCannisters);
+	UnhookConVarChange(g_hRemoveBarrels,				IC_OnCvarChange_RemoveBarrels);
+	UnhookConVarChange(g_hRemoveHuntingRiffle,		IC_OnCvarChange_RemoveHuntingRiffle);
+	UnhookConVarChange(g_hRemoveDualPistols,			IC_OnCvarChange_RemoveDualPistols);
 	UnhookConVarChange(g_hAlterSpawningLogic,			IC_OnCvarChange_AlterSpawningLogic);
 
-	SetDirectorSettings(g_hDensiny[WEAPINDEX_MOLOTOV],		0);
+	SetDirectorSettings(g_hDensiny[WEAPINDEX_MOLOTOV],	0);
 	SetDirectorSettings(g_hDensiny[WEAPINDEX_PIPEBOMB],	0);
 	SetDirectorSettings(g_hDensiny[WEAPINDEX_PILLS],		0);
+	AddMoreClusters(0);
 
 	IC_WipeArray(true);
 }
@@ -117,9 +120,9 @@ _IC_OnMapEnd()
 	IC_WipeArray(true);
 }
 
-IC_WipeArray(bool:bWipe)
+static IC_WipeArray(bool:bWipe)
 {
-	for (new INDEX = 0; INDEX < MAX_ITEMS; INDEX++){
+	for (new INDEX; INDEX < MAX_ITEMS; INDEX++){
 
 		if (bWipe)
 			ClearArray(g_hItemArray[INDEX]);
@@ -391,7 +394,7 @@ public Action:IC_ev_SpawnerGiveItem(Handle:event, const String:name[], bool:dont
 
 		new iEnt = -1;
 		while ((iEnt = FindEntityByClassname(iEnt, g_sSpawnName[iWeapIndex])) != INVALID_ENT_REFERENCE)
-			if (iWeapIndex < 2 || IsEntOutSideSafeRoomEx(iEnt))
+			if (/* удаляем все бомбы или моловы */iWeapIndex < 2 || /* не трогаем таблетки в убежищах */IsEntOutSideSafeRoomEx(iEnt))
 				SafelyRemoveEdict(iEnt);
 	}
 }
@@ -400,7 +403,7 @@ static bool:ComapreVectors(Float:vVectorA[3], iArraySize, Handle:hArray)
 {
 	static Float:vVectorB[3];
 
-	for (new i = 0; i < iArraySize; i++){
+	for (new i; i < iArraySize; i++){
 
 		GetArrayArray(hArray, i, vVectorB);
 
@@ -450,6 +453,14 @@ SetDirectorSettings(Handle:hCvar, iVal)
 		default:
 			SetConVarInt(hCvar, 10);
 	}
+}
+
+static AddMoreClusters(iVal)
+{
+	if (iVal > 0)
+		SetConVarInt(g_hClusterCount, 20);
+	else
+		ResetConVar(g_hClusterCount);
 }
 
 CheckSpawningLogic(&iVal, iWeapIndex)
@@ -527,6 +538,7 @@ static GetConVarMolotovLimit()
 	SetDirectorSettings(g_hDensiny[WEAPINDEX_MOLOTOV], g_iCvarItem[WEAPINDEX_MOLOTOV]);
 
 	CheckSpawningLogic(g_iCvarItem[WEAPINDEX_MOLOTOV], WEAPINDEX_MOLOTOV);
+	AddMoreClusters(g_iCvarItem[WEAPINDEX_MOLOTOV]);
 }
 
 static GetConVarPipeBombLimit()
@@ -535,6 +547,7 @@ static GetConVarPipeBombLimit()
 	SetDirectorSettings(g_hDensiny[WEAPINDEX_PIPEBOMB], g_iCvarItem[WEAPINDEX_PIPEBOMB]);
 
 	CheckSpawningLogic(g_iCvarItem[WEAPINDEX_PIPEBOMB], WEAPINDEX_PIPEBOMB);
+	AddMoreClusters(g_iCvarItem[WEAPINDEX_PIPEBOMB]);
 }
 
 static GetConVarPainPillsbLimit()
@@ -580,4 +593,25 @@ static GetCvars()
 	GetConVarRemoveHuntingRiffle();
 	GetConVarRemoveDualPistols();
 	GetConVarAlterSpawningLogic();
+}
+
+stock _IC_CvarDump()
+{
+	decl iVal;
+	if ((iVal = GetConVarInt(g_hItem[WEAPINDEX_MOLOTOV])) != g_iCvarItem[WEAPINDEX_MOLOTOV] && !g_bAlterSpawningLogic)
+		DebugLog("%d		|	%d		|	rotoblin_molotov_limit", iVal, g_iCvarItem[WEAPINDEX_MOLOTOV]);
+	if ((iVal = GetConVarInt(g_hItem[WEAPINDEX_PIPEBOMB])) != g_iCvarItem[WEAPINDEX_PIPEBOMB] && !g_bAlterSpawningLogic)
+		DebugLog("%d		|	%d		|	rotoblin_pipebomb_limit", iVal, g_iCvarItem[WEAPINDEX_PIPEBOMB]);
+	if ((iVal = GetConVarInt(g_hItem[WEAPINDEX_PILLS])) != g_iCvarItem[WEAPINDEX_PILLS] && !g_bAlterSpawningLogic)
+		DebugLog("%d		|	%d		|	rotoblin_pills_limit", iVal, g_iCvarItem[WEAPINDEX_PILLS]);
+	if (bool:(iVal = GetConVarBool(g_hRemoveCannisters)) != g_bCvarRemoveCannisters)
+		DebugLog("%d		|	%d		|	rotoblin_remove_cannisters", iVal, g_bCvarRemoveCannisters);
+	if (bool:(iVal = GetConVarBool(g_hRemoveBarrels)) != g_bCvarRemoveBarrels)
+		DebugLog("%d		|	%d		|	rotoblin_remove_explosive_barrels", iVal, g_bCvarRemoveBarrels);
+	if ((iVal = GetConVarInt(g_hRemoveHuntingRiffle)) != g_iCvarHuntingRiffle)
+		DebugLog("%d		|	%d		|	rotoblin_remove_huntingrifle", iVal, g_iCvarHuntingRiffle);
+	if (bool:(iVal = GetConVarBool(g_hRemoveDualPistols)) != g_bCvarRemoveDualPistols)
+		DebugLog("%d		|	%d		|	rotoblin_remove_pistols", iVal, g_bCvarRemoveDualPistols);
+	if (bool:(iVal = GetConVarBool(g_hAlterSpawningLogic)) != g_bAlterSpawningLogic)
+		DebugLog("%d		|	%d		|	rotoblin_spawning_logic", iVal, g_bAlterSpawningLogic);
 }

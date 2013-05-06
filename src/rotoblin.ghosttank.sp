@@ -78,10 +78,10 @@ _GT_OnPluginEnabled()
 {
 	g_hSelectionTimeCvar	= FindConVar(SELECTION_TIME_CVAR);
 
-	HookEvent("round_start"			, _GT_RoundStart_Event, EventHookMode_PostNoCopy);
-	HookEvent("player_hurt"			, _GT_PlayerHurt_Event);
-	HookEvent("player_incapacitated", _GT_PlayerIncap_Event);
-	HookEvent("spawned_as_tank", _GT_ev_SpawnedAsTank);
+	HookEvent("round_start" , 			_GT_RoundStart_Event, EventHookMode_PostNoCopy);
+	HookEvent("player_hurt" , 			_GT_PlayerHurt_Event);
+	HookEvent("player_incapacitated", 	_GT_PlayerIncap_Event);
+	HookEvent("spawned_as_tank",			_GT_ev_SpawnedAsTank);
 
 	g_bIsTankFireImmune = false;
 

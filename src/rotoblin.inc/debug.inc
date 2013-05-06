@@ -35,8 +35,6 @@
 // --------------------
 //       Public
 // --------------------
-static const 			LOG_ON							=	0;					// Логирование в фаил.
-#define					R2_DEBUG								0					// Компиляция с расширеными опциями и консольными командами для разработчика.
 #define 				ROTOBLON_LOG		"logs\\rotoblin.log"
 
 
@@ -253,14 +251,41 @@ static bool:SetupModule()
 	HookConVarChange(cvar, _H_D_Output_CvarChange);
 
 	RegAdminCmdEx("debug_status", _H_D_Status_Command, ADMFLAG_ROOT, "Writes report of channels and what is current listen to", _, FCVAR_PLUGIN);
-
+	
+	#if DEBUG_COMMANDS
+		RegAdminCmd("r2comp_dump_cvar_status", Command_DumpCvars, ADMFLAG_ROOT);
+	#endif
+	
 	g_bIsModuleSetup = true;
 	return true;
 }
 
+#if DEBUG_COMMANDS
+public Action:Command_DumpCvars(client, args)
+{
+	DebugLog("hCvar	|   Value	| CvarName");
+
+	_WC_CvarDump();
+	_P_CvarDump();
+	_MF_CvarDump();
+	_LHR_CvarDump();
+	_HC_CvarDump();
+	_FS_CvarDebug();
+	_DI_CvarDump();
+	_WT_CvarDump();
+	_WSD_CvarDump();
+	_NET_CvarDump();
+	_MC_CvarDump();
+	_IC_CvarDump();
+	_GW_CvarDump();
+
+	return Plugin_Handled;
+}
+#endif
+
 DebugLog(const String:sLog[], any:...)
 {
-	if (!LOG_ON || !SetupModule()) return;
+	if (!R2COMP_LOG || !SetupModule()) return;
 
 	decl String:sBuffer[256];
 	VFormat(sBuffer, sizeof(sBuffer), sLog, 2);
@@ -269,5 +294,5 @@ DebugLog(const String:sLog[], any:...)
 
 IsDebugEnabled()
 {
-	return LOG_ON;
+	return R2COMP_LOG;
 }
