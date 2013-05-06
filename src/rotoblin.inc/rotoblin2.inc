@@ -58,7 +58,7 @@
 
 // New modules
 #include "rotoblin2/rotoblin.AutoLoader.sp"
-#include "rotoblin2/rotoblin.AntiScrabble.sp"
+#include "rotoblin2/rotoblin.AntiScrable.sp"
 #include "rotoblin2/rotoblin.MapInfo.sp"
 #include "rotoblin2/rotoblin.TrackCvars.sp"
 #include "rotoblin2/rotoblin.WaterSlowdown.sp"

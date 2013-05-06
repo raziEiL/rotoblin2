@@ -3,7 +3,7 @@
  *
  * This file is part of the Rotoblin 2 project.
  *
- *  File:			rotoblin.AntiScrabble.sp
+ *  File:			rotoblin.AntiScrable.sp
  *  Type:			Module
  *  Credits:		Scratchy (Idea)
  *
@@ -25,7 +25,7 @@
  * ============================================================================
  */
 
-#define AS_TAG				"[Anti-Scrabble]"
+#define AS_TAG				"[Anti-Scrable]"
 
 static	Handle:g_hTrine, Handle:g_hCvarNotify, Handle:g_hCvarEnable, bool:g_bCvarASEnable, bool:g_bCheked[MAXPLAYERS+1], bool:g_bJoinTeamUsed[MAXPLAYERS+1],
 		g_iFailureCount[MAXPLAYERS+1], bool:g_bMapTranslition, bool:g_bTeamLock, g_isOldTeamFlipped, g_isNewTeamFlipped, g_iTrineSize;
@@ -34,8 +34,8 @@ _AntiScrabble_OnPluginStart()
 {
 	g_hTrine = CreateTrie();
 
-	g_hCvarNotify = CreateConVarEx("anti_scrabble_notify", "0", "Enable/disable notification.", _, true, 0.0, true, 1.0);
-	g_hCvarEnable = CreateConVarEx("allow_anti_scrabble", "0", "Enable/disable anti-scrabble", _, true, 0.0, true, 1.0);
+	g_hCvarNotify = CreateConVarEx("anti_scrable_notify", "0", "Enable/disable notification.", _, true, 0.0, true, 1.0);
+	g_hCvarEnable = CreateConVarEx("allow_anti_scrable", "0", "Enable/disable anti-scrable", _, true, 0.0, true, 1.0);
 
 	#if SCORES_COMMAND
 		RegConsoleCmd("sm_scores", Command_Scores);
@@ -54,11 +54,11 @@ _AS_OnPluginEnabled()
 {
 	if (!(g_bCvarASEnable = GetConVarBool(g_hCvarEnable))){
 
-		DebugLog("%s Anti-Scrabble is disable", AS_TAG);
+		DebugLog("%s Anti-Scrable is disable", AS_TAG);
 		return;
 	}
 
-	DebugLog("%s Anti-Scrabble is enable", AS_TAG);
+	DebugLog("%s Anti-Scrable is enable", AS_TAG);
 
 	HookEvent("round_end", AS_ev_RoundEnd, EventHookMode_PostNoCopy);
 	HookEvent("vote_passed", AS_ev_VotePassed);
@@ -372,7 +372,7 @@ static ForceToUnlockTeams()
 	if (!g_bTeamLock) return;
 
 	if (GetConVarBool(g_hCvarNotify))
-		PrintToChatAll("\x03Unscrabble complited. Change of team is allowed now.");
+		PrintToChatAll("\x03Unscrable complited. Change of team is allowed now.");
 
 	g_bTeamLock = false;
 	g_iTrineSize = 0;
