@@ -1,4 +1,4 @@
-#define READY_VERSION "1.0.3"
+#define READY_VERSION "1.0.4.2"
 
 #pragma semicolon 1
 
@@ -37,6 +37,7 @@ native L4D_IsInMatchVoteMenu(client);
 #define READY_RESTART_ROUND_DELAY		0.0
 #define READY_RESTART_MAP_DELAY			5.0
 #define READY_RESTART_SCAVENGE_TIMER	0.1
+#define READY_SPECTATE_COOLDOWN			3.0
 #define L4D_TEAM_SURVIVORS					2
 #define L4D_TEAM_INFECTED					3
 #define L4D_TEAM_SPECTATE					1
@@ -100,7 +101,7 @@ static	Handle:cvarScavengeSetup,
 #endif
 
 static	bool:isCampaignBeingRestarted, bool:beforeMapStart = true, forcedStart, readyStatus[MAXPLAYERS + 1], bool:temporarilyBlocked[MAXPLAYERS + 1],
-		Handle:menuPanel, Handle:liveTimer, bool:isPaused, bool:isUnpausing, Handle:timerMinimumPause, iInitialAllTalk,
+		Handle:menuPanel, Handle:liveTimer, bool:isPaused, bool:isUnpausing, Handle:timerMinimumPause, iInitialAllTalk, Handle:g_hCvarReadyNotify,
 		bool:unreadyTimerExists, Handle:cvarEnforceReady, Handle:cvarReadyCompetition, Handle:cvarReadyMinimum, Handle:cvarReadyHalves, Handle:cvarReadyServerCfg,
 		Handle:cvarReadySearchKeyDisable, Handle:cvarSearchKey, Handle:cvarGameMode, Handle:g_hCvarGod, Handle:cvarCFGName, Handle:cvarPausesAllowed,
 		Handle:cvarPauseDuration, Handle:cvarConnectEnabled, Handle:cvarBlockSpecGlobalChat, Handle:cvarDisableReadySpawns, Handle:fwdOnReadyRoundRestarted, Handle:fwdOnRoundIsLive,
@@ -110,7 +111,7 @@ static	bool:isCampaignBeingRestarted, bool:beforeMapStart = true, forcedStart, r
 static		Handle:cvarPauseMetod, Handle:g_hCvarNbStop, Handle:g_hCvarInfAmmo, bool:g_bRoundEnd, Handle:g_hSurvLimit, Handle:g_hInfLimit; // fix by raziEiL
 
 #if L4D
-	#define GAMECONFIG_FILE "left4downtown.l4d"
+	#define GAMECONFIG_FILE "readyup"
 #else
 	#define GAMECONFIG_FILE "left4downtown.l4d2"
 #endif
@@ -155,14 +156,15 @@ public OnPluginStart()
 	cvarReadyHalves					= CreateConVar("l4d_ready_both_halves",				"0",		"Make players ready up both during the first and second rounds of a map",				CONVAR_FLAGS_PLUGIN);
 	cvarReadyMinimum				= CreateConVar("l4d_ready_minimum_players",			"8",		"Minimum # of players before we can ready up",											CONVAR_FLAGS_PLUGIN);
 	cvarReadyServerCfg				= CreateConVar("l4d_ready_server_cfg",				"",			"Config to execute when the map is changed (to exec after server.cfg).",				CONVAR_FLAGS_PLUGIN);
-	cvarReadySearchKeyDisable		= CreateConVar("l4d_ready_search_key_disable",		"0",		"Automatically disable plugin if sv_search_key is blank",								CONVAR_FLAGS_PLUGIN);
+	cvarReadySearchKeyDisable	= CreateConVar("l4d_ready_search_key_disable",		"0",		"Automatically disable plugin if sv_search_key is blank",								CONVAR_FLAGS_PLUGIN);
 	cvarCFGName						= CreateConVar("l4d_ready_cfg_name",					"",			"CFG Name to display on the RUP Menu",													CONVAR_FLAGS_PLUGIN);
 	cvarPausesAllowed				= CreateConVar("l4d_ready_pause_allowed",			"0",		"Number of times each team can pause per campaign",										CONVAR_FLAGS_PLUGIN);
 	cvarPauseDuration				= CreateConVar("l4d_ready_pause_duration",			"90.0",		"Minimum duration of pause in seconds before either team can unpause",					CONVAR_FLAGS_PLUGIN);
 	cvarConnectEnabled				= CreateConVar("l4d_ready_connect_enabled",			"0",		"Show Announcements When Players Join",													CONVAR_FLAGS_PLUGIN);
 	cvarBlockSpecGlobalChat		= CreateConVar("l4d_block_spectator_globalchat",		"0",		"Prevent non-caster Spectators from global chatting, it gets redirected to teamchat",	CONVAR_FLAGS_PLUGIN);
-	cvarDisableReadySpawns			= CreateConVar("l4d_ready_disable_spawns",			"0",		"Prevent SI from having ghost-mode spawns during readyup.",								CONVAR_FLAGS_PLUGIN);
+	cvarDisableReadySpawns		= CreateConVar("l4d_ready_disable_spawns",			"0",		"Prevent SI from having ghost-mode spawns during readyup.",								CONVAR_FLAGS_PLUGIN);
 	cvarPauseMetod					= CreateConVar("l4d_ready_pause_metod",				"0",		"0=defualt, 1=RUP turn on while game in pause",											CONVAR_FLAGS_PLUGIN);
+	g_hCvarReadyNotify				= CreateConVar("l4d_ready_notify",					"0",		"Print or not notifiy about ready",														CONVAR_FLAGS_PLUGIN);
 
 	HookConVarChange(cvarEnforceReady,			ConVarChange_ReadyEnabled);
 	HookConVarChange(cvarReadyCompetition,		ConVarChange_ReadyCompetition);
@@ -173,6 +175,8 @@ public OnPluginStart()
 	HookEvent("player_bot_replace",	eventPlayerBotReplaceCallback);
 	HookEvent("bot_player_replace",	eventBotPlayerReplaceCallback);
 	HookEvent("player_spawn",			eventSpawnReadyCallback);
+
+	AddCommandListener(RUP_cmdh_JoinTeam, "jointeam");
 
 	#if ALLOW_TEAM_PLACEMENT
 		HookEvent("player_team",			Event_PlayerTeam);
@@ -815,11 +819,15 @@ public Action:Command_CallVote(client, args)
 	return Plugin_Handled;
 }
 
+static bool:g_bSpectateTempBlock[MAXPLAYERS+1];
+
 public Action:Command_Spectate(client, args)
 {
 	if (temporarilyBlocked[client] || g_bRoundEnd) return Plugin_Handled;
 	if(IsPlayerAlive(client) && GetClientTeam(client) == L4D_TEAM_INFECTED)
 	{
+		g_bSpectateTempBlock[client] = true;
+		CreateTimer(READY_SPECTATE_COOLDOWN, RUP_t_AllowJoinToInf, client);
 		TeleportEntity(client, Float:{0.0, 0.0, 0.0}, NULL_VECTOR, NULL_VECTOR); // no ragdoll!
 		ForcePlayerSuicide(client);
 	}
@@ -833,6 +841,25 @@ public Action:Command_Spectate(client, args)
 	return Plugin_Handled;
 }
 
+public Action:RUP_cmdh_JoinTeam(client, const String:command[], argc)
+{
+	if (g_bSpectateTempBlock[client]){
+
+		decl String:sAgr[32];
+		GetCmdArg(1, sAgr, 32);
+
+		if (StrEqual(sAgr, "3") || StrEqual(sAgr, "infected", false))
+			return Plugin_Handled;
+	}
+
+	return Plugin_Continue;
+}
+
+public Action:RUP_t_AllowJoinToInf(Handle:timer, any:client)
+{
+	g_bSpectateTempBlock[client] = false;
+}
+
 public Action:Timer_UnlockClient(Handle:timer, any:client)
 {
 	temporarilyBlocked[client] = false;
@@ -840,7 +867,8 @@ public Action:Timer_UnlockClient(Handle:timer, any:client)
 
 public Action:Timer_Respectate(Handle:timer, any:client)
 {
-	ChangePlayerTeam(client, L4D_TEAM_SPECTATE);
+	if (IsClientInGame(client))
+		ChangePlayerTeam(client, L4D_TEAM_SPECTATE);
 	//PrintToChatAll("[SM] %N has become a spectator (again).", client);
 	if(readyMode) checkStatus();
 }
@@ -858,76 +886,80 @@ bool:OptIsGagged(client)
 public Action:Command_Say(client, args)
 {
 	if (temporarilyBlocked[client]) return Plugin_Handled;
-	new team = GetClientTeam(client);
 
-	if (args < 1
-	|| (team == L4D_TEAM_SPECTATE && (readyMode || isPaused))
-	|| (team != L4D_TEAM_SPECTATE && (!readyMode && !isPaused))
-	|| OptIsGagged(client))
-	{
-		return Plugin_Continue;
-	}
+	if (client && IsClientInGame(client)){
 
-	if (client &&  team == L4D_TEAM_SPECTATE)
-	{
-		if (!IsClientCaster(client) && GetConVarBool(cvarBlockSpecGlobalChat))
+		new team = GetClientTeam(client);
+
+		if (args < 1
+		|| (team == L4D_TEAM_SPECTATE && (readyMode || isPaused))
+		|| (team != L4D_TEAM_SPECTATE && (!readyMode && !isPaused))
+		|| OptIsGagged(client))
 		{
-			//Command_Teamsay(client, args); for l4d2
+			return Plugin_Continue;
+		}
 
+		if (client &&  team == L4D_TEAM_SPECTATE)
+		{
+			if (!IsClientCaster(client) && GetConVarBool(cvarBlockSpecGlobalChat))
+			{
+				//Command_Teamsay(client, args); for l4d2
+
+				decl String:sText[256];
+				GetCmdArg(1, sText, sizeof(sText));
+				if ((IsChatTrigger() && sText[0] == '/') //Ignore if it is a server message or a silent chat trigger
+				|| GetUserFlagBits(client) && sText[0] == '@') //Or admin talk
+				{
+					return Plugin_Continue;
+				}
+
+				decl String:text[192];
+				GetCmdArgString(text, 192);
+				FakeClientCommandEx(client,"say_team %s", text);
+
+				if (!isPaused)
+					PrintHintText(client, "Spectators cannot global chat in ready modes");
+				else
+					PrintToChat(client, "Spectators cannot global chat in ready modes");
+				return Plugin_Handled;
+			}
+		}
+
+		decl String:sayWord[MAX_NAME_LENGTH];
+		GetCmdArg(1, sayWord, sizeof(sayWord));
+
+		if(sayWord[0] == '!' || sayWord[0] == '/')
+		{
+			if(StrEqual(sayWord[1], "notready")
+			|| StrEqual(sayWord[1], "unready")
+			|| StrEqual(sayWord[1], "ready")
+			|| StrEqual(sayWord[1], "cast"))
+			{
+				return Plugin_Handled;
+			}
+		}
+
+		if (isPaused) //Do our own chat output when the game is paused
+		{
 			decl String:sText[256];
 			GetCmdArg(1, sText, sizeof(sText));
-			if ((IsChatTrigger() && sText[0] == '/') //Ignore if it is a server message or a silent chat trigger
+			if (!client
+			|| (IsChatTrigger() && sText[0] == '/') //Ignore if it is a server message or a silent chat trigger
 			|| GetUserFlagBits(client) && sText[0] == '@') //Or admin talk
 			{
 				return Plugin_Continue;
 			}
 
-			decl String:text[192];
-			GetCmdArgString(text, 192);
-			FakeClientCommandEx(client,"say_team %s", text);
-
-			if (!isPaused)
-				PrintHintText(client, "Spectators cannot global chat in ready modes");
-			else
-				PrintToChat(client, "Spectators cannot global chat in ready modes");
-			return Plugin_Handled;
+			PrintToChatAll("\x03%N\x01 : %s", client, sText); //Display the users message
+			return Plugin_Handled; //Since the issue only occurs sometimes we need to block default output to prevent showing text twice
 		}
-	}
-
-	decl String:sayWord[MAX_NAME_LENGTH];
-	GetCmdArg(1, sayWord, sizeof(sayWord));
-
-	if(sayWord[0] == '!' || sayWord[0] == '/')
-	{
-		if(StrEqual(sayWord[1], "notready")
-		|| StrEqual(sayWord[1], "unready")
-		|| StrEqual(sayWord[1], "ready")
-		|| StrEqual(sayWord[1], "cast"))
-		{
-			return Plugin_Handled;
-		}
-	}
-
-	if (isPaused) //Do our own chat output when the game is paused
-	{
-		decl String:sText[256];
-		GetCmdArg(1, sText, sizeof(sText));
-		if (!client
-		|| (IsChatTrigger() && sText[0] == '/') //Ignore if it is a server message or a silent chat trigger
-		|| GetUserFlagBits(client) && sText[0] == '@') //Or admin talk
-		{
-			return Plugin_Continue;
-		}
-
-		PrintToChatAll("\x03%N\x01 : %s", client, sText); //Display the users message
-		return Plugin_Handled; //Since the issue only occurs sometimes we need to block default output to prevent showing text twice
 	}
 	return Plugin_Continue;
 }
 
 public Action:Command_Teamsay(client, args)
 {
-	if (temporarilyBlocked[client]) return Plugin_Handled;
+	if (temporarilyBlocked[client] || !client || !IsClientInGame(client)) return Plugin_Handled;
 	if (args < 1
 	|| (!readyMode && !isPaused)
 	|| OptIsGagged(client))
@@ -1007,18 +1039,21 @@ public Action:readyUp(client, args)
 		return Plugin_Handled;
 	}
 
-	//don't allow readying up if there's too few players
-	//new realPlayers = CountInGameHumans();
-	//new minPlayers = GetConVarInt(cvarReadyMinimum);
+	if (GetConVarBool(g_hCvarReadyNotify)){
 
-	//ready up the player and see if everyone is ready now
-	decl String:name[MAX_NAME_LENGTH];
-	GetClientName(client, name, sizeof(name));
+		//don't allow readying up if there's too few players
+		new realPlayers = CountInGameHumans();
+		new minPlayers = GetConVarInt(cvarReadyMinimum);
 
-	//if(realPlayers >= minPlayers)
-		//PrintToChatAll("%s is ready.", name);
-	//else
-	//PrintToChatAll("%s is ready. A minimum of %d players is required.", name, minPlayers);
+		//ready up the player and see if everyone is ready now
+		decl String:name[MAX_NAME_LENGTH];
+		GetClientName(client, name, sizeof(name));
+
+		if(realPlayers >= minPlayers)
+			PrintToChatAll("%s is ready.", name);
+		else
+			PrintToChatAll("%s is ready. A minimum of %d players is required.", name, minPlayers);
+	}
 
 	readyStatus[client] = 1;
 	checkStatus();
@@ -1440,9 +1475,9 @@ public Action:Timer_ResetScavengeSetup(Handle:timer)
 		DebugPrintToAll("Scavenge setup timer halted , leaving ready mode");
 		return Plugin_Stop;
 	}
-
-	L4D_ScavengeBeginRoundSetupTime();
-
+	#if !L4D
+		L4D_ScavengeBeginRoundSetupTime();
+	#endif
 	return Plugin_Continue;
 }
 
@@ -2311,6 +2346,18 @@ ClientAttemptsUnpause(client)
 	ReplyToCommand(client, "[SM]Your team can not unpause at this time");
 }
 
+ToogleAntiFlood(bool:disable)
+{
+	new Handle:hFloodtime = FindConVar("sm_flood_time");
+	if (hFloodtime != INVALID_HANDLE){
+	
+		if (disable)
+			SetConVarFloat(hFloodtime, 0.0);
+		else
+			ResetConVar(hFloodtime);
+	}
+}
+
 public nativeIsGamePaused(Handle:plugin, numParams)
 {
 	return isPaused;
@@ -2318,6 +2365,7 @@ public nativeIsGamePaused(Handle:plugin, numParams)
 
 PauseGame(any:client)
 {
+	ToogleAntiFlood(true);
 	isPaused = true;
 	canUnpause = false;
 	iInitialAllTalk = GetConVarInt(FindConVar("sv_alltalk"));
@@ -2356,6 +2404,7 @@ UnpauseGame(any:client)
 		client = GetAnyClient();
 	}
 
+	ToogleAntiFlood(false);
 	isPaused = false;
 	SetConVarInt(FindConVar("sv_pausable"), 1); //Ensure sv_pausable is set to 1
 	FakeClientCommand(client, "unpause"); //Send unpause command
@@ -2410,7 +2459,7 @@ public Action:AllCanUnpause(Handle:timer)
 	return Plugin_Stop;
 }
 
-/*
+
 CountInGameHumans()
 {
 	new i, realPlayers = 0;
@@ -2423,7 +2472,7 @@ CountInGameHumans()
 	}
 	return realPlayers;
 }
-*/
+
 
 #if ALLOW_TEAM_PLACEMENT
 // Return the opposite team of that the client is on

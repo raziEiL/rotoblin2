@@ -62,8 +62,8 @@ static		Handle:g_hTankBoss, Handle:g_hNoPropDmg;
  */
 _GhostTank_OnPluginStart()
 {
-	g_hTankBoss		=	CreateConVarEx("tank_boss", "0", "", _, true, 0.0, true, 1.0);
-	g_hNoPropDmg		=	CreateConVarEx("tank_noprop_dmg", "0", "", _, true, 0.0, true, 1.0);
+	g_hTankBoss		=	CreateConVarEx("tank_boss", "0", "Tank can't be prelight, punch fix", _, true, 0.0, true, 1.0);
+	g_hNoPropDmg		=	CreateConVarEx("tank_noprop_dmg", "0", "All hitables props don't deal any damage to Tank", _, true, 0.0, true, 1.0);
 
 	g_iDebugChannel = DebugAddChannel(DEBUG_CHANNEL_NAME);
 	DebugPrintToAllEx("Module is now setup");

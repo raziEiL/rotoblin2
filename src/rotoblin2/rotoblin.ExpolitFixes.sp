@@ -36,10 +36,26 @@ static		g_iDebugChannel;
 
 #define		EXPOLIT_TIMER			0.5
 
-static		bool:g_bIsEngineFixLoaded, bool:g_bIsHealthExpolitFixLoaded, bool:g_bAllPlLoaded;
+enum ()
+{
+	NoLadderBlock = 1,
+	SurvivorDuckBlock,
+	GhostDuckBlock,
+	LadderSpeedGlitch,
+	NoFallDamageBlock,
+	ESpawnBlock,
+	HealthExpolitFixes,
+}
+
+static		bool:g_bIsEngineFixLoaded, bool:g_bIsHealthExpolitFixLoaded, bool:g_bAllPlLoaded, Handle:g_hCvarExpolitFixes, g_iCvarExpolitFixes;
+
+public EF_GetExpolitFixesCvar() return g_iCvarExpolitFixes;
+public EF_GetNumOfESpawnBlock() return ESpawnBlock;
 
 _ExpoliteFixed_OnPluginStart()
 {
+	g_hCvarExpolitFixes = CreateConVarEx("expolit_fixes_flag", "238", "What kind of expolit should be fixed/blocked. Flag (add together): 0=Disable, 2=No ladder block, 4=Survivor duck block, 8=Ghost duck block, 16=Ladder speed glitch, 32=No fall damage expolit, 64=E spawn expolit, 128=Health expolit fixes, 254=all", _, true, 0.0);
+
 	g_iDebugChannel = DebugAddChannel(DEBUG_CHANNEL_NAME);
 }
 
@@ -71,7 +87,11 @@ _ExpolitFixed_OnAllPluginsLoaded()
 
 _EF_OnPluginEnabled()
 {
+	HookConVarChange(g_hCvarExpolitFixes, _EF_OnCvarChange_ExpolitFixes);
+	Update_EF_ExpolitFixesConVar();
+
 	HookEvent("ammo_pickup", EF_ev_AmmoPickup);
+	HookEvent("player_use", EF_ev_PlayerUse);
 
 	if (g_bAllPlLoaded){
 
@@ -88,7 +108,10 @@ _EF_OnPluginEnabled()
 
 _EF_OnPluginDisabled()
 {
+	UnhookConVarChange(g_hCvarExpolitFixes, _EF_OnCvarChange_ExpolitFixes);
+
 	UnhookEvent("ammo_pickup", EF_ev_AmmoPickup);
+	UnhookEvent("player_use", EF_ev_PlayerUse);
 
 	DebugLog("%s _EF_OnPluginDisabled", EF_TAG);
 
@@ -100,22 +123,34 @@ _EF_OnPluginDisabled()
 public Action:EF_ev_AmmoPickup(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	new client = GetClientOfUserId(GetEventInt(event, "userid"));
+	_EF_DoAmmoPilesFix(client);
+}
 
+public Action:EF_ev_PlayerUse(Handle:event, const String:name[], bool:dontBroadcast)
+{
+	new target = GetEventInt(event, "targetid");
+	if (!IsWeaponSpawnEx(target) || GetEntProp(target, Prop_Send, "m_weaponID") != WEAPID_AMMO) return;
+
+	new client = GetClientOfUserId(GetEventInt(event, "userid"));
+	_EF_DoAmmoPilesFix(client, true);
+}
+
+static _EF_DoAmmoPilesFix(client, bool:bUse = false)
+{
 	decl iEnt;
 	if ((iEnt = GetPlayerWeaponSlot(client, 0)) == INVALID_ENT_REFERENCE) return;
 
 	decl String:sClassName[64], iWeapIndex;
 	GetEntityClassname(iEnt, sClassName, 64);
 
-	if ((iWeapIndex = GetWeaponIndexByClass(sClassName)) == NULL){
+	if ((iWeapIndex = GetWeaponIndexByClass(sClassName)) == NULL) return;
 
-		DebugPrintToAllEx("WTF? UNKNOWN WEAPON \"%s\"", sClassName);
-		return;
-	}
-
-	new iClip = GetEntProp(iEnt, Prop_Send, "m_iClip1");
+	new iClip = GetWeaponClipSize(iEnt);
 
 	if (g_iWeapAttributes[iWeapIndex][CLIP_SIZE] != iClip){
+
+		if (bUse && (g_iWeapAttributes[iWeapIndex][MAX_AMMO] + g_iWeapAttributes[iWeapIndex][CLIP_SIZE]) == (iClip + GetPrimaryWeaponAmmo(client, iWeapIndex)))
+			return;
 
 		SetConVarInt(g_hWeaponCvar[iWeapIndex], g_iWeapAttributes[iWeapIndex][MAX_AMMO] + (g_iWeapAttributes[iWeapIndex][CLIP_SIZE] - iClip));
 		CheatCommandEx(client, "give", "ammo");
@@ -156,19 +191,22 @@ public Action:_EF_SDKh_Touch(entity, other)
 {
 	if (other == 0) return;
 
-	if (other <= MaxClients && !IsPlayerTank(other) && IsGuyTroll(entity, other)){
+	if (other <= MaxClients){
 
-		if (IsOnLadder(other)){
+		if (g_iCvarExpolitFixes & (1 << NoLadderBlock) && !IsPlayerTank(other) && IsGuyTroll(entity, other)){
 
-			decl Float:vOrg[3];
-			GetClientAbsOrigin(other, vOrg);
-			vOrg[2] += 2.5;
-			TeleportEntity(other, vOrg, NULL_VECTOR, NULL_VECTOR);
+			if (IsOnLadder(other)){
+
+				decl Float:vOrg[3];
+				GetClientAbsOrigin(other, vOrg);
+				vOrg[2] += 2.5;
+				TeleportEntity(other, vOrg, NULL_VECTOR, NULL_VECTOR);
+			}
+			else
+				TeleportEntity(other, NULL_VECTOR, NULL_VECTOR, Float:{0.0, 0.0, 251.0});
+
+			DebugPrintToAllEx("Player %d: \"%N\" blocks the player %d \"%N\" on a ladder.", other, other, entity, entity);
 		}
-		else
-			TeleportEntity(other, NULL_VECTOR, NULL_VECTOR, Float:{0.0, 0.0, 251.0});
-
-		DebugPrintToAllEx("Player %d: \"%N\" blocks the player %d \"%N\" on a ladder.", other, other, entity, entity);
 	}
 	else {
 
@@ -190,24 +228,28 @@ public Action:_EF_t_CheckDuckingExpolit(Handle:timer)
 
 	decl client;
 
-	for (new i = 0; i < SurvivorCount; i++){
+	if (g_iCvarExpolitFixes & (1 << SurvivorDuckBlock)){
 
-		client = SurvivorIndex[i];
+		for (new i = 0; i < SurvivorCount; i++){
 
-		if (IsTrueClient(client) && !IsOnLadder(client) && !IsSurvivorBussy(client) && IsUseDuckingExpolit(client)){
+			client = SurvivorIndex[i];
 
-			SetEntProp(client, Prop_Send, "m_bDucking", 1);
-			DebugPrintToAllEx("Survivor %i: \"%N\" was ducking and were unducked.", client, client);
+			if (IsTrueClient(client) && !IsOnLadder(client) && !IsSurvivorBussy(client) && IsUseDuckingExpolit(client)){
+
+				SetEntProp(client, Prop_Send, "m_bDucking", 1);
+				DebugPrintToAllEx("Survivor %i: \"%N\" was ducking and were unducked.", client, client);
+			}
 		}
 	}
 	for (new i = 0; i < InfectedCount; i++){
 
 		client = InfectedIndex[i];
 
-		if (!IsInfectedBashed(client) && IsTrueClient(client) && !IsOnLadder(client) && !IsInfectedBussy(client) && IsUseDuckingExpolit(client)){
+		if (!IsInfectedBashed(client) && IsTrueClient(client) && IsInfectedAlive(client) && !IsOnLadder(client) && !IsInfectedBussy(client) && IsUseDuckingExpolit(client)){
+
+			if (!(g_iCvarExpolitFixes & (1 << GhostDuckBlock)) && IsPlayerGhost(client)) continue;
 
 			SetEntProp(client, Prop_Send, "m_bDucking", 1);
-
 			DebugPrintToAllEx("Infected %i: \"%N\" was ducking and were unducked.", client, client);
 		}
 	}
@@ -217,7 +259,7 @@ public Action:_EF_t_CheckDuckingExpolit(Handle:timer)
 
 bool:IsTrueClient(client)
 {
-	return !g_bTriggerCrouch[client] && client && IsClientInGame(client) && IsPlayerAlive(client);
+	return !g_bTriggerCrouch[client] && client && IsClientInGame(client);
 }
 
 bool:IsUseDuckingExpolit(client)
@@ -309,16 +351,18 @@ _EF_SetupPLFunction(bool:bHook)
 
 public bool:_EF_OnPlayerRunCmd(client)
 {
-	return IsPlayerAlive(client) && !IsFakeClient(client) && GetEntityMoveType(client) == MOVETYPE_LADDER;
+	return g_iCvarExpolitFixes & (1 << LadderSpeedGlitch) && IsPlayerAlive(client) && !IsFakeClient(client) && GetEntityMoveType(client) == MOVETYPE_LADDER;
 }
 
 public bool:_EF_OnPlayerRunCmdTwo(client, buttons)
 {
-	return buttons & IN_USE && GetClientTeam(client) == 2 && GetEntPropFloat(client, Prop_Send, "m_flFallVelocity") > 440;
+	return g_iCvarExpolitFixes & (1 << NoFallDamageBlock) && buttons & IN_USE && GetClientTeam(client) == 2 && GetEntPropFloat(client, Prop_Send, "m_flFallVelocity") > 440;
 }
 
 public Action:EF_ev_PillsUsed(Handle:event, const String:name[], bool:dontBroadcast)
 {
+	if (!(g_iCvarExpolitFixes & (1 << HealthExpolitFixes))) return;
+
 	new client = GetClientOfUserId(GetEventInt(event, "userid"));
 
 	if (DrownNotEqual(client)){
@@ -329,6 +373,8 @@ public Action:EF_ev_PillsUsed(Handle:event, const String:name[], bool:dontBroadc
 
 public Action:EF_ev_HealSuccess(Handle:event, const String:name[], bool:dontBroadcast)
 {
+	if (!(g_iCvarExpolitFixes & (1 << HealthExpolitFixes))) return;
+
 	new healer = GetClientOfUserId(GetEventInt(event, "userid"));
 	new client = GetClientOfUserId(GetEventInt(event, "subject"));
 
@@ -388,6 +434,8 @@ bool:DrownNotEqual(client)
 
 public Action:HE_ev_PlayerIncapacitated(Handle:event, const String:name[], bool:dontBroadcast)
 {
+	if (!(g_iCvarExpolitFixes & (1 << HealthExpolitFixes))) return;
+
 	new client = GetClientOfUserId(GetEventInt(event, "userid"));
 
 	if (GetClientTeam(client) == 2){
@@ -399,6 +447,8 @@ public Action:HE_ev_PlayerIncapacitated(Handle:event, const String:name[], bool:
 
 public Action:HE_ev_PlayerLedgeGrab(Handle:event, const String:name[], bool:dontBroadcast)
 {
+	if (!(g_iCvarExpolitFixes & (1 << HealthExpolitFixes))) return;
+
 	new client = GetClientOfUserId(GetEventInt(event, "userid"));
 
 	if ((g_fTempHp[client] = GetSuvivorTempHealth(client)))
@@ -407,7 +457,7 @@ public Action:HE_ev_PlayerLedgeGrab(Handle:event, const String:name[], bool:dont
 
 public Action:HE_ev_ReviveSuccess(Handle:event, const String:name[], bool:dontBroadcast)
 {
-	if (!GetEventBool(event, "ledge_hang")) return;
+	if (!(g_iCvarExpolitFixes & (1 << HealthExpolitFixes)) || !GetEventBool(event, "ledge_hang")) return;
 
 	new client = GetClientOfUserId(GetEventInt(event, "subject"));
 
@@ -430,7 +480,7 @@ Float:GetSuvivorTempHealth(client)
 	return fHealth < 0.0 ? 0.0 : fHealth;
 }
 
-SetSurvivorTempHealth(client)
+static SetSurvivorTempHealth(client)
 {
 	SetEntPropFloat(client, Prop_Send, "m_healthBufferTime", GetGameTime());
 	SetEntPropFloat(client, Prop_Send, "m_healthBuffer", g_fTempHp[client]);
@@ -443,9 +493,21 @@ public _EF_OnCvarChange_PillsRate(Handle:convar_hndl, const String:oldValue[], c
 	Update_EF_PillsRateConVars();
 }
 
-Update_EF_PillsRateConVars()
+static Update_EF_PillsRateConVars()
 {
 	g_fCvarDecayRate = GetConVarFloat(g_hDecayRate);
+}
+
+public _EF_OnCvarChange_ExpolitFixes(Handle:convar_hndl, const String:oldValue[], const String:newValue[])
+{
+	if (StrEqual(oldValue, newValue)) return;
+
+	Update_EF_ExpolitFixesConVar();
+}
+
+static Update_EF_ExpolitFixesConVar()
+{
+	g_iCvarExpolitFixes = GetConVarInt(g_hCvarExpolitFixes);
 }
 
 /**

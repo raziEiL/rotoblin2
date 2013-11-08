@@ -33,7 +33,7 @@
 // **********************************************
 //                 Forwards
 // **********************************************
-public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:angles[3], &weapon)
+public Action:OnPlayerRunCmd(client, &buttons)
 {
 	if (!IsPluginEnabled()) return Plugin_Continue;
 
@@ -41,7 +41,7 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 	//	buttons ^= IN_ATTACK2;
 
 	if (_GT_OnPlayerRunCmdTwo(client, buttons))
-		buttons ^= IN_USE;
+		buttons &= ~IN_USE;
 
 	if (_EF_OnPlayerRunCmd(client) && (buttons & 8 || buttons & 16)){
 
@@ -66,6 +66,9 @@ public Action:L4D_OnSpawnTank(const Float:vector[3], const Float:qangle[3])
 	if (!IsPluginEnabled()) return Plugin_Continue;
 
 	if (_NET_L4D_OnSpawnTank())
+		return Plugin_Handled;
+
+	if (_TS_L4D_OnSpawnTank(vector, qangle))
 		return Plugin_Handled;
 
 	_MC_L4D_OnSpawnTank();

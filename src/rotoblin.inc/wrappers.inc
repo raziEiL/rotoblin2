@@ -66,8 +66,8 @@ static	const	String:	TEAMNAME_INFECTED[]		= "Infected";
 stock Handle:CreateConVarEx(const String:name[], const String:defaultValue[], const String:description[]="", flags=0, bool:hasMin=false, Float:min=0.0, bool:hasMax=false, Float:max=0.0)
 {
 	decl String:buffer[256];
-	Format(buffer, sizeof(buffer), "%s_%s", PLUGIN_CVAR_PREFIX, name);
-	return CreateConVar(buffer, defaultValue, description, flags, hasMin, min, hasMax, max);
+	FormatEx(buffer, sizeof(buffer), "%s_%s", PLUGIN_CVAR_PREFIX, name);
+	return CreateConVar(buffer, defaultValue, description, FCVAR_PLUGIN|FCVAR_NOTIFY|flags, hasMin, min, hasMax, max);
 }
 
 /**
@@ -84,7 +84,7 @@ stock Handle:CreateConVarEx(const String:name[], const String:defaultValue[], co
 stock RegAdminCmdEx(const String:cmd[], ConCmd:callback, adminflags, const String:description[]="", const String:group[]="", flags=0)
 {
 	decl String:buffer[256];
-	Format(buffer, sizeof(buffer), "%s_%s", PLUGIN_CMD_PREFIX, cmd);
+	FormatEx(buffer, sizeof(buffer), "%s_%s", PLUGIN_CMD_PREFIX, cmd);
 	RegAdminCmd(buffer, callback, adminflags, description, group, flags);
 }
 

@@ -1,8 +1,6 @@
  /*
  * ============================================================================
  *
- *  Original modified Rotoblin module
- *
  *  File:			rotoblin.HeadsUpDisplay.sp
  *  Type:			Module
  *  Description:	...
@@ -25,19 +23,38 @@
  * ============================================================================
  */
 
-#define TIP	"Use !tankhud to toggle the tank HUD"
+#define TIP			"Use !tankhud to toggle the tank HUD"
+#define SPEC_TIP		"Use !spechud to toggle the spectator HUD"
 
-static	Handle:g_hTwoTanks, Handle:g_hTankHealth, Handle:g_hVsBonusHealth, bool:g_bCvarTwoTanks, Float:g_fTankHealth = 6000.0,
-		bool:g_bShowTankHud[MAXPLAYERS+1], bool:g_bHudEnabled;
+static	Handle:g_hCvarAllowSpecHud, Handle:g_hCvarTwoTanks, Handle:g_hTankHealth, Handle:g_hVsBonusHealth, Handle:g_hLotteryTime, Handle:g_hCvarCompactHud, Handle:g_hBurnLifeTime, Float:g_fBurnDmg,
+		bool:g_bCvarAllowSpecHud, bool:g_bCvarTwoTanks, bool:g_bCvarCompactHud, Float:g_fTankHealth = 6000.0, bool:g_bShowTankHud[MAXPLAYERS+1], bool:g_bHudEnabled, g_iPassCount,
+		g_iStasis, g_iHits[2], bool:g_bTankKilled, Handle:g_hSpecHudTimer, bool:g_bShowSpecHud[MAXPLAYERS+1], g_iSISpawnTime[MAXPLAYERS+1][2], bool:g_bBlockSpecHUD, bool:g_bTips[MAXPLAYERS+1][2];
+
+#define ELEM	(g_iPassCount - 1)
 
 _HeadsUpDisplay_OnPluginStart()
 {
 	g_hTankHealth		= FindConVar("z_tank_health");
 	g_hVsBonusHealth	= FindConVar("versus_tank_bonus_health");
+	g_hLotteryTime		= FindConVar("director_tank_lottery_selection_time");
+	g_hBurnLifeTime		= FindConVar("z_tank_burning_lifetime");
 
-	g_hTwoTanks	=	CreateConVarEx("two_tanks", "0");
+	g_hCvarAllowSpecHud		= CreateConVarEx("allow_spec_hud", "0", "Enable/disable spectator HUD");
+	g_hCvarTwoTanks				= CreateConVarEx("two_tanks", "0", "Support double tank mod");
+	g_hCvarCompactHud			= CreateConVarEx("compact_tankhud", "0", "Style of Tank HUD. (0: old style, 1: new style)");
 
 	RegConsoleCmd("tankhud", HUD_CmdToogleTankHud);
+	RegConsoleCmd("spechud", HUD_CmdToogleSpecHud);
+
+	RegServerCmd("rotoblin_pause_spechud", Command_PauseSpecHUD);
+}
+
+public Action:Command_PauseSpecHUD(args)
+{
+	decl String:sArgs[24];
+	GetCmdArg(1, sArgs, 24);
+
+	g_bBlockSpecHUD = StrEqual(sArgs, "true");
 }
 
 public Action:HUD_CmdToogleTankHud(client, args)
@@ -50,58 +67,134 @@ public Action:HUD_CmdToogleTankHud(client, args)
 	return Plugin_Handled;
 }
 
+public Action:HUD_CmdToogleSpecHud(client, args)
+{
+	if (!client || !g_bCvarAllowSpecHud) return Plugin_Handled;
+
+	g_bShowSpecHud[client] = !g_bShowSpecHud[client];
+	PrintToChat(client, "%s Spec HUD is now %s.", MAIN_TAG, g_bShowSpecHud[client] ? "enabled" : "disabled");
+
+	return Plugin_Handled;
+}
+
 _HUD_OnPluginEnabled()
 {
 	HookEvent("round_start", HUD_ev_RoundStart, EventHookMode_PostNoCopy);
+	HookEvent("ghost_spawn_time", HUD_ev_GhostSpawnTime);
+	HookEvent("player_hurt_concise", HUD_ev_AwardEarned);
 
-	HookConVarChange(g_hTwoTanks,			HUD_OnCvarChange_TwoTanks);
+	HookConVarChange(g_hCvarTwoTanks,		HUD_OnCvarChange_TwoTanks);
+	HookConVarChange(g_hCvarCompactHud,	HUD_OnCvarChange_CompactHud);
 	HookConVarChange(g_hTankHealth,			HUD_OnCvarChange_TankHealth);
 	HookConVarChange(g_hVsBonusHealth,		HUD_OnCvarChange_TankHealth);
+	HookConVarChange(g_hBurnLifeTime,		HUD_OnCvarChange_TankHealth);
+
 	HUD_GetCvars();
+
+	if ((g_bCvarAllowSpecHud = GetConVarBool(g_hCvarAllowSpecHud)))
+		g_hSpecHudTimer = CreateTimer(1.0, HUD_t_SpecTimer, _, TIMER_REPEAT);
 }
 
 _HUD_OnPluginDisable()
 {
 	UnhookEvent("round_start", HUD_ev_RoundStart, EventHookMode_PostNoCopy);
+	UnhookEvent("ghost_spawn_time", HUD_ev_GhostSpawnTime);
+	UnhookEvent("player_hurt_concise", HUD_ev_AwardEarned);
 
-	UnhookConVarChange(g_hTwoTanks,			HUD_OnCvarChange_TwoTanks);
+	UnhookConVarChange(g_hCvarTwoTanks,	HUD_OnCvarChange_TwoTanks);
+	UnhookConVarChange(g_hCvarCompactHud,	HUD_OnCvarChange_CompactHud);
 	UnhookConVarChange(g_hTankHealth,		HUD_OnCvarChange_TankHealth);
 	UnhookConVarChange(g_hVsBonusHealth, 	HUD_OnCvarChange_TankHealth);
+	UnhookConVarChange(g_hBurnLifeTime, 	HUD_OnCvarChange_TankHealth);
+
+	if (g_bCvarAllowSpecHud)
+		KillTimer(g_hSpecHudTimer);
 }
 
-_HUD_OnClientPostAdminCheck(client)
+_HUD_OnClientPutInServer(client)
 {
-	if (IsFakeClient(client)) return;
-
-	if (g_bHudEnabled)
-		PrintToChat(client, "%s %s", MAIN_TAG, TIP);
-	//else
-	//	PrintToChat(client, "%s Use !spechud to toggle the spectate HUD", MAIN_TAG);
+	g_bShowSpecHud[client] = true;
 }
 
 public HUD_ev_RoundStart(Handle:event, const String:name[], bool:dontBroadcast)
 {
-	for (new i; i <= MaxClients; i++)
+	g_bTankKilled = false;
+
+	for (new i = 1; i <= MaxClients; i++){
+
 		g_bShowTankHud[i] = false;
+		g_bTips[i][0] = false;
+		g_bTips[i][1] = false;
+	}
+}
+
+public HUD_ev_AwardEarned(Handle:event, const String:name[], bool:dontBroadcast)
+{
+	if (GetEventInt(event, "dmg_health") == 24 && ELEM >= 0){
+
+		new client = GetEventInt(event, "attackerentid");
+
+		if (IsClient(client) && IsPlayerTank(client) && !IsFakeClient(client))
+			g_iHits[ELEM]++;
+	}
+}
+
+static _HUD_ShowTankTip(client)
+{
+	if (g_bTips[client][0]) return;
+
+	PrintToChat(client, "%s %s", MAIN_TAG, TIP);
+
+	g_bTips[client][0] = true;
+}
+
+static _HUD_ShowSpecTip(client)
+{
+	if (g_bTips[client][1]) return;
+
+	PrintToChat(client, "%s %s", MAIN_TAG, SPEC_TIP);
+
+	g_bTips[client][1] = true;
 }
 
 _HUD_ev_OnTankSpawn()
 {
 	if (!g_bHudEnabled){
 
-		CreateTimer(1.0, HUD_t_Timer, _, TIMER_REPEAT);
-		g_bHudEnabled = true;
-
 		for (new i = 1; i < MaxClients; i++){
 
 			g_bShowTankHud[i] = true;
-			
+
 			if (!IsClientInGame(i) || IsFakeClient(i)) continue;
 
 			if (GetClientTeam(i) != 2)
-				PrintToChat(i, "%s %s", MAIN_TAG, TIP);
+				_HUD_ShowTankTip(i);
 		}
+
+		g_bHudEnabled = true;
+		g_bTankKilled = false;
+		g_iPassCount = 0;
+		g_iHits[0] = 0;
+		g_iHits[1] = 0;
+		g_iStasis = GetConVarInt(g_hLotteryTime);
+		HUD_DrawTankPanel();
+		CreateTimer(float(g_iStasis), HUD_t_TankInControl, _, TIMER_FLAG_NO_MAPCHANGE);
+		CreateTimer(1.0, HUD_t_Timer, _, TIMER_REPEAT);
 	}
+}
+
+_HUD_ev_OnTankPassed()
+{
+	// director return tank back tanktickets=0
+	if (g_iPassCount == 2)
+		return;
+
+	g_iPassCount++;
+}
+
+public Action:HUD_t_TankInControl(Handle:timer)
+{
+	g_iStasis = 0;
 }
 
 public Action:HUD_t_Timer(Handle:timer)
@@ -109,6 +202,7 @@ public Action:HUD_t_Timer(Handle:timer)
 	if (!HUD_DrawTankPanel()){
 
 		g_bHudEnabled = false;
+		g_bTankKilled = true;
 		return Plugin_Stop;
 	}
 
@@ -147,98 +241,197 @@ static bool:HUD_DrawTankPanel()
 	}
 	if (!bTankInGame) return false;
 
-	static Handle:hHUD, Handle:hTankPersonalHud;
+
+	static Handle:hHUD, Handle:hTankPersonalHud, String:sNameA[32], String:sNameB[32];
 
 	hHUD = CreatePanel();
 	hTankPersonalHud = CreatePanel();
 
 	decl String:sBuffer[256];
-	DrawPanelText(hHUD, "Rotoblin Tank Spec Hud\n\n-----------------------------");
+	if (g_bCvarTwoTanks || !g_bCvarCompactHud)
+		DrawPanelText(hHUD, "Rotoblin Tank Spec HUD\n\n------------------------------");
+	else
+		DrawPanelText(hHUD, "Rotoblin Tank Spec HUD\n\n--------------------------------------");
 
 	if (g_bCvarTwoTanks){
 
+		if (IsFakeClient(iTanksIndex[0]))
+			sNameA = "AI";
+		else {
+			GetClientName(iTanksIndex[0], sNameA, 17);
+			if (strlen(sNameA) == 16){
+
+				strcopy(sNameA, 13, sNameA);
+				Format(sNameA, 32, "%s...", sNameA);
+			}
+		}
 		DrawPanelText(hHUD, " Health :");
 		if (IsIncapacitated(iTanksIndex[0]))
-			FormatEx(sBuffer, 256, "     Dead (%N)", iTanksIndex[0]);
-		else {
-			if (IsFakeClient(iTanksIndex[0]))
-				FormatEx(sBuffer, 256, "     %d (AI)", GetClientHealth(iTanksIndex[0]));
-			else
-				FormatEx(sBuffer, 256, "     %d (%N)", GetClientHealth(iTanksIndex[0]), iTanksIndex[0]);
-		}
+			FormatEx(sBuffer, 256, "     Dead (%s)", sNameA);
+		else
+			FormatEx(sBuffer, 256, "     %d (%s)", GetClientHealth(iTanksIndex[0]), sNameA);
 		DrawPanelText(hHUD, sBuffer);
 
 		if (iTanksIndex[1] != 0){
 
-			if (IsIncapacitated(iTanksIndex[1]))
-				FormatEx(sBuffer, 256, "     Dead (%N)", iTanksIndex[1]);
+			if (IsFakeClient(iTanksIndex[1]))
+				sNameB = "AI";
 			else {
-				if (IsFakeClient(iTanksIndex[1]))
-					FormatEx(sBuffer, 256, "     %d (AI)", GetClientHealth(iTanksIndex[1]));
-				else
-					FormatEx(sBuffer, 256, "     %d (%N)", GetClientHealth(iTanksIndex[1]), iTanksIndex[1]);
+				GetClientName(iTanksIndex[1], sNameB, 17);
+				if (strlen(sNameB) == 16){
+
+					strcopy(sNameB, 13, sNameB);
+					Format(sNameB, 32, "%s...", sNameB);
+				}
 			}
+			if (IsIncapacitated(iTanksIndex[1]))
+				FormatEx(sBuffer, 256, "     Dead (%s)", sNameB);
+			else
+				FormatEx(sBuffer, 256, "     %d (%s)", GetClientHealth(iTanksIndex[1]), sNameB);
 			DrawPanelText(hHUD, sBuffer);
 		}
 
 		DrawPanelText(hHUD, " Frustration :");
 		if (IsClientOnFire(iTanksIndex[0]))
-			FormatEx(sBuffer, 256, "     On Fire (%N)", iTanksIndex[0]);
+			FormatEx(sBuffer, 256, "     On Fire (%s)", sNameA);
 		else
-			FormatEx(sBuffer, 256, "     %d%% (%N)", GetPrecentFrustration(iTanksIndex[0]), iTanksIndex[0]);
+			FormatEx(sBuffer, 256, "     %d%% (%s)", GetPrecentFrustration(iTanksIndex[0]), sNameA);
 		DrawPanelText(hHUD, sBuffer);
 
 		if (iTanksIndex[1] != 0){
 
 			if (IsClientOnFire(iTanksIndex[1]))
-				FormatEx(sBuffer, 256, "     On Fire (%N)", iTanksIndex[1]);
+				FormatEx(sBuffer, 256, "     On Fire (%s)", sNameB);
 			else
-				FormatEx(sBuffer, 256, "     %d%% (%N)", GetPrecentFrustration(iTanksIndex[1]), iTanksIndex[1]);
+				FormatEx(sBuffer, 256, "     %d%% (%s)", GetPrecentFrustration(iTanksIndex[1]), sNameB);
 			DrawPanelText(hHUD, sBuffer);
 		}
 	}
 	else {
 
-		DrawPanelText(hHUD, " In Control :");
+		static bool:bIsAI, bool:bIncap, iHealth, iPercent, String:sName[32];
 
-		if (IsFakeClient(iTanksIndex[0]))
-			FormatEx(sBuffer, 256, "AI");
-		else
-			FormatEx(sBuffer, 256, "%N", iTanksIndex[0]);
+		bIsAI = IsFakeClient(iTanksIndex[0]);
+		bIncap = bool:IsIncapacitated(iTanksIndex[0]);
 
-		Format(sBuffer, 256, "     %s", sBuffer);
-		DrawPanelText(hHUD, sBuffer);
+		if (!g_bCvarCompactHud){
 
-		DrawPanelText(hHUD, " Health :");
-		if (IsIncapacitated(iTanksIndex[0]))
-			FormatEx(sBuffer, 256, "     Dead");
-		else {
-			new iHealth = GetClientHealth(iTanksIndex[0]);
-			FormatEx(sBuffer, 256, "     %d (%d%%)", iHealth, RoundToFloor(FloatMul(FloatDiv(float(iHealth), g_fTankHealth), 100.0)));
+			DrawPanelText(hHUD, " In Control :");
+
+			if (bIsAI)
+				sBuffer = "     AI";
+			else{
+
+				CheckMaxNameLen(iTanksIndex[0], sName);
+				FormatEx(sBuffer, 256, "     %s", sName);
+			}
+			DrawPanelText(hHUD, sBuffer);
+
+			DrawPanelText(hHUD, " Health :");
+			if (bIncap)
+				sBuffer = "     Dead";
+			else {
+				iHealth = GetClientHealth(iTanksIndex[0]);
+				iPercent = RoundToFloor(FloatMul(FloatDiv(float(iHealth), g_fTankHealth), 100.0));
+				FormatEx(sBuffer, 256, "     %d (%d%%)", iHealth, iPercent ? iPercent : 1);
+			}
+			DrawPanelText(hHUD, sBuffer);
+
+			if (g_iStasis && bIsAI){
+
+				DrawPanelText(hHUD, " Status :");
+				FormatEx(sBuffer, 256, "     Stasis (%d sec)", --g_iStasis);
+			}
+			else if (IsClientOnFire(iTanksIndex[0])){
+
+				DrawPanelText(hHUD, " Status :");
+				FormatEx(sBuffer, 256, "     On Fire (%d sec)", bIncap ? 0 : RoundToCeil(iHealth / g_fBurnDmg));
+			}
+			else {
+
+				DrawPanelText(hHUD, " Pass Count :");
+				FormatEx(sBuffer, 256, "     %d/2", g_iPassCount);
+
+				if (bIsAI && g_iPassCount == 2)
+					Format(sBuffer, 256, "%s (Lost)", sBuffer);
+				else
+					Format(sBuffer, 256, "%s (%d%%)", sBuffer, GetPrecentFrustration(iTanksIndex[0]));
+			}
+			DrawPanelText(hHUD, sBuffer);
 		}
-		DrawPanelText(hHUD, sBuffer);
+		else {
 
-		DrawPanelText(hHUD, " Frustration :");
-		if (IsClientOnFire(iTanksIndex[0]))
-			FormatEx(sBuffer, 256, "     On Fire");
-		else
-			FormatEx(sBuffer, 256, "     %d%%", GetPrecentFrustration(iTanksIndex[0]));
-		DrawPanelText(hHUD, sBuffer);
+			if (bIsAI)
+				FormatEx(sBuffer, 256, " In Control    : AI");
+			else {
+
+				CheckMaxNameLen(iTanksIndex[0], sName);
+				FormatEx(sBuffer, 256, " In Control    : %s", sName);
+			}
+			DrawPanelText(hHUD, sBuffer);
+
+			if (bIncap)
+				FormatEx(sBuffer, 256, " Health         : Dead");
+			else {
+				iHealth = GetClientHealth(iTanksIndex[0]);
+				iPercent = RoundToFloor(FloatMul(FloatDiv(float(iHealth), g_fTankHealth), 100.0));
+				FormatEx(sBuffer, 256, " Health         : %d (%d%%)", iHealth, iPercent ? iPercent : 1);
+			}
+			DrawPanelText(hHUD, sBuffer);
+
+			if (g_iStasis && bIsAI)
+				FormatEx(sBuffer, 256, " Status         : Stasis (%d sec)", --g_iStasis);
+			else if (IsClientOnFire(iTanksIndex[0]))
+				FormatEx(sBuffer, 256, " Status         : On Fire (%d sec)", bIncap ? 0 : RoundToCeil(iHealth / g_fBurnDmg));
+			else {
+
+				FormatEx(sBuffer, 256, " Pass Count  : %d/2", g_iPassCount);
+
+				if (bIsAI && g_iPassCount == 2)
+					Format(sBuffer, 256, "%s (Lost)", sBuffer);
+				else
+					Format(sBuffer, 256, "%s (%d%%)", sBuffer, GetPrecentFrustration(iTanksIndex[0]));
+
+			}
+			DrawPanelText(hHUD, sBuffer);
+
+/* 			switch (ELEM){
+
+				case 0:
+					FormatEx(sBuffer, 256, " Hits            : 1: %d", g_iHits[0]);
+				case 1:
+					FormatEx(sBuffer, 256, " Hits            : 1: %d. 2: %d", g_iHits[0], g_iHits[1]);
+				default:
+					FormatEx(sBuffer, 256, " Hits            : N/A");
+			}
+			DrawPanelText(hHUD, sBuffer); 
+*/
+		}
 	}
 
 	FormatEx(sBuffer, 256, " \n\n Survivors Health : %d", iSurvTeamHealth);
 	DrawPanelText(hHUD, sBuffer);
 
 	// personal tank hud
-	FormatEx(sBuffer, 256, " Survivors Health : %d", iSurvTeamHealth);
-	DrawPanelText(hTankPersonalHud, sBuffer);
+	if (!g_bCvarTwoTanks){
+
+		FormatEx(sBuffer, 256, " Survivors Health : %d", iSurvTeamHealth);
+		DrawPanelText(hTankPersonalHud, sBuffer);
+	}
 
 	for (new i; i < InfectedCount; i++){
 
 		if (!g_bShowTankHud[InfectedIndex[i]] || InfectedIndex[i] <= 0  || !IsClientInGame(InfectedIndex[i]) || IsFakeClient(InfectedIndex[i])) continue; // If client is the tank or is a bot, continue
 
-		if (InfectedIndex[i] == iTanksIndex[0] || InfectedIndex[i] == iTanksIndex[1])
-			SendPanelToClient(hTankPersonalHud, InfectedIndex[i], HUD_HUD_Handler, 1);
+		if (InfectedIndex[i] == iTanksIndex[0]){
+
+			if (!g_bCvarTwoTanks)
+				SendPanelToClient(hTankPersonalHud, InfectedIndex[i], HUD_HUD_Handler, 1);
+			else
+				ExtraTankMod(InfectedIndex[i], iTanksIndex[1], sNameB, iSurvTeamHealth);
+		}
+		else if (InfectedIndex[i] == iTanksIndex[1])
+			ExtraTankMod(InfectedIndex[i], iTanksIndex[0], sNameA, iSurvTeamHealth);
 		else
 			SendPanelToClient(hHUD, InfectedIndex[i], HUD_HUD_Handler, 1);
 	}
@@ -247,6 +440,7 @@ static bool:HUD_DrawTankPanel()
 
 		if (!g_bShowTankHud[SpectateIndex[i]] || SpectateIndex[i] <= 0  || !IsClientInGame(SpectateIndex[i]) || IsFakeClient(SpectateIndex[i])) continue; // If client is the tank or is a bot, continue
 
+		_HUD_ShowTankTip(SpectateIndex[i]);
 		SendPanelToClient(hHUD, SpectateIndex[i], HUD_HUD_Handler, 1);
 	}
 
@@ -254,6 +448,26 @@ static bool:HUD_DrawTankPanel()
 	CloseHandle(hTankPersonalHud);
 
 	return true;
+}
+
+static ExtraTankMod(client, tank, String:sNameA[], iSurvTeamHealth)
+{
+	new Handle:hDTTankHud = CreatePanel();
+	decl String:sBuffer[256];
+	if (tank){
+
+		if (!IsIncapacitated(tank))
+			FormatEx(sBuffer, 256, " Tank: %d (%s)", GetClientHealth(tank), sNameA);
+		else
+			FormatEx(sBuffer, 256, " Tank: Dead (%s)", sNameA);
+		DrawPanelText(hDTTankHud, sBuffer);
+	}
+
+	FormatEx(sBuffer, 256, " Survivors Health : %d", iSurvTeamHealth);
+	DrawPanelText(hDTTankHud, sBuffer);
+
+	SendPanelToClient(hDTTankHud, client, HUD_HUD_Handler, 1);
+	CloseHandle(hDTTankHud);
 }
 
 public HUD_HUD_Handler(Handle:menu, MenuAction:action, param1, param2)
@@ -264,7 +478,7 @@ public HUD_HUD_Handler(Handle:menu, MenuAction:action, param1, param2)
 public HUD_OnCvarChange_TwoTanks(Handle:hHandle, const String:sOldVal[], const String:sNewVal[])
 {
 	if (!StrEqual(sOldVal, sNewVal))
-		g_bCvarTwoTanks = GetConVarBool(g_hTwoTanks);
+		g_bCvarTwoTanks = GetConVarBool(hHandle);
 }
 
 public HUD_OnCvarChange_TankHealth(Handle:hHandle, const String:sOldVal[], const String:sNewVal[])
@@ -272,10 +486,247 @@ public HUD_OnCvarChange_TankHealth(Handle:hHandle, const String:sOldVal[], const
 	if (StrEqual(sOldVal, sNewVal)) return;
 
 	g_fTankHealth = GetConVarFloat(g_hTankHealth) * GetConVarFloat(g_hVsBonusHealth);
+	g_fBurnDmg = g_fTankHealth / GetConVarFloat(g_hBurnLifeTime);
+}
+
+public HUD_OnCvarChange_CompactHud(Handle:hHandle, const String:sOldVal[], const String:sNewVal[])
+{
+	if (!StrEqual(sOldVal, sNewVal))
+		g_bCvarCompactHud = GetConVarBool(hHandle);
 }
 
 static HUD_GetCvars()
 {
-	g_bCvarTwoTanks = GetConVarBool(g_hTwoTanks);
+	g_bCvarTwoTanks = GetConVarBool(g_hCvarTwoTanks);
 	g_fTankHealth = GetConVarFloat(g_hTankHealth) * GetConVarFloat(g_hVsBonusHealth);
+	g_bCvarCompactHud = GetConVarBool(g_hCvarCompactHud);
+	g_fBurnDmg = g_fTankHealth / GetConVarFloat(g_hBurnLifeTime);
+}
+
+// update hud
+public Native_R2comp_SetTankPassCount(Handle:plugin, numParams)
+{
+	g_iPassCount = GetNativeCell(1);
+}
+
+/*--------------------------------------
+SURVIVORS: 56 (150)
+raziEiL		(100)	[pumpshotgun 6/120]
+Alma		(59)	[SMG 43/350]
+Scratchy	(250)	[Down 1/2]
+Electr0		(Dead)	[N/A]
+
+INFECTED: 244 (N/A)
+PlayerOne	(Dead)	[12s]
+Tester		(Ghost)	[Hunter]
+Hello World	(50)	[Boomer]
+Mr.Pink		(6000)	[Tank]
+
+Mob Timer: 54s / Tank: In game
+--------------------------------------*/
+#define MAX_NAME_LEN 13
+static	g_iMaxFixedNameLen = MAX_NAME_LEN - 3,
+		g_iMaxBuffLen = MAX_NAME_LEN + 1;
+
+CheckMaxNameLen(client, String:sName[])
+{
+	GetClientName(client, sName, g_iMaxBuffLen);
+
+	// thanks to confogl
+	if (sName[0] == '[')
+		sName[0] = ' ';
+
+	if (strlen(sName) == MAX_NAME_LEN){
+
+		strcopy(sName, g_iMaxFixedNameLen, sName);
+		Format(sName, 32, "%s...", sName);
+	}
+}
+
+static const String:g_sSINames[][] =
+{
+	"",
+	"Smoker",
+	"Boomer",
+	"Hunter",
+	"",
+	"Tank"
+};
+
+public HUD_ev_GhostSpawnTime(Handle:event, const String:name[], bool:dontBroadcast)
+{
+	new client = GetClientOfUserId(GetEventInt(event, "userid"));
+	if (!IsFakeClient(client)){
+
+		g_iSISpawnTime[client][0] = GetEventInt(event, "spawntime");
+		g_iSISpawnTime[client][1] = RoundToFloor(GetEngineTime());
+	}
+}
+
+public Action:HUD_t_SpecTimer(Handle:timer)
+{
+	if (g_bHudEnabled || g_bBlackSpot || g_bBlockSpecHUD || !IsNativeAvailable(GetScore) || (IsNativeAvailable(IsReadyMode) && L4DReady_IsReadyMode()))
+		return Plugin_Continue;
+
+	static Handle:hSpecHUD, iTempValb, iTempVal, bool:bAreFlipped;
+
+	hSpecHUD = CreatePanel();
+	bAreFlipped = bool:GameRules_GetProp("m_bAreTeamsFlipped");
+	decl String:sBuffer[256], String:sBufferB[256];
+
+	SetPanelTitle(hSpecHUD, "Rotoblin Spectator HUD\n\n---------------------------------------");
+	FormatEx(sBuffer, 256, "SURVIVORS: %d", R2comp_GetScore(bAreFlipped));
+	DrawPanelText(hSpecHUD, sBuffer);
+
+	if (SurvivorCount){
+
+		for (new i; i < SurvivorCount; i++){
+
+			if (g_bBlackSpot) return Plugin_Continue;
+
+			if ((iTempValb = IsSurvivorBussy(SurvivorIndex[i])))
+				FormatEx(sBufferB, 256, "Caught");
+
+			if (IsHandingFromLedge(SurvivorIndex[i])){
+
+				if (iTempValb)
+					Format(sBufferB, 256, "%s | Hang", sBufferB);
+				else
+					FormatEx(sBufferB, 256, "Hang");
+			}
+			else if (IsIncapacitated(SurvivorIndex[i])){
+
+				if (iTempValb)
+					Format(sBufferB, 256, "%s | %d Down", sBufferB, GetEntProp(SurvivorIndex[i], Prop_Send, "m_currentReviveCount") + 1);
+				else
+					FormatEx(sBufferB, 256, "%d Down", GetEntProp(SurvivorIndex[i], Prop_Send, "m_currentReviveCount") + 1);
+			}
+			else if (!iTempValb){
+
+				iTempValb = GetEntPropEnt(SurvivorIndex[i], Prop_Send, "m_hActiveWeapon");
+
+				if (IsValidEntity(iTempValb)){
+
+					GetEntityClassname(iTempValb, sBufferB, 256);
+					iTempVal = GetWeaponIndexByClass(sBufferB);
+
+					if (strcmp(sBufferB, "weapon_pistol") == 0 && GetEntProp(iTempValb, Prop_Send, "m_isDualWielding"))
+						FormatEx(sBufferB, 256, "dual pistols");
+					else {
+
+						ReplaceString(sBufferB, 256, "weapon_", "", false);
+						ReplaceString(sBufferB, 256, "_spawn", "", false);
+						ReplaceString(sBufferB, 256, "_", " ", false);
+					}
+
+					if (iTempVal != NULL)
+						Format(sBufferB, 256, "%s %d/%d", sBufferB, GetWeaponClipSize(iTempValb), GetPrimaryWeaponAmmo(SurvivorIndex[i], iTempVal));
+				}
+				else
+					FormatEx(sBufferB, 256, "N/A");
+			}
+
+			if (!IsFakeClient(SurvivorIndex[i])){
+
+				CheckMaxNameLen(SurvivorIndex[i], sBuffer);
+			}
+			else{
+
+				GetCharacterName(SurvivorIndex[i], sBuffer, 256);
+				//Format(sBuffer, 256, "%s-AI", sBuffer);
+			}
+			Format(sBuffer, 256, "%s (%d) [%s]", sBuffer, GetClientHealth(SurvivorIndex[i]) + RoundToFloor(GetSuvivorTempHealth(SurvivorIndex[i])), sBufferB);
+			DrawPanelText(hSpecHUD, sBuffer);
+		}
+	}
+	if (DeadSurvivorCount){
+
+		for (new i; i < DeadSurvivorCount; i++){
+
+			if (g_bBlackSpot) return Plugin_Continue;
+
+			if (!IsFakeClient(DeadSurvivorIndex[i])){
+
+				CheckMaxNameLen(DeadSurvivorIndex[i], sBuffer);
+			}
+			else {
+
+				GetCharacterName(DeadSurvivorIndex[i], sBuffer, 256);
+				//Format(sBuffer, 256, "%s-AI", sBuffer);
+			}
+			Format(sBuffer, 256, "%s (Dead) [N/A]", sBuffer);
+			DrawPanelText(hSpecHUD, sBuffer);
+		}
+	}
+
+	DrawPanelText(hSpecHUD, " ");
+	FormatEx(sBuffer, 256, "INFECTED: %d", R2comp_GetScore(!bAreFlipped));
+	DrawPanelText(hSpecHUD, sBuffer);
+
+	if (InfectedCount){
+
+		iTempVal = RoundToFloor(GetEngineTime());
+
+		for (new i; i < InfectedCount; i++){
+
+			if (g_bBlackSpot) return Plugin_Continue;
+
+			iTempValb = IsInfectedAlive(InfectedIndex[i]);
+
+			if (!IsFakeClient(InfectedIndex[i])){
+
+				CheckMaxNameLen(InfectedIndex[i], sBuffer);
+			}
+			else {
+
+				if (!iTempValb) continue;
+				FormatEx(sBuffer, 256, "AI");
+			}
+
+			if (iTempValb){
+
+				if (IsPlayerGhost(InfectedIndex[i]))
+					sBufferB = "Ghost";
+				else
+					FormatEx(sBufferB, 256, "%d", GetClientHealth(InfectedIndex[i]));
+
+				Format(sBufferB, 256, "%s (%s) [%s]", sBuffer, sBufferB, g_sSINames[GetPlayerClass(InfectedIndex[i])]);
+				DrawPanelText(hSpecHUD, sBufferB);
+			}
+			else {
+
+				iTempValb = g_iSISpawnTime[InfectedIndex[i]][0] - (iTempVal - g_iSISpawnTime[InfectedIndex[i]][1]);
+
+				if (iTempValb > -1)
+					FormatEx(sBufferB, 256, "[%ds]", iTempValb);
+				else
+					sBufferB = "";
+
+				Format(sBufferB, 256, "%s (Dead) %s", sBuffer, sBufferB);
+				DrawPanelText(hSpecHUD, sBufferB);
+			}
+		}
+	}
+	/*
+	DrawPanelText(hSpecHUD, " ");
+	if (MC_GetMobTimer() == -1)
+		sBufferB = "N/A";
+	else
+		FormatEx(sBufferB, 256, "%ds", MC_GetMobTimer());
+
+	FormatEx(sBuffer, 256, "Mob Timer: %s / Tank Status: %s", sBufferB, g_bTankKilled ? "Killed" : "N/A");
+	DrawPanelText(hSpecHUD, sBuffer);
+	*/
+	for (new i; i < SpectateCount; i++){
+
+		if (g_bBlackSpot) return Plugin_Continue;
+
+		if (!g_bShowSpecHud[SpectateIndex[i]] || IsFakeClient(SpectateIndex[i])) continue;
+
+		_HUD_ShowSpecTip(SpectateIndex[i]);
+		SendPanelToClient(hSpecHUD, SpectateIndex[i], HUD_HUD_Handler, 2);
+	}
+
+	CloseHandle(hSpecHUD);
+	return Plugin_Continue;
 }

@@ -145,7 +145,7 @@ public _EnforceCliSettings_QueryReply(QueryCookie:cookie, client, ConVarQueryRes
 			}
 			case CLSA_Log:
 			{
-				DebugLog("%s Client %L has a bad %s value (%f). Min: %d %f Max: %d %f", \
+				DebugLogEx("%s Client %L has a bad %s value (%f). Min: %d %f Max: %d %f", \
 					CS_TAG, client, cvarName, fCvarVal, clsetting[CLSE_hasMin], clsetting[CLSE_min], clsetting[CLSE_hasMax], clsetting[CLSE_max]);
 			}
 			case CLSA_Retrieve:

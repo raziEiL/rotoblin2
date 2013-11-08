@@ -27,22 +27,23 @@
 
 #define		MODULE_TAG	"[MapInfo]"
 
+#define		KV_NAME		"Rotoblin MapInfo"
 #define		START_ROOM_RADIUS		150
 
 #if DEBUG_COMMANDS
 	static	Handle:g_hMarker, g_iLaserCache;
 #endif
 
-static 		Handle:g_hKv, String:g_sPatch[PLATFORM_MAX_PATH], Float:g_vStartSafeRoom[3], Float:g_vEndSafeRoom[3];
+static 		Handle:g_hKv, String:g_sPatch[PLATFORM_MAX_PATH], Float:g_vStartSafeRoom[3], Float:g_vEndSafeRoom[3], String:g_sMap[64];
 
 _MapInfo_OnPluginStart()
 {
-	g_hKv = CreateKeyValues("Rotoblin MapInfo");
+	g_hKv = CreateKeyValues(KV_NAME);
 
 	BuildPath(Path_SM, g_sPatch, PLATFORM_MAX_PATH, "configs/R2/MapInfo.cfg");
 
 	if (!FileToKeyValues(g_hKv, g_sPatch))
-		SetFailState("Couldn't load Rotoblin MapInfo file!");
+		SetFailState("Couldn't load Rotoblin MapInfo file! Patch <configs/R2/MapInfo.cfg>");
 
 	RegAdminCmd("mapinfo", CmdMapInfo, ADMFLAG_ROOT);
 	RegAdminCmd("getmapinfo", GetMapInfo, ADMFLAG_ROOT);
@@ -122,18 +123,17 @@ public Action:GetMapInfo(client, args)
 
 _MI_OnMapStart()
 {
-	decl String:sMap[64];
-	GetCurrentMap(sMap, 64);
+	GetCurrentMap(g_sMap, 64);
 
 	MI_WipeCoordinates();
 
-	if (KvJumpToKey(g_hKv, sMap)){
+	if (KvJumpToKey(g_hKv, g_sMap)){
 
 		KvGetVector(g_hKv, "start_pos", g_vStartSafeRoom);
 		KvGetVector(g_hKv, "end_pos", g_vEndSafeRoom);
 	}
 	else
-		DebugLog("%s Couldn't load Rotoblin map data for \"%s\"", MODULE_TAG, sMap);
+		DebugLogEx("%s Couldn't load Rotoblin map data for \"%s\"", MODULE_TAG, g_sMap);
 
 	KvGoBack(g_hKv);
 
@@ -173,7 +173,6 @@ static MI_RewriteGlobalVar(const Float:vOrg[3], bool:bStartRoom)
 		g_vEndSafeRoom[2] = vOrg[2];
 	}
 }
-
 
 bool:IsEntInStartSafeRoom(const Float:vOrg[3])
 {

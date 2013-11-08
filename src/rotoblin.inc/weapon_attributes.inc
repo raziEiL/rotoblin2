@@ -40,7 +40,7 @@
 #define WEAPID_MOLOTOV			9
 #define WEAPID_PIPEBOMB			10
 #define WEAPID_PAINPILLS		12
-//#define WEAPID_AMMO				29
+#define WEAPID_AMMO				29
 
 #define WEAPID_LIMIT				13
 /*
@@ -145,16 +145,31 @@ new g_iWeapAttributes[WEAPONS_LIMIT][ATTRIBUTES] =
 	}
 };
 
-static const String:g_sWeapon_Names[WEAPONS_LIMIT][] =
+enum INFO
 {
-	"weapon_smg",
-	"weapon_pumpshotgun",
-	"weapon_autoshotgun",
-	"weapon_rifle",
-	"weapon_hunting_rifle"
+	CLASS, // classname
+	NAME,	// printname
+	CVAR	// convarname
+};
+
+#define WEAPINDEX_SMG		0
+#define WEAPINDEX_PUMP		1
+#define WEAPINDEX_AUTO		2
+#define WEAPINDEX_RIFLE		3
+#define WEAPINDEX_SNIPER	4
+
+new const String:g_sWeapon_Names[WEAPONS_LIMIT][INFO][] =
+{
+	{ "weapon_smg", "SMG", "submachinegun" },
+	{ "weapon_pumpshotgun", "Pump Shotgun", "pumpshotgun" },
+	{ "weapon_autoshotgun", "Auto Shotgun", "autoshotgun" },
+	{ "weapon_rifle", "Assault Rifle", "assaultrifle" },
+	{ "weapon_hunting_rifle", "Hunting Rifle", "huntingrifle" }
 };
 
 new Handle:g_hWeaponCvar[WEAPONS_LIMIT];
+
+static g_iWeapOffset[WEAPONS_LIMIT];
 
 _Weapon_Attributes_OnPluginStart()
 {
@@ -163,7 +178,13 @@ _Weapon_Attributes_OnPluginStart()
 	g_hWeaponCvar[2] = g_hWeaponCvar[1];
 	g_hWeaponCvar[3] = FindConVar("ammo_assaultrifle_max");
 	g_hWeaponCvar[4] = FindConVar("ammo_huntingrifle_max");
-	//_WA_OnMapStart();
+
+	new iAmmoOffset = FindSendPropInfo("CTerrorPlayer", "m_iAmmo");
+	g_iWeapOffset[0] = iAmmoOffset + (5 * 4);
+	g_iWeapOffset[1] = iAmmoOffset + (6 * 4);
+	g_iWeapOffset[2] = g_iWeapOffset[1];
+	g_iWeapOffset[3] = iAmmoOffset + (3 * 4);
+	g_iWeapOffset[4] = iAmmoOffset + (2 * 4);
 }
 
 _WA_OnConfigsExecuted()
@@ -184,7 +205,7 @@ public Action:WA_t_ReadCvars(Handle:timer)
 	for (new WEAPON_INDEX = 0; WEAPON_INDEX < WEAPONS_LIMIT; WEAPON_INDEX++){
 
 		g_iWeapAttributes[WEAPON_INDEX][MAX_AMMO] = GetConVarInt(g_hWeaponCvar[WEAPON_INDEX]);
-		DebugLog("%s %d.		|	%d/%d		| %s", WA_TAG, WEAPON_INDEX, g_iWeapAttributes[WEAPON_INDEX][CLIP_SIZE], g_iWeapAttributes[WEAPON_INDEX][MAX_AMMO], g_sWeapon_Names[WEAPON_INDEX]);
+		DebugLog("%s %d.		|	%d/%d		| %s", WA_TAG, WEAPON_INDEX, g_iWeapAttributes[WEAPON_INDEX][CLIP_SIZE], g_iWeapAttributes[WEAPON_INDEX][MAX_AMMO], g_sWeapon_Names[WEAPON_INDEX][CLASS]);
 	}
 }
 
@@ -192,8 +213,33 @@ public Action:WA_t_ReadCvars(Handle:timer)
 GetWeaponIndexByClass(const String:sClassName[])
 {
 	for (new WEAPON_INDEX; WEAPON_INDEX < WEAPONS_LIMIT; WEAPON_INDEX++)
-		if (StrEqual(g_sWeapon_Names[WEAPON_INDEX], sClassName))
+		if (StrEqual(g_sWeapon_Names[WEAPON_INDEX][CLASS], sClassName))
 			return WEAPON_INDEX;
 
 	return NULL;
+}
+
+GetWeaponIndexByClassEx(entity)
+{
+	decl String:sClassName[64];
+	GetEntityClassname(entity, sClassName, 64);
+	return GetWeaponIndexByClass(sClassName);
+}
+
+stock GetPrimaryWeaponAmmo(client, weapon_index)
+{
+	return GetEntData(client, g_iWeapOffset[weapon_index]);
+}
+
+stock SetPrimaryWeaponAmmo(client, weapon_index, ammo)
+{
+	SetEntData(client, g_iWeapOffset[weapon_index], ammo);
+}
+
+// weap spawn entity to check
+stock bool:IsPrimaryWeapon(entity, &weapid)
+{
+	weapid = GetEntProp(entity, Prop_Send, "m_weaponID");
+
+	return weapid > 1 && weapid < 7;
 }

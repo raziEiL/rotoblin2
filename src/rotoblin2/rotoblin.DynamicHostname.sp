@@ -27,13 +27,13 @@
 
 #define		DN_TAG		"[DHostName]"
 
-static		Handle:g_hAllowDN,  Handle:g_hHostName, Handle:g_hReadyUp, String:g_sDefaultN[68], bool:g_bCvarAllowDN;
+static		Handle:g_hAllowDN,  Handle:g_hHostName, Handle:g_hReadyUp, String:g_sDefaultN[68], String:g_sCvarDNSymbol[32];
 
 _DHostName_OnPluginStart()
 {
 	g_hHostName	= FindConVar("hostname");
 
-	g_hAllowDN	=	CreateConVarEx("allow_dynamic_hostname", "0");
+	g_hAllowDN	=	CreateConVarEx("allow_dynamic_hostname", "", "Adds the name of current config (read from the \"l4d_ready_cfg_name\" cvar) to the server name and separate it by this symbol");
 
 	HookConVarChange(g_hAllowDN, _DH_Allow_CvarChange);
 }
@@ -45,13 +45,13 @@ _DN_OnPluginEnd()
 
 _DN_OnPluginDisabled()
 {
-	if (g_bCvarAllowDN)
+	if (strlen(g_sCvarDNSymbol))
 		ChangeServerName(g_sDefaultN);
 }
 
 _DN_OnConfigsExecuted()
 {
-	if (!g_bCvarAllowDN) return;
+	if (!strlen(g_sCvarDNSymbol)) return;
 
 	if (!strlen(g_sDefaultN))
 		GetConVarString(g_hHostName, g_sDefaultN, 68);
@@ -68,7 +68,7 @@ _DN_OnConfigsExecuted()
 
 		if (!strlen(sReadyUpCfgName)) return;
 
-		Format(sReadyUpCfgName, 128, "%s / %s", g_sDefaultN, sReadyUpCfgName);
+		Format(sReadyUpCfgName, 128, "%s%s%s", g_sDefaultN, g_sCvarDNSymbol, sReadyUpCfgName);
 		ChangeServerName(sReadyUpCfgName);
 	}
 }
@@ -83,7 +83,7 @@ public _DH_Allow_CvarChange(Handle:convar, const String:oldValue[], const String
 {
 	if (StrEqual(oldValue, newValue)) return;
 
-	g_bCvarAllowDN = GetConVarBool(g_hAllowDN);
+	strcopy(g_sCvarDNSymbol, 32, newValue);
 
-	DebugLog("%s Dynamic host name is %s", DN_TAG, g_bCvarAllowDN ? "enabled" : "disabled");
+	DebugLog("%s Dynamic host name is %s", DN_TAG, strlen(g_sCvarDNSymbol) ? "enabled" : "disabled");
 }

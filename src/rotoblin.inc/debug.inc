@@ -158,11 +158,11 @@ stock DebugAddChannel(const String:channelName[])
 	decl String:buffer[DEBUG_CHANNEL_NAME_LENGTH];
 
 	// Store flag
-	Format(buffer, sizeof(buffer), "%s%s", channelIndex, SETTINGS_FLAG_KEY);
+	FormatEx(buffer, sizeof(buffer), "%s%s", channelIndex, SETTINGS_FLAG_KEY);
 	SetTrieValue(g_hChannelsTrie, buffer, channelFlag);
 
 	// Store channel name
-	Format(buffer, sizeof(buffer), "%s%s", channelIndex, SETTINGS_NAME_KEY);
+	FormatEx(buffer, sizeof(buffer), "%s%s", channelIndex, SETTINGS_NAME_KEY);
 	SetTrieString(g_hChannelsTrie, buffer, channelName);
 
 	g_iNextChannel_Index++;
@@ -251,11 +251,11 @@ static bool:SetupModule()
 	HookConVarChange(cvar, _H_D_Output_CvarChange);
 
 	RegAdminCmdEx("debug_status", _H_D_Status_Command, ADMFLAG_ROOT, "Writes report of channels and what is current listen to", _, FCVAR_PLUGIN);
-	
+
 	#if DEBUG_COMMANDS
 		RegAdminCmd("r2comp_dump_cvar_status", Command_DumpCvars, ADMFLAG_ROOT);
 	#endif
-	
+
 	g_bIsModuleSetup = true;
 	return true;
 }
@@ -278,14 +278,25 @@ public Action:Command_DumpCvars(client, args)
 	_MC_CvarDump();
 	_IC_CvarDump();
 	_GW_CvarDump();
+	_TS_CvarDump();
 
 	return Plugin_Handled;
 }
 #endif
 
+// logs to rotoblin file
 DebugLog(const String:sLog[], any:...)
 {
 	if (!R2COMP_LOG || !SetupModule()) return;
+
+	decl String:sBuffer[256];
+	VFormat(sBuffer, sizeof(sBuffer), sLog, 2);
+	LogToFile(g_sDebug, sBuffer);
+}
+
+DebugLogEx(const String:sLog[], any:...)
+{
+	if (!SetupModule()) return;
 
 	decl String:sBuffer[256];
 	VFormat(sBuffer, sizeof(sBuffer), sLog, 2);

@@ -39,7 +39,7 @@ static const String:sMapList[][] =
 	"l4d_river01_docks"
 };
 
-static 		Handle:g_hAllowLoader, Handle:g_hAllowReset, Handle:g_fwdOnServerEmpty, Handle:g_hResetTimer;
+static 		Handle:g_hAllowLoader, Handle:g_hAllowMatchReset, Handle:g_hAllowMapReset, Handle:g_fwdOnServerEmpty, Handle:g_hResetTimer;
 
 _AutoLoader_OnPluginStart()
 {
@@ -48,7 +48,8 @@ _AutoLoader_OnPluginStart()
 	DebugLog("%s Rotoblin 2 competitive mode started :3", AL_TAG);
 
 	g_hAllowLoader		= CreateConVarEx("allow_autoloader", "", "Name of the match config uses by default. Empty this line to disable an autoloader (value: \"\").");
-	g_hAllowReset		= CreateConVarEx("allow_match_resets", "0", "");
+	g_hAllowMatchReset	= CreateConVarEx("allow_match_resets", "0", "When server becomes empty resets the last played match to default match (see \"rotoblin_allow_autoloader\" convar)");
+	g_hAllowMapReset	= CreateConVarEx("allow_map_resets", "0", "Set whether or not change map to the first map of a random campaign when server becomes empty");
 
 	ExecuteScritp(sMatchCfg[SETTINGS]);
 }
@@ -113,17 +114,19 @@ public Action:AL_t_ResetWhenEmpty(Handle:timer)
 {
 	g_hResetTimer = INVALID_HANDLE;
 
-	if (IsClientsOnServer()) return;
+	if (!IsServerEmpty()) return;
 
 	Call_StartForward(g_fwdOnServerEmpty);
 	Call_Finish();
 
 	DebugLog("%s Server is empty!", AL_TAG);
 
-	if (GetConVarInt(g_hAllowReset)){
+	if (GetConVarBool(g_hAllowMatchReset)){
 
 		AutoLoaderFunc();
-		CreateTimer(7.0, AL_t_ChangeMap);
+
+		if (GetConVarBool(g_hAllowMapReset))
+			CreateTimer(7.0, AL_t_ChangeMap);
 	}
 }
 
@@ -138,13 +141,4 @@ public Action:AL_t_ChangeMap(Handle:timer)
 
 		ForceChangeLevel(sMapList[iMapIndex], "R2: Server is empty");
 	}
-}
-
-static bool:IsClientsOnServer()
-{
-	for (new i = 1; i <= MaxClients;  i++)
-		if (IsClientConnected(i) && !IsFakeClient(i))
-			return true;
-
-	return false;
 }

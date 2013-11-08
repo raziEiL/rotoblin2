@@ -63,8 +63,8 @@ static const MAX_EXISTING_FATIGUE					= 3;
 
 static const Float:MELEE_DURATION					= 0.6;
 
-static bool:soundHookDelay[MAXPLAYERS+1] 			= false;
-
+static bool:soundHookDelay[MAXPLAYERS+1];
+static bool:g_bKeepPenalty[MAXPLAYERS+1];
 static			g_iDebugChannel						= 0;
 static	const	String:	DEBUG_CHANNEL_NAME[]	= "MeleeFatigue";
 
@@ -85,7 +85,7 @@ _MeleeFatigue_OnPluginStart()
 	CreateIntConVar(
 		g_hNonFatiguedMeleePenalty_CVAR,
 		"melee_penalty",
-		"Sets the value to be added to a survivor's shove penalty.  This _only_ gets added when that survivor is not already fatigued (so basically, setting this to a large value will make the survivors become fatigued more quickly, but the cooldown effect won't change once fatigue has set in)",
+		"Shove penalty added for each non-fatigued melee swipe",
 		g_nonFatiguedMeleePenalty);
 
 	UpdateNonFatiguedMeleePenalty();
@@ -180,6 +180,7 @@ public Action:_MF_sh_OnSoundEmitted(clients[64], &numClients, String:sample[PLAT
 	// we need to subtract 1 from the current shove penalty prior to applying
 	// our own as the game has already incremented the shove penalty before we got hold of it.
 	new shovePenalty = L4D_GetMeleeFatigue(entity) - 1;
+
 	if(shovePenalty < 0)
 		shovePenalty = 0;
 
@@ -196,11 +197,29 @@ public Action:_MF_sh_OnSoundEmitted(clients[64], &numClients, String:sample[PLAT
 		case 1:
 			shovePenalty += 4;
 		case 2:
-			shovePenalty += 3;
+			shovePenalty += (shovePenalty < 1 ? 1 : 3);
 		case 3:
 			shovePenalty += (shovePenalty < 2 ? 1 : 3);
 		case 4:
+		{
 			shovePenalty += 1;
+
+			if (shovePenalty == 3){
+
+				if (!g_bKeepPenalty[entity]){
+
+					g_bKeepPenalty[entity] = true;
+					shovePenalty--;
+				}
+				else{
+
+					g_bKeepPenalty[entity] = false;
+					shovePenalty = 4;
+				}
+			}
+			else
+				g_bKeepPenalty[entity] = false;
+		}
 	}
 
 	if (shovePenalty > 4)

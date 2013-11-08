@@ -304,7 +304,7 @@ public FindTankClient()
 {
 	for (new i = 0; i < InfectedCount; i++)
 	{
-		if (InfectedIndex[i] <= 0 || !IsClientInGame(InfectedIndex[i]) || !IsPlayerAlive(InfectedIndex[i]) || !IsPlayerTank(InfectedIndex[i]) || IsIncapacitated(InfectedIndex[i])) continue;
+		if (InfectedIndex[i] <= 0 || !IsClientInGame(InfectedIndex[i]) || !IsInfectedAlive(InfectedIndex[i]) || !IsPlayerTank(InfectedIndex[i]) || IsIncapacitated(InfectedIndex[i])) continue;
 
 		return InfectedIndex[i];
 	}

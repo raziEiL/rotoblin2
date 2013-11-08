@@ -50,20 +50,6 @@ bool:IsScavengeMode()
 	}
 }
 
-bool:IsVersusMode()
-{
-	decl String:sGameMode[32];
-	GetConVarString(cvarGameMode, sGameMode, sizeof(sGameMode));
-	if (StrContains(sGameMode, "versus") > -1)
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
 IsServerLobbyFull()
 {
 	new humans = GetHumanCount();

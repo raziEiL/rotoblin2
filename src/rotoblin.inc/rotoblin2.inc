@@ -58,7 +58,7 @@
 
 // New modules
 #include "rotoblin2/rotoblin.AutoLoader.sp"
-#include "rotoblin2/rotoblin.AntiScrable.sp"
+#include "rotoblin2/rotoblin.Unscramble.sp"
 #include "rotoblin2/rotoblin.MapInfo.sp"
 #include "rotoblin2/rotoblin.TrackCvars.sp"
 #include "rotoblin2/rotoblin.WaterSlowdown.sp"
@@ -73,3 +73,6 @@
 #include "rotoblin2/rotoblin.DynamicHostname.sp"
 #include "rotoblin2/rotoblin.HeadsUpDisplay.sp"
 #include "rotoblin2/rotoblin.ClientSettings.sp"
+
+#include "rotoblin2/rotoblin.TankSpawns.sp"
+

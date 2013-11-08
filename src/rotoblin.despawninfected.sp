@@ -56,7 +56,7 @@ static			Float:	g_fLastLowestSurvivorFlow			= 0.0;
 static					g_iDebugChannel						= 0;
 static	const	String:	DEBUG_CHANNEL_NAME[]				= "DespawnInfected";
 
-static Handle:g_hDIEnable, bool:g_bCvarDIEnabled;
+static Handle:g_hDIEnable, bool:g_bCvarDIEnabled, Float:g_fLastHighestFlow = -1.0;
 
 #if DEBUG_COMMANDS
 	static Handle:g_hDebugArray, Handle:g_hDebugArray2, bool:g_bRespawnedMob;
@@ -155,7 +155,7 @@ public _DI_RoundStart_Event(Handle:event, const String:name[], bool:dontBroadcas
 	#if DEBUG_COMMANDS
 		DI_ClearDebugArray();
 	#endif
-
+	g_fLastHighestFlow = 0.0;
 	for (new i = MaxClients + 1; i <= MAX_EDICTS; i++) g_fCommonLifetime[i] = 0.0;
 	DebugPrintToAllEx("Round start, resetting common life time");
 }
@@ -196,6 +196,7 @@ public Action:_DI_Check_Timer(Handle:timer)
 
 	DespawningCommons(lastSurvivorFlow, firstSurvivor);
 	g_fLastLowestSurvivorFlow = lastSurvivorFlow;
+	g_fLastHighestFlow = firstSurvivorFlow;
 
 	return Plugin_Continue;
 }
@@ -438,10 +439,16 @@ public Action:WI_t_DebugGetMobOrg(Handle:timer, any:entity)
 }
 #endif
 
+public Native_R2comp_GetHighestSurvivorFlowEx(Handle:plugin, numParams)
+{
+	return _:g_fLastHighestFlow;
+}
+
 _DI_ToogleHook(bool:bHook)
 {
 	if (bHook){
 
+		g_fLastHighestFlow = 0.0;
 		for (new i = MaxClients + 1; i <= MAX_EDICTS; i++) g_fCommonLifetime[i] = 0.0;
 
 		g_hCommonTimer = CreateTimer(COMMON_CHECK_INTERVAL, _DI_Check_Timer, _, TIMER_REPEAT);
@@ -451,6 +458,7 @@ _DI_ToogleHook(bool:bHook)
 		DebugLog("%s ENABLED", DI_TAG);
 	}
 	else {
+		g_fLastHighestFlow = -1.0;
 		CloseHandle(g_hCommonTimer);
 
 		UnhookEvent("round_start", _DI_RoundStart_Event, EventHookMode_PostNoCopy);

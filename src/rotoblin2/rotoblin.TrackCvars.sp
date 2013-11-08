@@ -41,19 +41,23 @@ static const g_aStaticVars[][CVAR_STRUCTURE] =
 	{ "versus_force_start_time",		 9999 },
 	{ "director_transition_timeout",		0 },
 
-	{ "z_mob_spawn_min_interval_normal",	8 }, // Req in rotoblin.MobsControl.sp
-	{ "z_mob_spawn_max_interval_normal",	8 },
+	{ "sb_all_bot_team",					1 } // disable hibernation
+	//{ "sb_separation_danger_min_range",		120 }
+	//{ "sb_separation_danger_max_range",		0 }
 
-	{ "sb_all_bot_team",					1 }, // disable hibernation
-	{ "sb_separation_danger_min_range",		120 },
-	{ "sb_separation_danger_max_range",		0 }
+	//{ "z_mob_spawn_min_interval_normal",	8 }, // Req in rotoblin.MobsControl.sp
+	//{ "z_mob_spawn_max_interval_normal",	8 },
+	
 	//{ "sv_hibernate_when_empty",		0 }
 };
 
+//-----------------------------------------------------------------------------
+// Global functions
+//-----------------------------------------------------------------------------
 _TrackCvars_OnPluginStart()
 {
 	RegServerCmd("rotoblin_track_variable",		CmdTrackVariable,		"Add a convar to track");
-	RegServerCmd("rotoblin_track_variable_ex",	CmdTrackVariableEx,		"Add a convar to track but ignore a global lock");
+	RegServerCmd("rotoblin_track_variable_ex",	CmdTrackVariableEx,	"Add a convar to track but ignore a global lock");
 	RegServerCmd("rotoblin_lock_variables",		CmdLockVariable,		"Lock all tracked convar to changes");
 	RegServerCmd("rotoblin_unlock_variables",	CmdUnlockVariable,		"Unlock all tracked convar to changes");
 	RegServerCmd("rotoblin_reset_variables",		CmdResetVariable,		"Reset all tracked convars to its default value");
@@ -61,8 +65,8 @@ _TrackCvars_OnPluginStart()
 	g_hConVarArray = CreateArray(64);
 	g_hConVarArrayEx = CreateArray(64);
 
-	new Handle:hSBAllBotTeam = FindConVar(g_aStaticVars[4][sCVar]);
-	SetConVarInt(hSBAllBotTeam, g_aStaticVars[4][iCVar]);
+	new Handle:hSBAllBotTeam = FindConVar(g_aStaticVars[2][sCVar]);
+	SetConVarInt(hSBAllBotTeam, g_aStaticVars[2][iCVar]);
 	HookConVarChange(hSBAllBotTeam, OnStatic_ConVarChange);
 }
 
@@ -78,6 +82,54 @@ _TC_OnPluginDisabled()
 	CmdResetVariable(0);
 }
 
+// Only for convars that added throught 'rotoblin_track_variable' command
+bool:AddConVarToTrack(const String:sConvar[64], const String:sValue[64], bool:bCanBeReseted=true)
+{
+	new Handle:hConVar = FindConVar(sConvar);
+	if (!IsValidConVar(hConVar)){
+
+		DebugLog("%s Warning ConVar \"%s\" not found!", TC_TAG, sConvar);
+		return false;
+	}
+	if (IsConVarTracked(g_hConVarArray, sConvar)){
+
+		DebugLog("%s Warning ConVar \"%s\" already tracked!", TC_TAG, sConvar);
+		return false;
+	}
+
+	DebugLog("%s ConVar \"%s\" \"%s\" is added to track", TC_TAG, sConvar, sValue);
+
+	SetConVarString(hConVar, sValue, true);
+	HookConVarChange(hConVar, OnTracked_ConVarChange);
+
+	if (bCanBeReseted)
+		PushArrayString(g_hConVarArray, sConvar);
+
+	return true;
+}
+
+ReleaseTrackedConVar(const String:sConvar[64])
+{
+	decl iCvarIndex;
+	if ((iCvarIndex = IsConVarTracked(g_hConVarArray, sConvar, _, true)) == -1) return;
+
+	new Handle:hConVar = FindConVar(sConvar);
+	RemoveFromArray(g_hConVarArray, iCvarIndex);
+
+	if (!IsValidConVar(hConVar)){
+
+		DebugLog("%s ReleaseCvar: Warning tracked ConVar \"%s\" is no longer valid and skipped", TC_TAG, sConvar);
+		return;
+	}
+
+	if (!IsPluginEnd())
+		UnhookConVarChange(hConVar, OnTracked_ConVarChange);
+
+	ResetConVar(hConVar);
+	DebugLog("%s  ReleaseCvar: ResetConVar \"%s\"", TC_TAG, sConvar);
+}
+//-----------------------------------------------------------------------------
+
 public Action:CmdTrackVariable(args)
 {
 	if (args != 2 && args != 3){
@@ -86,7 +138,7 @@ public Action:CmdTrackVariable(args)
 		return Plugin_Handled;
 	}
 
-	decl String:sConvar[64];
+	decl String:sConvar[64], String:sValue[64];
 	GetCmdArg(1, sConvar, 64);
 
 	new bool:bCanBeReseted = true;
@@ -96,28 +148,8 @@ public Action:CmdTrackVariable(args)
 		GetCmdArg(2, sConvar, 64);
 	}
 
-	new Handle:hConVar = FindConVar(sConvar);
-	if (!IsValidConVar(hConVar)){
-
-		DebugLog("%s Warning ConVar \"%s\" not found!", TC_TAG, sConvar);
-		return Plugin_Handled;
-	}
-	if (IsConVarTracked(g_hConVarArray, sConvar)){
-
-		DebugLog("%s Warning ConVar \"%s\" already tracked!", TC_TAG, sConvar);
-		return Plugin_Handled;
-	}
-
-	decl String:sValue[64];
 	GetCmdArg(bCanBeReseted ? 2 : 3, sValue, 64);
-
-	DebugLog("%s ConVar \"%s\" \"%s\" is added to track", TC_TAG, sConvar, sValue);
-
-	SetConVarString(hConVar, sValue, true);
-	HookConVarChange(hConVar, OnTracked_ConVarChange);
-
-	if (bCanBeReseted)
-		PushArrayString(g_hConVarArray, sConvar);
+	AddConVarToTrack(sConvar, sValue, bCanBeReseted);
 
 	return Plugin_Handled;
 }
@@ -183,7 +215,7 @@ public Action:CmdResetVariable(args)
 	DebugLog("%s Stop tracked all ConVars", TC_TAG);
 }
 
-ResetConVars(Handle:hArray, iArraySize, bool:bConVarEx)
+static ResetConVars(Handle:hArray, iArraySize, bool:bConVarEx)
 {
 	decl String:sArrayConVar[64], Handle:hConVar;
 
@@ -208,12 +240,13 @@ ResetConVars(Handle:hArray, iArraySize, bool:bConVarEx)
 	ClearArray(hArray);
 }
 
-IsConVarTracked(Handle:hArray, const String:sConVar[] = "", bool:bResetConVars = false)
+static IsConVarTracked(Handle:hArray, const String:sConVar[] = "", bool:bResetConVars = false, bool:bReturnIndex = false)
 {
 	if (hArray == INVALID_HANDLE){
 
 		DebugLog("%s Array hndl is invalide!", TC_TAG);
-		return false;
+		if (bReturnIndex) return -1;
+		else return false;
 	}
 
 	new iArraySize = GetArraySize(hArray);
@@ -222,15 +255,17 @@ IsConVarTracked(Handle:hArray, const String:sConVar[] = "", bool:bResetConVars =
 
 		if (strlen(sConVar) == 0)
 			DebugLog("%s None of the ConVar is not tracked", TC_TAG);
-		return false;
+		if (bReturnIndex) return -1;
+		else return false;
 	}
 	if (bResetConVars)
 		return iArraySize;
 
-	return FindStringInArray(hArray, sConVar) != -1;
+	if (bReturnIndex) return FindStringInArray(hArray, sConVar);
+	else return FindStringInArray(hArray, sConVar) != -1;
 }
 
-bool:IsValidConVar(Handle:hConVar)
+static bool:IsValidConVar(Handle:hConVar)
 {
 	return hConVar != INVALID_HANDLE;
 }
@@ -254,7 +289,7 @@ static StaticVars(bool:bHook)
 
 	for (new INDEX; INDEX < iMaxSize; INDEX++){
 
-		if (INDEX == 4) continue;
+		if (INDEX == 2) continue;
 		DebugLog("%s StaticConVar \"%s\" \"%d\" now is %s", TC_TAG, g_aStaticVars[INDEX][sCVar], g_aStaticVars[INDEX][iCVar], bHook ? "blocked" : "reseted");
 
 		hCvar = FindConVar(g_aStaticVars[INDEX][sCVar]);

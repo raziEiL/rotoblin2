@@ -1,0 +1,54 @@
+rotoblin_1v1_wipe_pills                            : 0                : NOTIFY|PLUGIN        : Number of pills that will be removed during the final (0: disable 1v1 features)
+rotoblin_2_version                                 : 1.3 dev          : NOTIFY|PLUGIN        : Rotoblin 2 Competitive Mod (R2compMod) version
+rotoblin_allow_autoloader                          : r2compmod        : NOTIFY|PLUGIN        : Name of the match config uses by default. Empty this line to disable an autoloader (value: "").
+rotoblin_allow_dynamic_hostname                    :  /               : NOTIFY|PLUGIN        : Adds the name of current config (read from the "l4d_ready_cfg_name" cvar) to the server name and separate it by this symbol
+rotoblin_allow_map_resets                          : 1                : NOTIFY|PLUGIN        : Set whether or not change map to the first map of a random campaign when server becomes empty
+rotoblin_allow_match_req                           : 1                : NOTIFY|PLUGIN        : Sets whether players can request for match mode (use !match command)
+rotoblin_allow_match_resets                        : 1                : NOTIFY|PLUGIN        : When server becomes empty resets the last played match to default match (see "rotoblin_allow_autoloader" convar)
+rotoblin_allow_natural_hordes                      : 75               : NOTIFY|PLUGIN        : Allow natural hordes to spawn. (-1: director settings, 0: disable, > 0: spawn interval to cvar value).
+rotoblin_allow_spec_hud                            : 1                : NOTIFY|PLUGIN        : Enable/disable spectator HUD
+rotoblin_allow_unscramble                          : 1                : NOTIFY|PLUGIN        : Enable/disable unscramble feature
+rotoblin_choosemenu_unlocker                       : 1                : NOTIFY|PLUGIN        : Allow spectator/infected players join as dead survivor bot (through M button)
+rotoblin_compact_tankhud                           : 1                : NOTIFY|PLUGIN        : Style of Tank HUD. (0: old style, 1: new style)
+rotoblin_debug_channel                             : 0                : NOTIFY|PLUGIN        : Sum of debug channel flags. -1 - Log all channels, 0 - General channel only, 0+ - Log channel of flag
+rotoblin_debug_output                              : 0                : NOTIFY|PLUGIN        : Sum of debug output flags. 0 - No logging, 1 - Print to server, 2 - Print to chat, 4 - Log to SM logs
+rotoblin_despawn_infected                          : 1                : NOTIFY|PLUGIN        : Despawn infected commons who is too far behind the survivors.
+rotoblin_disable_tank_hordes                       : 1                : NOTIFY|PLUGIN        : Disables natural hordes while tanks are in play. (0: enable, 1: disable).
+rotoblin_enable                                    : 1                : NOTIFY|PLUGIN        : Sets whether Rotoblin is enabled
+rotoblin_expolit_fixes_flag                        : 238              : NOTIFY|PLUGIN        : What kind of expolit should be fixed/blocked. Flag (add together): 0=Disable, 2=No ladder block, 4=Survivor duck block, 8=Ghost duck block, 16=Ladder speed glitch, 32=No fall damage expolit, 64=E spawn expolit, 128=Health expolit fixes, 254=all
+rotoblin_finalspawn_range                          : 1                : NOTIFY|PLUGIN        : Reduces the SI spawn range on finales to normal spawning range
+rotoblin_ghost_warp                                : 1                : NOTIFY|PLUGIN        : Sets whether infected ghosts can Mouse2 click for warp to next survivor
+rotoblin_item_spawns                               : 14               : NOTIFY|PLUGIN        : Enables forcing same coordinates in round2 for items. Flag (add together): 0=disable, 2=molotov, 4=pipe-bomb, 8=pills, 14=all
+rotoblin_limit_assaultrifle                        : -1               : NOTIFY|PLUGIN        : Maximum of Assault Rifles that can be equipped by the Survivor team. (-1: unlimited, 0: not allowed, > 0: limits in according with cvar value).
+rotoblin_limit_autoshotgun                         : -1               : NOTIFY|PLUGIN        : Maximum of Auto Shotguns that can be equipped by the Survivor team. (-1: unlimited, 0: not allowed, > 0: limits in according with cvar value).
+rotoblin_limit_huntingrifle                        : 1                : NOTIFY|PLUGIN        : Maximum of Hunting Rifles that can be equipped by the Survivor team. (-1: unlimited, 0: not allowed, > 0: limits in according with cvar value).
+rotoblin_limit_pumpshotgun                         : -1               : NOTIFY|PLUGIN        : Maximum of Pump Shotguns that can be equipped by the Survivor team. (-1: unlimited, 0: not allowed, > 0: limits in according with cvar value).
+rotoblin_limit_submachinegun                       : 3                : NOTIFY|PLUGIN        : Maximum of SMGs that can be equipped by the Survivor team. (-1: unlimited, 0: not allowed, > 0: limits in according with cvar value).
+rotoblin_max_witches                               : 1                : NOTIFY|PLUGIN        : Maximum number of Witches are allowed to spawn. (0: director settings, > 0: maximum limit to cvar value)
+rotoblin_melee_penalty                             : 3                : NOTIFY|PLUGIN        : Shove penalty added for each non-fatigued melee swipe
+rotoblin_molotov_flow_spawn                        : 0                : NOTIFY|PLUGIN        : If it possible we trying to keep one molotov on map before tank.
+rotoblin_molotov_limit                             : 1                : NOTIFY|PLUGIN        : Limits the number of molotov on each map outside of safe rooms. (-1: remove all, 0: director settings, > 0: limit to cvar value)
+rotoblin_no_escape_tank                            : 1                : NOTIFY|PLUGIN        : Removes tanks which spawn as the rescue vehicle arrives on finales.
+rotoblin_pause_allowed                             : 0                : NOTIFY|PLUGIN        : Sets whether the game can be paused
+rotoblin_pause_duration                            : 45               : NOTIFY|PLUGIN        : The minimum required time of the pause, before either team can unpause
+rotoblin_pills_autogiver                           : 0                : NOTIFY|PLUGIN        : Gives pills to the Survivors after their leaving out of the saferoom
+rotoblin_pills_limit                               : 2                : NOTIFY|PLUGIN        : Limits the number of pills on each map outside of safe rooms. (-1: remove all, 0: director settings, > 0: limit to cvar value)
+rotoblin_pipebomb_limit                            : -1               : NOTIFY|PLUGIN        : Limits the number of pipe-bomb on each map outside of safe rooms. (-1: remove all, 0: director settings, > 0: limit to cvar value)
+rotoblin_remove_cannisters                         : 1                : NOTIFY|PLUGIN        : Removes all cannisters (gascan, propane and oxygen)
+rotoblin_remove_explosive_barrels                  : 1                : NOTIFY|PLUGIN        : Removes all explosive barrels.
+rotoblin_remove_huntingrifle                       : 0                : NOTIFY|PLUGIN        : Removes all hunting rifles from start saferooms. (-1: on each map, 0: director settings, 1: only on final)
+rotoblin_remove_pistols                            : 0                : NOTIFY|PLUGIN        : Removes all pistols on each map. Prevent the use of double pistols. (0: disable, 1: enable)
+rotoblin_remove_start_commons                      : 1                : NOTIFY|PLUGIN        : Removes all common infected near by a saferoom and returns them when one of survivors leaves a saferoom.
+rotoblin_replace_finalekits                        : 1                : NOTIFY|PLUGIN        : How medkits will be replaced during finale. (-1: remove medkits, 0: director settings, 1: replace with pain pills)
+rotoblin_replace_outsidekits                       : 1                : NOTIFY|PLUGIN        : How medkits will be replaced out of saferooms. (-1: remove medkits, 0: director settings, 1: replace with pain pills. Extra option 2: remove all healing items except of finals)
+rotoblin_replace_startkits                         : 1                : NOTIFY|PLUGIN        : How medkits will be replaced at mission start. (-1: remove medkits, 0: director settings, 1: replace with pain pills)
+rotoblin_spawning_logic                            : 0                : NOTIFY|PLUGIN        : Enables alternative spawning logic for items. More items on map, but only a limited number of them can be picked up
+rotoblin_tank_boss                                 : 1                : NOTIFY|PLUGIN        : Tank can't be prelight, punch fix
+rotoblin_tank_noprop_dmg                           : 1                : NOTIFY|PLUGIN        : All hitables props don't deal any damage to Tank
+rotoblin_tank_spawns                               : 0                : NOTIFY|PLUGIN        : Enables forcing same coordinates for tank spawns.
+rotoblin_two_tanks                                 : 0                : NOTIFY|PLUGIN        : Support double tank mod
+rotoblin_unscramble_notify                         : 1                : NOTIFY|PLUGIN        : Print notification when unscramble is complete (that specs know were they can join)
+rotoblin_water_slowdown                            : 1                : NOTIFY|PLUGIN        : Allow the water to slow down survivors when they are in.
+rotoblin_weapon_style                              : 1                : NOTIFY|PLUGIN        : Replace weapons with its tier 1 analogue. (0 - Don't replace any weapons, 1 - Replace all weapons, 2 - Replace all rifles, 3 - Replace all autoshotguns)
+rotoblin_witch_distance                            : 0                : NOTIFY|PLUGIN        : Allow director to spawn a witch close to another witch.
+rotoblin_witch_spawns                              : 1                : NOTIFY|PLUGIN        : Enables forcing same coordinates for witch spawns.

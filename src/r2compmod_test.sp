@@ -1,11 +1,7 @@
-#define PLUGIN_VERSION "1.0"
-
-// Note: readyup and scores should be loaded. Run some match to test natives
+#define PLUGIN_VERSION "1.1"
 
 #include <sourcemod>
 #include <r2comp_api>
-
-#define L4D_SCORES	0 // Outdated, no longer supported!
 
 public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 {
@@ -24,57 +20,37 @@ public Plugin:myinfo =
 
 public OnPluginStart()
 {
-	RegAdminCmd("sm_r2ntvs", CmdR2Natives, ADMFLAG_ROOT);
-	RegAdminCmd("sm_r2test", CmdR2CompTest, ADMFLAG_ROOT);
+	RegAdminCmd("sm_r2comp_status", Command_NativeStatus, ADMFLAG_ROOT);
+	RegAdminCmd("sm_r2comp_test", Command_CheckNatives, ADMFLAG_ROOT);
+	CreateTimer(5.0, R2T_t_ReportStatus)
 }
 
-public Action:CmdR2Natives(client, args)
+public Action:R2T_t_ReportStatus(Handle:timer)
 {
-	if (IsNativeAvailable(IsStartEntity))
-		ReplyToCommand(client, "R2comp_IsStartEntity - OK");
-	else
-		ReplyToCommand(client, "R2comp_IsStartEntity - BAD");
-
-	if (IsNativeAvailable(IsEndEntity))
-		ReplyToCommand(client, "R2comp_IsEndEntity - OK");
-	else
-		ReplyToCommand(client, "R2comp_IsEndEntity - BAD");
-
-	if (IsNativeAvailable(GetSafeRoomOrigin))
-		ReplyToCommand(client, "R2comp_GetSafeRoomOrigin - OK");
-	else
-		ReplyToCommand(client, "R2comp_GetSafeRoomOrigin - BAD");
-
-	if (IsNativeAvailable(GetMobTimer))
-		ReplyToCommand(client, "R2comp_GetMobTimer - OK");
-	else
-		ReplyToCommand(client, "R2comp_GetMobTimer - BAD");
-
-	if (IsNativeAvailable(GetMatchName))
-		ReplyToCommand(client, "R2comp_GetMatchName - OK");
-	else
-		ReplyToCommand(client, "R2comp_GetMatchName - BAD");
-
-	if (IsNativeAvailable(IsGamePaused))
-		ReplyToCommand(client, "L4DReady_IsGamePaused - OK");
-	else
-		ReplyToCommand(client, "L4DReady_IsGamePaused - BAD");
-
-	if (IsNativeAvailable(IsReadyMode))
-		ReplyToCommand(client, "L4DReady_IsReadyMode - OK");
-	else
-		ReplyToCommand(client, "L4DReady_IsReadyMode - BAD");
-
-#if L4D_SCORES
-	if (IsNativeAvailable(GetCampaingScore))
-		ReplyToCommand(client, "L4DScores_GetCampaingScore - OK");
-	else
-		ReplyToCommand(client, "L4DScores_GetCampaingScore - BAD");
-#endif
+	R2T_Natives();
 }
 
-public Action:CmdR2CompTest(client, args)
+public Action:Command_NativeStatus(client, args)
 {
+	R2T_Natives(client);
+	return Plugin_Handled;
+}
+
+R2T_Natives(client = 0)
+{
+	for (new i; i < _:CompNatives; i++){
+
+		if (!client)
+			LogMessage("native '%s' - %s", g_sR2API_NativeName[i], IsNativeAvailable(CompNatives:i) ? "will work!" : "not available");
+		else
+			PrintToChat(client, "native '%s' - %s", g_sR2API_NativeName[i], IsNativeAvailable(CompNatives:i) ? "will work!" : "not available");
+	}
+}
+
+public Action:Command_CheckNatives(client, args)
+{
+	if (!client) return Plugin_Handled;
+
 	if (R2comp_IsStartEntity(client))
 		PrintToChat(client, "You are in start saferoom");
 	else if (R2comp_IsEndEntity(client))
@@ -90,17 +66,18 @@ public Action:CmdR2CompTest(client, args)
 	PrintToChat(client, "Start pos: %.2f %.2f %.2f\nEnd pos: %.2f %.2f %.2f", vStartRoom[0], vStartRoom[1], vStartRoom[2],
 	vEndRoom[0], vEndRoom[1], vEndRoom[2]);
 
-	PrintToChat(client, "MobTimer: %d sec.", R2comp_GetMobTimer());
-
-	PrintToChat(client, "Pause: %b, RUP: %b", L4DReady_IsGamePaused(), L4DReady_IsReadyMode());
-
-#if L4D_SCORES
-	PrintToChat(client, "Survivors/Infected scores: %d/%d", L4DScores_GetCampaingScore(2), L4DScores_GetCampaingScore(3));
-#endif
-
 	decl String:sMatch[64];
 	R2comp_GetMatchName(sMatch, 64);
 	PrintToChat(client, "Current match: '%s'", sMatch);
+	PrintToChat(client, "Team A: %d scores, Team B: %d scores", R2comp_GetScore(0), R2comp_GetScore(1));
+	PrintToChat(client, "MobTimer: %d sec.", R2comp_GetMobTimer());
+	PrintToChat(client, "Survivor flow: %f", R2comp_GetHighestSurvivorFlow())
+
+	if (IsNativeAvailable(IsGamePaused))
+		PrintToChat(client, "Pause: %b, RUP: %b", L4DReady_IsGamePaused(), L4DReady_IsReadyMode());
+
+	if (IsNativeAvailable(GetCampaingScore))
+		PrintToChat(client, "Survivors/Infected scores: %d/%d", L4DScores_GetCampaingScore(2), L4DScores_GetCampaingScore(3));
 
 	return Plugin_Handled;
 }
@@ -113,6 +90,11 @@ public R2comp_OnServerEmpty()
 public R2comp_OnMatchStarts(const String:match[])
 {
 	LogMessage("fwd R2comp_OnMatchStarts is fired! Current match: %s", match);
+}
+
+public R2comp_OnUnscrambleEnd()
+{
+	LogMessage("fwd R2comp_OnUnscrambleEnd is fired!");
 }
 
 public L4DReady_OnRoundIsLive()

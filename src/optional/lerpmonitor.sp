@@ -30,6 +30,8 @@ static bool:isFirstHalf = true;
 static bool:isMatchLife = true;
 static Handle:cvarL4DReadyEnabled = INVALID_HANDLE;
 static Handle:cvarL4DReadyBothHalves = INVALID_HANDLE;
+static bool:g_bTempBlock[MAXPLAYERS + 1], bool:g_bIllegalValue[MAXPLAYERS + 1];
+static Handle:cVarLerpIllegalPenalty;
 
 public Plugin:myinfo = {
 	name = "LerpMonitor++",
@@ -46,21 +48,22 @@ public OnPluginStart() {
 	cVarMinInterpRatio = FindConVar("sv_client_min_interp_ratio");
 	cVarMaxInterpRatio = FindConVar("sv_client_max_interp_ratio");
 
-
 	cvarL4DReadyEnabled = FindConVar("l4d_ready_enabled");
 	cvarL4DReadyBothHalves = FindConVar("l4d_ready_both_halves");
 
-	cVarAllowedLerpChanges = CreateConVar("sm_allowed_lerp_changes", "1", "Allowed number of lerp changes for a half", CVAR_FLAGS);
-	cVarLerpChangeSpec = CreateConVar("sm_lerp_change_spec", "1", "1: Move to spectators on exceeding lerp changes count, 2: Blocks lerp changes (l4d only)", CVAR_FLAGS);
-	cVarReadyUpLerpChanges = CreateConVar("sm_readyup_lerp_changes", "1", "Allow lerp changes during ready-up", CVAR_FLAGS);
-	cVarMinLerp = CreateConVar("sm_min_lerp", "0.0", "Minimum allowed lerp value", CVAR_FLAGS);
-	cVarMaxLerp = CreateConVar("sm_max_lerp", "0.1", "Maximum allowed lerp value", CVAR_FLAGS);
+	cVarAllowedLerpChanges	= CreateConVar("sm_allowed_lerp_changes",	"3", "Allowed number of lerp changes for a half. 0: unlimited", CVAR_FLAGS, true, 0.0);
+	cVarLerpChangeSpec			= CreateConVar("sm_lerp_change_spec",		"2", "Action for exceeded lerp count changes. 1: move to spectators, 2: blocks lerp changes (l4d only)", CVAR_FLAGS, true, 0.0, true, 2.0);
+	cVarReadyUpLerpChanges	= CreateConVar("sm_readyup_lerp_changes",	"0", "0: always allows lerp changes, 1: allow when the match isn't live, 2: allows until survivor leave the saferoom. (Note: 1 and 2 values ignore \"sm_allowed_lerp_changes\" cvar)", CVAR_FLAGS, true, 0.0, true, 2.0);
+	cVarLerpIllegalPenalty	= CreateConVar("sm_lerp_illegal_penalty",	"1", "Action for illegal lerp value. 0: move to spectators, 1: blocks lerp changes (l4d only)", CVAR_FLAGS, true, 0.0, true, 1.0);
+	cVarMinLerp = CreateConVar("sm_min_lerp", "0.0", "Minimum allowed lerp value", CVAR_FLAGS, true, 0.0);
+	cVarMaxLerp = CreateConVar("sm_max_lerp", "0.1", "Maximum allowed lerp value", CVAR_FLAGS, true, 0.0);
 
 	RegConsoleCmd("sm_lerps", Lerps_Cmd, "List the Lerps of all players in game", CVAR_FLAGS);
 
-	HookEvent("round_start", Event_RoundStart);
-	HookEvent("round_end", Event_RoundEnd);
+	HookEvent("round_start", Event_RoundStart, EventHookMode_PostNoCopy);
+	HookEvent("round_end", Event_RoundEnd, EventHookMode_PostNoCopy);
 	HookEvent("player_team", OnTeamChange);
+	HookEvent("player_left_start_area", LT_ev_PlayerLeftStartArea, EventHookMode_PostNoCopy);
 
 	// create array
 	arrayLerps = CreateArray(ByteCountToCells(STEAMID_SIZE));
@@ -72,7 +75,7 @@ public OnPluginStart() {
 }
 
 public OnMapStart() {
-	if (cvarL4DReadyEnabled != INVALID_HANDLE && GetConVarBool(cvarL4DReadyEnabled)) {
+	if (cvarL4DReadyEnabled != INVALID_HANDLE && GetConVarBool(cvarL4DReadyEnabled) || GetConVarInt(cVarReadyUpLerpChanges) == 2) {
 		isMatchLife = false;
 	}
 	else {
@@ -90,7 +93,6 @@ public OnClientSettingsChanged(client) {
 		ProcessPlayerLerp(client);
 	}
 }
-
 
 public OnTeamChange(Handle:event, String:name[], bool:dontBroadcast)
 {
@@ -113,17 +115,24 @@ public Action:OnTeamChangeDelay(Handle:timer, any:client)
 		ProcessPlayerLerp(client);
 }
 
-public L4DReady_OnRoundIsLive() {
+public L4DReady_OnRoundIsLive(){
 
-	if (!isMatchLife && GetConVarBool(cVarReadyUpLerpChanges) && GetConVarInt(cVarLerpChangeSpec) == 2)
+	if (!isMatchLife && GetConVarInt(cVarReadyUpLerpChanges)){
+
 		CreateTimer(3.0, LM_t_NotifyDealy);
-
-	isMatchLife = true;
+		isMatchLife = true;
+	}
 }
 
 public Action:LM_t_NotifyDealy(Handle:timer)
 {
 	PrintToChatAll("Change of the lerp midgame is illegal!");
+}
+
+public LT_ev_PlayerLeftStartArea(Handle:event, const String:name[], bool:dontBroadcast)
+{
+	if (GetConVarInt(cVarReadyUpLerpChanges) == 2)
+		L4DReady_OnRoundIsLive();
 }
 
 public Event_RoundEnd(Handle:event, const String:name[], bool:dontBroadcast) {
@@ -150,7 +159,7 @@ stock bool:IsMatchLife() {
 stock GetClientBySteamID(const String:steamID[]) {
 	decl String:tempSteamID[STEAMID_SIZE];
 
-	for (new client = 1; client < MaxClients+1; client++) {
+	for (new client = 1; client <= MaxClients; client++) {
 		if (!IsClientInGame(client)) continue;
 		GetClientAuthString(client, tempSteamID, STEAMID_SIZE);
 
@@ -166,8 +175,8 @@ public Action:Lerps_Cmd(client, args) {
 	new clientID, index;
 	decl Float:lerp;
 	decl String:steamID[STEAMID_SIZE];
-
-	for (new i = 0; i < (GetArraySize(arrayLerps) / ARRAY_COUNT); i++) {
+	new iLimit = GetArraySize(arrayLerps) / ARRAY_COUNT;
+	for (new i = 0; i < iLimit; i++) {
 		index = (i * ARRAY_COUNT);
 
 		GetArrayString(arrayLerps, index + ARRAY_STEAMID, steamID, STEAMID_SIZE);
@@ -183,9 +192,14 @@ public Action:Lerps_Cmd(client, args) {
 }
 
 public Event_RoundStart(Handle:event, const String:name[], bool:dontBroadcast) {
+
+	if (GetConVarInt(cVarReadyUpLerpChanges) == 2)
+		isMatchLife = false;
+
 	// delete change count for second half
 	if (!IsFirstHalf()) {
-		for (new i = 0; i < (GetArraySize(arrayLerps) / ARRAY_COUNT); i++) {
+		new iLimit = GetArraySize(arrayLerps) / ARRAY_COUNT;
+		for (new i = 0; i < iLimit; i++) {
 			SetArrayCell(arrayLerps, (i * ARRAY_COUNT) + ARRAY_CHANGES, 0);
 		}
 	}
@@ -202,70 +216,110 @@ ProcessPlayerLerp(client) {
 	if ((FloatCompare(newLerpTime, GetConVarFloat(cVarMinLerp)) == -1) || (FloatCompare(newLerpTime, GetConVarFloat(cVarMaxLerp)) == 1)) {
 
 		//PrintToChatAll("%N's lerp changed to %.01f", client, newLerpTime*1000);
-		if (!isMatchLife)
-			PrintToChatAll("%N was moved to spectators for lerp %.01f!", client, newLerpTime*1000);
-			
-		ChangeClientTeam(client, L4D_TEAM_SPECTATE);
+
+		if (!GetConVarBool(cVarLerpIllegalPenalty)){
+
+			if (!isMatchLife)
+				PrintToChatAll("%N was moved to spectators for lerp %.01f!", client, newLerpTime*1000);
+
+			ChangeClientTeam(client, L4D_TEAM_SPECTATE);
+		}
+		else {
+
+			decl String:steamID[STEAMID_SIZE], Float:currentLerpTime;
+			GetClientAuthString(client, steamID, STEAMID_SIZE);
+			new index = FindStringInArray(arrayLerps, steamID);
+
+			if (index != -1)
+				currentLerpTime = GetArrayCell(arrayLerps, index + ARRAY_LERP);
+			else
+				currentLerpTime = GetConVarFloat(cVarMaxLerp);
+
+			ClientCommand(client, "cl_interp %f", currentLerpTime);
+			g_bIllegalValue[client] = true;
+		}
+
 		PrintToChat(client, "Illegal lerp value (min: %.01f, max: %.01f)",
 					GetConVarFloat(cVarMinLerp)*1000, GetConVarFloat(cVarMaxLerp)*1000);
 		// nothing else to do
 		return;
 	}
+	else if (g_bIllegalValue[client]){
+
+		// don't count lerps changes if we force change it back
+		g_bIllegalValue[client] = false;
+		return;
+	}
+
 	// Get steamid and index
 	decl String:steamID[STEAMID_SIZE];
 	GetClientAuthString(client, steamID, STEAMID_SIZE);
 	new index = FindStringInArray(arrayLerps, steamID);
 
-	if (index != -1) {
+	if (index != -1)
+	{
 		new Float:currentLerpTime = GetArrayCell(arrayLerps, index + ARRAY_LERP);
 
 		// no change?
 		if (currentLerpTime == newLerpTime) return;
+		new iCvarLerpsAction = GetConVarInt(cVarReadyUpLerpChanges);
+		new count = GetArrayCell(arrayLerps, index + ARRAY_CHANGES)+1;
+		new CvarMax = GetConVarInt(cVarAllowedLerpChanges);
+		new bool:bIllegal = iCvarLerpsAction && isMatchLife;
 
-		// Midgame?
-		if (IsMatchLife() || !GetConVarBool(cVarReadyUpLerpChanges)) {
-			new count = GetArrayCell(arrayLerps, index + ARRAY_CHANGES)+1;
-			new max = GetConVarInt(cVarAllowedLerpChanges);
+		if (CvarMax && count > CvarMax || bIllegal){
 
-			if (count > max){
+			switch (GetConVarInt(cVarLerpChangeSpec))
+			{
+				case 1:
+				{
+					if (!isMatchLife){ // dont spam
 
-				switch (GetConVarInt(cVarLerpChangeSpec)){
+						PrintToChatAll("\x01%N's lerp changed from %.01f to %.01f [\x04%d\x01/%d changes]", client, currentLerpTime*1000, newLerpTime*1000, count, CvarMax);
+						PrintToChatAll("%N was moved to spectators (illegal lerp change)!", client);
+					}
 
-					case 1:{
-
-						if (!isMatchLife){ // dont spam
-						
-							PrintToChatAll("\x01%N's lerp changed from %.01f to %.01f [%s%d\x01/%d changes]", client, currentLerpTime*1000, newLerpTime*1000, ((count > max)?"\x04":""), count, max);
-							PrintToChatAll("%N was moved to spectators (illegal lerp change)!", client);
-						}
-						
-						ChangeClientTeam(client, L4D_TEAM_SPECTATE);
+					if (bIllegal)
 						PrintToChat(client, "Illegal change of the lerp midgame! Change it back to %.01f", currentLerpTime*1000);
-						// no lerp update
-						return;
-					}
-					case 2: {
+					else
+						PrintToChat(client, "Lerp change limit has been exceeded! Change it back to %.01f", currentLerpTime*1000);
 
-						if (GetConVarBool(cVarReadyUpLerpChanges)){
+					ChangeClientTeam(client, L4D_TEAM_SPECTATE);
+				}
+				case 2:
+				{
+					if (!g_bTempBlock[client]){
 
-							CPrintToChat(client, "{red}Lerp change is allowed during ready-up only!");
-							ClientCommand(client, "cl_interp %f", currentLerpTime);
-							return;
-						}
+						if (bIllegal)
+							CPrintToChat(client, "{red}%s!", iCvarLerpsAction == 1 ? "Lerp change is allowed during ready-up only" : "Lerp change isn't allowed after leaving the saferoom");
+						else
+							PrintToChat(client, "Lerp change limit has been exceeded! [\x04%d\x01/%d changes]", count, CvarMax);
+
+						g_bTempBlock[client] = true;
+						CreateTimer(0.5, LM_t_TempBlock, client);
 					}
+
+					ClientCommand(client, "cl_interp %f", currentLerpTime);
 				}
 			}
-
-			PrintToChatAll("\x01%N's lerp changed from %.01f to %.01f [%s%d\x01/%d changes]", client, currentLerpTime*1000, newLerpTime*1000, ((count > max)?"\x04":""), count, max);
-			// update changes
-			SetArrayCell(arrayLerps, index + ARRAY_CHANGES, count);
+			// no lerp update
+			return;
 		}
 		else {
-			PrintToChatAll("%N's lerp changed from %.01f to %.01f", client, currentLerpTime*1000, newLerpTime*1000);
-		}
 
-		// update lerp
-		SetArrayCell(arrayLerps, index + ARRAY_LERP, newLerpTime);
+			if (!CvarMax){
+
+				PrintToChatAll("%N's lerp changed from %.01f to %.01f", client, currentLerpTime*1000, newLerpTime*1000);
+			}
+			else{
+
+				PrintToChatAll("\x01%N's lerp changed from %.01f to %.01f [%d/%d changes]", client, currentLerpTime*1000, newLerpTime*1000, count, CvarMax);
+				// update changes
+				SetArrayCell(arrayLerps, index + ARRAY_CHANGES, count);
+			}
+
+			SetArrayCell(arrayLerps, index + ARRAY_LERP, newLerpTime);
+		}
 	}
 	else {
 		if (!isMatchLife)
@@ -276,6 +330,11 @@ ProcessPlayerLerp(client) {
 		PushArrayCell(arrayLerps, newLerpTime);
 		PushArrayCell(arrayLerps, 0);
 	}
+}
+
+public Action:LM_t_TempBlock(Handle:timer, any:client)
+{
+	g_bTempBlock[client] = false;
 }
 
 Float:GetLerpTime(client) {

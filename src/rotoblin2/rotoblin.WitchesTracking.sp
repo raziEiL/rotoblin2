@@ -29,26 +29,33 @@
 
 #define WITCH_TO_CLOSE				300
 
-static	Handle:g_hWitchArray, Handle:g_hMaxWitches, g_iCvarMaxWithes, bool:g_bFirstRound, g_iWitchCount, g_iSpawnedWitches;
+static	Handle:g_hWitchArray, Handle:g_hMaxWitches, Handle:g_hWitchDistance, Handle:g_hWitchSpawns, bool:g_bCvarWitchSpawns, g_iCvarMaxWithes, 
+		bool:g_bFirstRound, g_iWitchCount, g_iSpawnedWitches, bool:g_bWipeStage;
 
 public _WitchTracking_OnPluginStart()
 {
-	g_hMaxWitches = CreateConVarEx("max_witches", "0", "Max number of Witches are allowed to spawn.", _, true, 0.0);
+	g_hWitchSpawns = CreateConVarEx("witch_spawns", "1", "Enables forcing same coordinates for witch spawns.", _, true, 0.0, true, 1.0);
+	g_hMaxWitches = CreateConVarEx("max_witches", "0", "Maximum number of Witches are allowed to spawn. (0: director settings, > 0: maximum limit to cvar value)", _, true, 0.0);
+	g_hWitchDistance = CreateConVarEx("witch_distance", "0", "Allow director to spawn a witch close to another witch.", _, true, 0.0, true, 1.0);
+
 	g_hWitchArray = CreateArray(3);
 }
 
 _WT_OnPluginEnabled()
 {
-	HookConVarChange(g_hMaxWitches,	_WT_MaxWitches_CvarChange);
+	HookConVarChange(g_hMaxWitches,		_WT_MaxWitches_CvarChange);
+	HookConVarChange(g_hWitchSpawns,	_WT_WitchSpawns_CvarChange);
 
 	HookEvent("round_start", WT_ev_RoundStart, EventHookMode_PostNoCopy);
 	HookEvent("witch_spawn", WT_ev_WitchSpawn);
 	Update_WT_MaxWithesConVar();
+	Update_WT_WitchSpawnsConVar();
 }
 
 _WT_OnPluginDisabled()
 {
 	UnhookConVarChange(g_hMaxWitches,	_WT_MaxWitches_CvarChange);
+	UnhookConVarChange(g_hWitchSpawns,	_WT_WitchSpawns_CvarChange);
 
 	UnhookEvent("round_start", WT_ev_RoundStart, EventHookMode_PostNoCopy);
 	UnhookEvent("witch_spawn", WT_ev_WitchSpawn);
@@ -58,7 +65,7 @@ _WT_OnPluginDisabled()
 _WT_OnMapEnd()
 {
 	g_bFirstRound = false;
-	ClearArray(g_hWitchArray);
+	_WT_ClearVars();
 }
 
 public Action:WT_ev_RoundStart(Handle:event, const String:name[], bool:dontBroadcast)
@@ -68,8 +75,13 @@ public Action:WT_ev_RoundStart(Handle:event, const String:name[], bool:dontBroad
 
 	DebugLog("%s ==== ROUND %d FIRED ====", WT_TAG, g_bFirstRound);
 
-	if (!g_bFirstRound)
-		CreateTimer(3.0, WT_t_SpawnWitch);
+	if (!g_bFirstRound){
+
+		if (g_bCvarWitchSpawns)
+			CreateTimer(3.0, WT_t_SpawnWitch);
+		else if (g_iCvarMaxWithes)
+			_WT_ClearVars();
+	}
 }
 
 public Action:WT_t_SpawnWitch(Handle:timer)
@@ -77,7 +89,8 @@ public Action:WT_t_SpawnWitch(Handle:timer)
 	new iArrayLimit = GetArraySize(g_hWitchArray);
 	if (!iArrayLimit) return;
 
-	g_iSpawnedWitches = iArrayLimit / 2;
+	g_bWipeStage = true;
+	g_iWitchCount = g_iSpawnedWitches = iArrayLimit / 2;
 
 	UnhookEvent("witch_spawn", WT_ev_WitchSpawn);
 
@@ -101,12 +114,13 @@ public Action:WT_t_SpawnWitch(Handle:timer)
 
 public Action:WT_ev_WitchSpawn(Handle:event, const String:name[], bool:dontBroadcast)
 {
+	if (!g_bCvarWitchSpawns && !g_iCvarMaxWithes) return;
 	new iEnt = GetEventInt(event, "witchid");
 
 	decl Float:fWitchData[2][3];
 	GetEntPropVector(iEnt, Prop_Send, "m_vecOrigin", fWitchData[0]);
 
-	if (IsWitchesTooClose(fWitchData[0]) || (g_iCvarMaxWithes && ++g_iWitchCount > g_iCvarMaxWithes)){
+	if (!g_bWipeStage && (IsWitchesTooClose(fWitchData[0]) || (g_iCvarMaxWithes && ++g_iWitchCount > g_iCvarMaxWithes))){
 
 		DebugLog("%s Round %s Witch %d was removed. Limit is exceeded, or too close! (Limit %d/%d)", WT_TAG, g_bFirstRound ? "1" : "2", iEnt, g_iWitchCount, g_iCvarMaxWithes);
 		AcceptEntityInput(iEnt, "Kill");
@@ -115,7 +129,10 @@ public Action:WT_ev_WitchSpawn(Handle:event, const String:name[], bool:dontBroad
 
 	if (!g_bFirstRound){
 
-		if (g_iSpawnedWitches-- > 0){
+		if (g_iSpawnedWitches){
+
+			if (--g_iSpawnedWitches <= 0)
+				g_bWipeStage = false;
 
 			DebugLog("%s Round 2 Valve Witch %d was removed %.2f %.2f %.2f (Should be removed: %d)", WT_TAG, iEnt, fWitchData[0][0], fWitchData[0][1], fWitchData[0][2], g_iSpawnedWitches);
 			AcceptEntityInput(iEnt, "Kill");
@@ -124,7 +141,7 @@ public Action:WT_ev_WitchSpawn(Handle:event, const String:name[], bool:dontBroad
 
 		DebugLog("%s Round 2 Dont remove this Witch %d (First team died before this witch was spawn in round1)", WT_TAG, iEnt);
 	}
-	
+
 	GetEntPropVector(iEnt, Prop_Send, "m_angRotation", fWitchData[1]);
 	PushArrayArray(g_hWitchArray, fWitchData[0]);
 	PushArrayArray(g_hWitchArray, fWitchData[1]);
@@ -135,7 +152,7 @@ public Action:WT_ev_WitchSpawn(Handle:event, const String:name[], bool:dontBroad
 static bool:IsWitchesTooClose(Float:vOrg[3])
 {
 	decl iArrayLimit;
-	if (!(iArrayLimit = GetArraySize(g_hWitchArray)))
+	if (!(iArrayLimit = GetArraySize(g_hWitchArray)) || GetConVarBool(g_hWitchDistance))
 		return false;
 
 	decl Float:fDataOrg[3];
@@ -159,15 +176,33 @@ bool:FirstRound()
 	return g_bFirstRound;
 }
 
+static _WT_ClearVars()
+{
+	g_bWipeStage = false;
+	g_iSpawnedWitches = 0;
+	ClearArray(g_hWitchArray);
+}
+
 public _WT_MaxWitches_CvarChange(Handle:convar, const String:oldValue[], const String:newValue[])
 {
 	if (!StrEqual(oldValue, newValue))
 		Update_WT_MaxWithesConVar();
 }
 
+public _WT_WitchSpawns_CvarChange(Handle:convar, const String:oldValue[], const String:newValue[])
+{
+	if (!StrEqual(oldValue, newValue))
+		Update_WT_WitchSpawnsConVar();
+}
+
 static Update_WT_MaxWithesConVar()
 {
 	g_iCvarMaxWithes = GetConVarInt(g_hMaxWitches);
+}
+
+static Update_WT_WitchSpawnsConVar()
+{
+	g_bCvarWitchSpawns = GetConVarBool(g_hWitchSpawns);
 }
 
 stock _WT_CvarDump()

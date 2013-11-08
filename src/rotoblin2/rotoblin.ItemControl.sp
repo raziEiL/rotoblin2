@@ -54,11 +54,10 @@ static const String:g_sName[MAX_ITEMS][] =
 	"pain pills"
 };
 
-static	Handle:g_hItemArray[MAX_ITEMS], Handle:g_hItem[MAX_ITEMS], Handle:g_hDensiny[MAX_ITEMS], g_iCvarItem[MAX_ITEMS],
-		Handle:g_hRemoveCannisters, Handle:g_hRemoveBarrels, Handle:g_hRemoveHuntingRiffle, Handle:g_hAlterSpawningLogic,
-		bool:g_bCvarRemoveCannisters, bool:g_bCvarRemoveBarrels, g_iCvarHuntingRiffle, Handle:g_hRemoveDualPistols,
-		bool:g_bCvarRemoveDualPistols, g_iLimit[MAX_ITEMS], g_iPickUp[MAX_ITEMS], bool:g_bAlterSpawningLogic,
-		Handle:g_hClusterCount;
+static	Handle:g_hItemArray[MAX_ITEMS], Handle:g_hItem[MAX_ITEMS], Handle:g_hDensiny[MAX_ITEMS], g_iCvarItem[MAX_ITEMS], Handle:g_hRemoveCannisters, Handle:g_hRemoveBarrels,
+		Handle:g_hRemoveHuntingRiffle, Handle:g_hAlterSpawningLogic, bool:g_bCvarRemoveCannisters, bool:g_bCvarRemoveBarrels, g_iCvarHuntingRiffle, Handle:g_hRemoveDualPistols,
+		bool:g_bCvarRemoveDualPistols, g_iLimit[MAX_ITEMS], g_iPickUp[MAX_ITEMS], bool:g_bAlterSpawningLogic, Handle:g_hClusterCount, Handle:g_hItemsSpawns, g_iCvarItemsSpawns,
+		Handle:g_hMolotovFlowSpawn, bool:g_bCvarMolotovFlowSpawn, Handle:g_hVSBossBuffer, Float:g_fCvarVSBossBuffer;
 
 _ItemControl_OnPluginStart()
 {
@@ -66,15 +65,18 @@ _ItemControl_OnPluginStart()
 	g_hDensiny[WEAPINDEX_PIPEBOMB]	= 	FindConVar("director_pipe_bomb_density");
 	g_hDensiny[WEAPINDEX_PILLS]		= 	FindConVar("director_pain_pill_density");
 	g_hClusterCount						=	FindConVar("director_finale_item_cluster_count");
+	g_hVSBossBuffer						=	FindConVar("versus_boss_buffer");
 
 	g_hItem[WEAPINDEX_MOLOTOV] 		=	CreateConVarEx("molotov_limit",				"0",	"Limits the number of molotov on each map outside of safe rooms. (-1: remove all, 0: director settings, > 0: limit to cvar value)", _, true, -1.0);
-	g_hItem[WEAPINDEX_PIPEBOMB] 		=	CreateConVarEx("pipebomb_limit",				"0",	"Limits the number of pipe-bomb on each map outside of safe rooms. (-1: remove all, 0: director settings, > 0: limit to cvar value)", _, true, -1.0);
+	g_hItem[WEAPINDEX_PIPEBOMB] 		=	CreateConVarEx("pipebomb_limit",			"0",	"Limits the number of pipe-bomb on each map outside of safe rooms. (-1: remove all, 0: director settings, > 0: limit to cvar value)", _, true, -1.0);
 	g_hItem[WEAPINDEX_PILLS]			=	CreateConVarEx("pills_limit",				"0",	"Limits the number of pills on each map outside of safe rooms. (-1: remove all, 0: director settings, > 0: limit to cvar value)", _, true, -1.0);
-	g_hRemoveCannisters 				=	CreateConVarEx("remove_cannisters",			"0",	"Enables or disables cannisters (gascan, propane and oxygen)", _, true, 0.0, true, 1.0);
-	g_hRemoveBarrels 					=	CreateConVarEx("remove_explosive_barrels",	"0", 	"Remove Sacrifice explosive barrels.", _, true, 0.0, true, 1.0);
-	g_hRemoveHuntingRiffle				=	CreateConVarEx("remove_huntingrifle", 		"0", 	"Removes all hunting rifles from start saferooms.", _, true, -1.0, true, 1.0);
-	g_hRemoveDualPistols				=	CreateConVarEx("remove_pistols",				"0", 	"Removes all dual pistols.", _, true, 0.0, true, 1.0);
-	g_hAlterSpawningLogic				=	CreateConVarEx("spawning_logic",				"0", 	"Enable alternative spawning logic for items", _, true, 0.0, true, 1.0);
+	g_hRemoveCannisters 				=	CreateConVarEx("remove_cannisters",			"0",	"Removes all cannisters (gascan, propane and oxygen)", _, true, 0.0, true, 1.0);
+	g_hRemoveBarrels 					=	CreateConVarEx("remove_explosive_barrels",	"0", 	"Removes all explosive barrels.", _, true, 0.0, true, 1.0);
+	g_hRemoveHuntingRiffle			=	CreateConVarEx("remove_huntingrifle", 		"0", 	"Removes all hunting rifles from start saferooms. (-1: on each map, 0: director settings, 1: only on final)", _, true, -1.0, true, 1.0);
+	g_hRemoveDualPistols				=	CreateConVarEx("remove_pistols",			"0", 	"Removes all pistols on each map. Prevent the use of double pistols. (0: disable, 1: enable)", _, true, 0.0, true, 1.0);
+	g_hAlterSpawningLogic				=	CreateConVarEx("spawning_logic",			"0", 	"Enables alternative spawning logic for items. More items on map, but only a limited number of them can be picked up", _, true, 0.0, true, 1.0);
+	g_hItemsSpawns						=	CreateConVarEx("item_spawns",				"14", 	"Enables forcing same coordinates in round2 for items. Flag (add together): 0=disable, 2=molotov, 4=pipe-bomb, 8=pills, 14=all", _, true, 0.0);
+	g_hMolotovFlowSpawn				=	CreateConVarEx("molotov_flow_spawn",		"0", 	"If it possible we trying to keep one molotov on map before tank.", _, true, 0.0, true, 1.0);
 
 	IC_WipeArray(false);
 }
@@ -84,13 +86,17 @@ _IC_OnPluginEnabled()
 	HookEvent("round_start", IC_ev_RoundStart, EventHookMode_PostNoCopy);
 
 	HookConVarChange(g_hItem[WEAPINDEX_MOLOTOV],		IC_OnCvarChange_MolotovLimit);
-	HookConVarChange(g_hItem[WEAPINDEX_PIPEBOMB],		IC_OnCvarChange_PipeBombLimit);
-	HookConVarChange(g_hItem[WEAPINDEX_PILLS],			IC_OnCvarChange_PainPillsLimit);
+	HookConVarChange(g_hItem[WEAPINDEX_PIPEBOMB],	IC_OnCvarChange_PipeBombLimit);
+	HookConVarChange(g_hItem[WEAPINDEX_PILLS],		IC_OnCvarChange_PainPillsLimit);
 	HookConVarChange(g_hRemoveCannisters,				IC_OnCvarChange_RemoveCannisters);
 	HookConVarChange(g_hRemoveBarrels,					IC_OnCvarChange_RemoveBarrels);
 	HookConVarChange(g_hRemoveHuntingRiffle,			IC_OnCvarChange_RemoveHuntingRiffle);
-	HookConVarChange(g_hRemoveDualPistols,				IC_OnCvarChange_RemoveDualPistols);
+	HookConVarChange(g_hRemoveDualPistols,			IC_OnCvarChange_RemoveDualPistols);
 	HookConVarChange(g_hAlterSpawningLogic,			IC_OnCvarChange_AlterSpawningLogic);
+	HookConVarChange(g_hItemsSpawns,					IC_OnCvarChange_ItemsSpawns);
+	HookConVarChange(g_hMolotovFlowSpawn,				IC_OnCvarChange_MolotovFlowSpawn);
+	HookConVarChange(g_hVSBossBuffer,					IC_OnCvarChange_VSBossBuffer);
+
 	GetCvars();
 }
 
@@ -105,9 +111,12 @@ _IC_OnPluginDisabled()
 	UnhookConVarChange(g_hRemoveBarrels,				IC_OnCvarChange_RemoveBarrels);
 	UnhookConVarChange(g_hRemoveHuntingRiffle,		IC_OnCvarChange_RemoveHuntingRiffle);
 	UnhookConVarChange(g_hRemoveDualPistols,			IC_OnCvarChange_RemoveDualPistols);
-	UnhookConVarChange(g_hAlterSpawningLogic,			IC_OnCvarChange_AlterSpawningLogic);
+	UnhookConVarChange(g_hAlterSpawningLogic,		IC_OnCvarChange_AlterSpawningLogic);
+	UnhookConVarChange(g_hItemsSpawns,					IC_OnCvarChange_ItemsSpawns);
+	UnhookConVarChange(g_hMolotovFlowSpawn,			IC_OnCvarChange_MolotovFlowSpawn);
+	UnhookConVarChange(g_hVSBossBuffer,				IC_OnCvarChange_VSBossBuffer);
 
-	SetDirectorSettings(g_hDensiny[WEAPINDEX_MOLOTOV],	0);
+	SetDirectorSettings(g_hDensiny[WEAPINDEX_MOLOTOV],		0);
 	SetDirectorSettings(g_hDensiny[WEAPINDEX_PIPEBOMB],	0);
 	SetDirectorSettings(g_hDensiny[WEAPINDEX_PILLS],		0);
 	AddMoreClusters(0);
@@ -146,15 +155,11 @@ public Action:IC_t_RoundStartDelay(Handle:timer)
 
 static IC_PushAndRandomizeItems()
 {
-	decl String:sClass[64], iArraySize[MAX_ITEMS], iWeapIndex, Float:vOrg[3];
+	decl String:sClass[64], iWeapIndex, Float:vOrg[3];
 
 	new bool:bFirstRound = FirstRound(), iMaxEnt = GetMaxEntities(), iCount[MAX_ITEMS];
 
-	if (!bFirstRound)
-		for (new INDEX = 0; INDEX < MAX_ITEMS; INDEX++)
-			iArraySize[INDEX] = GetArraySize(g_hItemArray[INDEX]);
-
-	DebugLog("%s Step 1: %s", IC_TAG, bFirstRound ? "Trying to push items in array" : "Keep item spawns the same on both rounds");
+	DebugLog("%s STEP #1 (%s)", IC_TAG, bFirstRound ? "Trying to push items in array" : "Keep item spawns the same on both rounds if we need");
 
 	for (new iEnt = MaxClients; iEnt < iMaxEnt; iEnt++){
 
@@ -162,7 +167,7 @@ static IC_PushAndRandomizeItems()
 
 		GetEntityClassname(iEnt, sClass, 64);
 
-		if (StrContains(sClass, "weapon_") != -1 && StrContains(sClass, "_spawn") != -1){
+		if (IsWeaponSpawn(sClass)){
 
 			if (ItemCountFix(iEnt, (iWeapIndex = WeapIDtoIndex(iEnt))) == NULL) continue;
 
@@ -172,7 +177,7 @@ static IC_PushAndRandomizeItems()
 
 					if (!IsEntOutSideSafeRoomEx(iEnt)){
 
-						DebugLog("%s  - skipped: pills in safe room", IC_TAG);
+						DebugLog("%s class %s, ent = %d - skipped (item in safe room)", IC_TAG, sClass, iEnt);
 						continue;
 					}
 				}
@@ -202,7 +207,7 @@ static IC_PushAndRandomizeItems()
 
 				DebugLog("%s class %s, ent = %d, vec = %.1f %.1f %.1f", IC_TAG, sClass, iEnt, vOrg[0], vOrg[1], vOrg[2]);
 
-				if (bFirstRound){
+				if (bFirstRound || !(g_iCvarItemsSpawns & (2 << iWeapIndex))){
 
 					if (IsVectorNull(vOrg)){
 
@@ -216,22 +221,9 @@ static IC_PushAndRandomizeItems()
 				}
 				else {
 
-					//if (!iArraySize[iWeapIndex]){
-
-						DebugLog("%s  - removed: because we need", IC_TAG);
-						SafelyRemoveEdict(iEnt);
-						continue;
-					//}
-
-					// GetArrayArray(g_hItemArray[iWeapIndex], 0, vOrg);
-					// RemoveFromArray(g_hItemArray[iWeapIndex], 0);
-					// iArraySize[iWeapIndex]--;
-
-					// TeleportEntity(iEnt, vOrg, NULL_VECTOR, NULL_VECTOR);
-
-					// DebugLog("%s  - teleported to %.1f %.1f %.1f!", IC_TAG, vOrg[0], vOrg[1], vOrg[2]);
-					// DispatchKeyValue(iEnt, "count", "1");
-					// iCount[iWeapIndex]++;
+					DebugLog("%s  - removed: because we need", IC_TAG);
+					SafelyRemoveEdict(iEnt);
+					continue;
 				}
 			}
 			else if (g_iCvarItem[iWeapIndex]){
@@ -247,23 +239,25 @@ static IC_PushAndRandomizeItems()
 		}
 	}
 
-	if (bFirstRound){
+	DebugLog("%s STEP #2", IC_TAG);
 
-		DebugLog("%s Step 2: Radomize items (%d molotov, %d pipe-bomb, %d pills)", IC_TAG, iCount[WEAPINDEX_MOLOTOV], iCount[WEAPINDEX_PIPEBOMB], iCount[WEAPINDEX_PILLS]);
+	for (new INDEX = 0; INDEX < MAX_ITEMS; INDEX++){
 
-		for (new INDEX = 0; INDEX < MAX_ITEMS; INDEX++)
-			IC_RadomizeItems(g_hItemArray[INDEX], g_iCvarItem[INDEX], g_sSpawnName[INDEX], INDEX == WEAPINDEX_PILLS ? true : false);
+		// Is same coordinates enabled for this item?
+		iWeapIndex = g_iCvarItemsSpawns & (2 << INDEX);
+
+		if (!bFirstRound && iWeapIndex){
+
+			DebugLog("%s item to restore: %s (%d) %s", IC_TAG, g_sName[INDEX], GetArraySize(g_hItemArray[INDEX]), iWeapIndex ? "keep in both round" : "");
+			IC_CreateMissingItem(g_hItemArray[INDEX],	 GetArraySize(g_hItemArray[INDEX]), g_sSpawnName[INDEX]);
+			continue;
+		}
+
+		DebugLog("%s radomize this item: %s", IC_TAG, g_sName[INDEX]);
+		IC_RadomizeItems(g_hItemArray[INDEX], g_iCvarItem[INDEX], g_sSpawnName[INDEX], INDEX == WEAPINDEX_PILLS ? true : false, bool:iWeapIndex, INDEX == WEAPINDEX_MOLOTOV);
 	}
-	else {
 
-		DebugLog("%s Items were restored: %d molotov, %d pipe-bomb, %d pills", IC_TAG, iCount[WEAPINDEX_MOLOTOV], iCount[WEAPINDEX_PIPEBOMB], iCount[WEAPINDEX_PILLS]);
-		DebugLog("%s Step 2: Checking if some item missing", IC_TAG);
-
-		for (new INDEX = 0; INDEX < MAX_ITEMS; INDEX++)
-			IC_CreateMissingItem(g_hItemArray[INDEX],	 iArraySize[INDEX], g_sSpawnName[INDEX]);
-
-		DebugLog("%s Step 2: Done!", IC_TAG);
-	}
+	DebugLog("%s Completed!", IC_TAG);
 }
 
 static WeapIDtoIndex(iEnt)
@@ -287,13 +281,13 @@ static WeapIDtoIndex(iEnt)
 
 static ItemCountFix(iEnt, iWeapIndex)
 {
-	if (iWeapIndex != NULL && iWeapIndex <= 2)
+	if (iWeapIndex != NULL && iWeapIndex <= WEAPINDEX_PILLS)
 		DispatchKeyValue(iEnt, "count", "1");
 
 	return iWeapIndex;
 }
 
-static IC_RadomizeItems(&Handle:hArray, iCvar, const String:sClassName[], bool:bPills)
+static IC_RadomizeItems(&Handle:hArray, iCvar, const String:sClassName[], bool:bPills, bool:bClone, bool:bFlowSpawn=false)
 {
 	if (!iCvar) return;
 
@@ -302,9 +296,9 @@ static IC_RadomizeItems(&Handle:hArray, iCvar, const String:sClassName[], bool:b
 	if ((iArraySize = GetArraySize(hArray)) <= 1){
 
 		if (iArraySize == 1)
-			DebugLog("%s 1/%d %s saved!", IC_TAG, iCvar, sClassName);
+			DebugLog("%s  - 1/%d %s saved!", IC_TAG, iCvar, sClassName);
 		else
-			DebugLog("%s Array is empty", IC_TAG);
+			DebugLog("%s  - array is empty", IC_TAG);
 		return;
 	}
 
@@ -313,16 +307,62 @@ static IC_RadomizeItems(&Handle:hArray, iCvar, const String:sClassName[], bool:b
 
 	decl iVal, Float:vOrg[3];
 	new iCount, Handle:hRandomItemArray = CreateArray(3);
-	while (iCount != iCvar){
 
-		iVal = GetRandomInt(0, iArraySize - 1);
+	// l4d direct feature
+	if (bFlowSpawn && iCvar == 1 && g_bCvarMolotovFlowSpawn){
 
-		GetArrayArray(hArray, iVal, vOrg);
-		PushArrayArray(hRandomItemArray, vOrg);
-		RemoveFromArray(hArray, iVal);
+		bFlowSpawn = false;
 
-		iArraySize--;
-		iCount++;
+		if (L4DDirect_GetVSTankToSpawnThisRound(!FirstRound())){
+
+			new Float:fHighestFlow = (L4DDirect_GetVSTankFlowPercent(!FirstRound()) * L4DDirect_GetMapMaxFlowDistance()) - (g_fCvarVSBossBuffer / 2);
+			DebugLog("%s  - @L4DDirect: trying to keep molotov before tank spawn. tank flow %f (units)", IC_TAG, fHighestFlow);
+
+			if (fHighestFlow > 0){
+
+				decl Float:fItemFlow;
+				new Handle:hMoloArray = CloneArray(hArray), iMoloArraySize = iArraySize;
+
+				while (iCount != iCvar){
+
+					iVal = GetRandomInt(0, iMoloArraySize - 1);
+					GetArrayArray(hMoloArray, iVal, vOrg);
+
+					fItemFlow = L4DDirect_GetTerrorNavAreaFlow(L4DDirect_GetTerrorNavArea(vOrg));
+					if (!fItemFlow)
+						fItemFlow = L4DDirect_GetTerrorNavAreaFlow(L4DDirect_GetNearestNavArea(vOrg));
+
+					if (fItemFlow && fItemFlow < fHighestFlow){
+
+						bFlowSpawn = true;
+						PushArrayArray(hRandomItemArray, vOrg);
+						DebugLog("%s  - @L4DDirect: keep this item! molotov flow location %f (units)", IC_TAG, fItemFlow);
+						break;
+					}
+
+					RemoveFromArray(hMoloArray, iVal);
+					iMoloArraySize--;
+					iCount++;
+				}
+				iCount = 0;
+			}
+			DebugLog("%s  - @L4DDirect: done", IC_TAG);
+		}
+	}
+
+	if (!bFlowSpawn || !g_bCvarMolotovFlowSpawn){
+
+		while (iCount != iCvar){
+
+			iVal = GetRandomInt(0, iArraySize - 1);
+
+			GetArrayArray(hArray, iVal, vOrg);
+			PushArrayArray(hRandomItemArray, vOrg);
+			RemoveFromArray(hArray, iVal);
+
+			iArraySize--;
+			iCount++;
+		}
 	}
 
 	iCount = 0;
@@ -343,17 +383,17 @@ static IC_RadomizeItems(&Handle:hArray, iCvar, const String:sClassName[], bool:b
 			iCount++;
 		}
 
-		DebugLog("%s %s ent = %d, vec = %.1f %.1f %.1f - %s", IC_TAG, sClassName, iEnt, vOrg[0], vOrg[1], vOrg[2], bSaveMe ? "saved" : "killed");
+		DebugLog("%s  - %s ent = %d, vec = %.1f %.1f %.1f - %s", IC_TAG, sClassName, iEnt, vOrg[0], vOrg[1], vOrg[2], bSaveMe ? "saved" : "killed");
 
 		if (!bSaveMe)
 			SafelyRemoveEdict(iEnt);
 	}
 
 	ClearArray(hArray);
-	hArray = CloneArray(hRandomItemArray);
+	if (bClone) hArray = CloneArray(hRandomItemArray);
 	CloseHandle(hRandomItemArray);
 
-	DebugLog("%s %d/%d %s saved!", IC_TAG, iCount, iCvar, sClassName);
+	DebugLog("%s    - %d/%d %s saved!", IC_TAG, iCount, iCvar, sClassName);
 }
 
 static IC_CreateMissingItem(Handle:hArray, iCount, const String:sClassName[])
@@ -375,7 +415,7 @@ static IC_CreateMissingItem(Handle:hArray, iCount, const String:sClassName[])
 		TeleportEntity(iEnt, vOrg, NULL_VECTOR, NULL_VECTOR);
 		DispatchSpawn(iEnt);
 
-		DebugLog("%s Missing item was created! class %s, ent = %d, vec = %.1f %.1f %.1f", IC_TAG, sClassName, iEnt, vOrg[0], vOrg[1], vOrg[2]);
+		DebugLog("%s  - done (%d lost)! class %s, ent = %d, vec = %.1f %.1f %.1f", IC_TAG, iCount - 1, sClassName, iEnt, vOrg[0], vOrg[1], vOrg[2]);
 		iCount--;
 	}
 }
@@ -510,6 +550,21 @@ public IC_OnCvarChange_RemoveDualPistols(Handle:convar, const String:oldValue[],
 	GetConVarRemoveDualPistols();
 }
 
+public IC_OnCvarChange_ItemsSpawns(Handle:convar, const String:oldValue[], const String:newValue[])
+{
+	GetConVarItemsSpawns();
+}
+
+public IC_OnCvarChange_MolotovFlowSpawn(Handle:convar, const String:oldValue[], const String:newValue[])
+{
+	GetConVarMolotovFlowSpawn();
+}
+
+public IC_OnCvarChange_VSBossBuffer(Handle:convar, const String:oldValue[], const String:newValue[])
+{
+	GetConVarVSBossBuffer();
+}
+
 static bool:g_bHook;
 
 public IC_OnCvarChange_AlterSpawningLogic(Handle:convar, const String:oldValue[], const String:newValue[])
@@ -583,6 +638,21 @@ static GetConVarAlterSpawningLogic()
 	g_bAlterSpawningLogic = GetConVarBool(g_hAlterSpawningLogic);
 }
 
+static GetConVarItemsSpawns()
+{
+	g_iCvarItemsSpawns = GetConVarInt(g_hItemsSpawns);
+}
+
+static GetConVarMolotovFlowSpawn()
+{
+	g_bCvarMolotovFlowSpawn = GetConVarBool(g_hMolotovFlowSpawn);
+}
+
+static GetConVarVSBossBuffer()
+{
+	g_fCvarVSBossBuffer = GetConVarFloat(g_hVSBossBuffer);
+}
+
 static GetCvars()
 {
 	GetConVarMolotovLimit();
@@ -593,6 +663,9 @@ static GetCvars()
 	GetConVarRemoveHuntingRiffle();
 	GetConVarRemoveDualPistols();
 	GetConVarAlterSpawningLogic();
+	GetConVarItemsSpawns();
+	GetConVarMolotovFlowSpawn();
+	GetConVarVSBossBuffer();
 }
 
 stock _IC_CvarDump()
@@ -614,4 +687,6 @@ stock _IC_CvarDump()
 		DebugLog("%d		|	%d		|	rotoblin_remove_pistols", iVal, g_bCvarRemoveDualPistols);
 	if (bool:(iVal = GetConVarBool(g_hAlterSpawningLogic)) != g_bAlterSpawningLogic)
 		DebugLog("%d		|	%d		|	rotoblin_spawning_logic", iVal, g_bAlterSpawningLogic);
+	if ((iVal = GetConVarInt(g_hItemsSpawns)) != g_iCvarItemsSpawns)
+		DebugLog("%d		|	%d		|	rotoblin_item_spawns", iVal, g_iCvarItemsSpawns);
 }

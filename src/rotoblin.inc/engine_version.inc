@@ -36,7 +36,7 @@ public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 		return APLRes_Failure;
 	}
 
-	if (!IsL4DEngine()){
+	if (!IsL4DGame()){
 
 		strcopy(error, err_max, "Rotoblin only support L4D engine");
 		return APLRes_Failure;
@@ -52,7 +52,7 @@ public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 		return APLRes_Failure;
 
 	FileSeek(hFile, 0, SEEK_SET);
-	
+
 	while (!IsEndOfFile(hFile) && ReadFileLine(hFile, line, 256))
 	{
 		TrimString(line);
@@ -89,6 +89,13 @@ static RegR2Lib()
 	CreateNative("R2comp_IsEndEntity", Native_R2comp_IsEndEntity);
 	CreateNative("R2comp_GetSafeRoomOrigin", Native_R2comp_GetSafeRoomOrigin);
 	CreateNative("R2comp_GetMatchName", Native_R2comp_GetMatchName);
+	CreateNative("R2comp_SetTankPassCount", Native_R2comp_SetTankPassCount);
+	CreateNative("R2comp_GetHighestSurvivorFlow", Native_R2comp_GetHighestSurvivorFlow);
+	CreateNative("R2comp_GetHighestSurvivorFlowEx", Native_R2comp_GetHighestSurvivorFlowEx);
+
+	#if SCORES_COMMAND
+		CreateNative("R2comp_GetScore", Native_R2comp_GetCampaingScore);
+	#endif
 
 	MarkCompNatives();
 }

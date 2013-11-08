@@ -28,7 +28,7 @@
  *
  * ============================================================================
  */
- 
+
 // **********************************************
 //        Compiling options (Preprocessor)
 // **********************************************
@@ -36,7 +36,7 @@
 #define R2COMP_LOG					0
 #define DEBUG_COMMANDS				0	// r2comp_dump_cvar_status, r2comp_tp, r2comp_dis, r2comp_entdis.
 #define UNSCRABBLE_LOG				0
-#define UNSCRABBLE_MAX_FAILURE		3
+#define UNSCRABBLE_MAX_FAILURE	3
 #define SCORES_COMMAND				1
 #define TEAM_LIMIT					4
 
@@ -53,11 +53,11 @@
 new const String:MAIN_TAG[]		=	"[Rotoblin]";
 
 // Plugin info
-#define PLUGIN_FULLNAME				"Rotoblin 2 Competitive Mod"			// Used when printing the plugin name anywhere
+#define PLUGIN_FULLNAME				"Rotoblin 2 Competitive Mod (R2compMod)"			// Used when printing the plugin name anywhere
 #define PLUGIN_SHORTNAME			"rotoblin"								// Shorter version of the full name, used in file paths, and other things
 #define PLUGIN_AUTHOR				"Rotoblin Team, raziEiL [disawar1]"		// Author of the plugin
 #define PLUGIN_DESCRIPTION			"A Fresh competitive mod for L4D"		// Description of the plugin
-#define PLUGIN_VERSION				"1.2.1"									// http://wiki.eclipse.org/Version_Numbering
+#define PLUGIN_VERSION				"1.3 dev"							// http://wiki.eclipse.org/Version_Numbering
 #define PLUGIN_URL					"https://code.google.com/p/rotoblin2/"	// URL associated with the project
 #define PLUGIN_CVAR_PREFIX			PLUGIN_SHORTNAME					// Prefix for cvars
 #define PLUGIN_CMD_PREFIX			PLUGIN_SHORTNAME					// Prefix for cmds
@@ -71,6 +71,7 @@ new const String:MAIN_TAG[]		=	"[Rotoblin]";
 #include <sdktools>
 #include <sdkhooks>
 #include <left4downtown>
+#include <l4d_direct>
 #include <r2comp_api>
 
 #undef REQUIRE_PLUGIN
@@ -97,10 +98,10 @@ public OnPluginStart()
 	decl String:sBuffer[128];
 	FormatEx(sBuffer, 128, "%s version", PLUGIN_FULLNAME);
 
-	g_hR2Version = CreateConVarEx("2_version", PLUGIN_VERSION, sBuffer, FCVAR_PLUGIN | FCVAR_NOTIFY);
+	g_hR2Version = CreateConVarEx("2_version", PLUGIN_VERSION, sBuffer);
 	SetConVarString(g_hR2Version, PLUGIN_VERSION);
 
-	g_hR2Enable = CreateConVarEx("enable", "0", "Sets whether Rotoblin is enabled", FCVAR_PLUGIN | FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	g_hR2Enable = CreateConVarEx("enable", "0", "Sets whether Rotoblin is enabled", _, true, 0.0, true, 1.0);
 
 	new bool:bEnable = GetConVarBool(g_hR2Enable);
 
@@ -142,6 +143,7 @@ public OnPluginStart()
 	_HeadsUpDisplay_OnPluginStart();
 	_ClientSettings_OnPluginStart();
 	_AntiScrabble_OnPluginStart();
+	_TankSpawns_OnPluginStart();
 
 	SetPluginState(bEnable);
 }
@@ -193,6 +195,7 @@ public OnMapEnd()
 	_WC_OnMapEnd();
 	_MC_OnMapEnd();
 	_WT_OnMapEnd();
+	_TS_OnMapEnd();
 }
 
 public OnClientPutInServer(client)
@@ -202,19 +205,14 @@ public OnClientPutInServer(client)
 	_LHR_OnClientPutInServer(client);
 	_EF_OnClientPutInServer(client);
 	_AS_OnClientPutInServer(client);
-}
-
-public OnClientPostAdminCheck(client)
-{
-	if (!g_bIsPluginEnabled || !client) return;
-	_HUD_OnClientPostAdminCheck(client);
+	_HUD_OnClientPutInServer(client);
 }
 
 public OnClientDisconnect(client)
 {
 	if (!client) return;
 	_AL_OnClientDisconnect(client); // always change map when server is emtpy
-	
+
 	/*if (!g_bIsPluginEnabled) return;
 	 *
 	 *		Some code here...
@@ -243,12 +241,12 @@ Global_ev_OnTankSpawn()
 {
 	_NPF_ev_OnTankSpawn();
 	_HUD_ev_OnTankSpawn();
+	_TS_ev_OnTankSpawn();
 }
 
 Global_ev_OnTankPassed()
 {
-
-
+	_HUD_ev_OnTankPassed();
 }
 
 Global_ev_OnTankKilled()
@@ -336,7 +334,8 @@ SetPluginState(bool:enabled)
 		_WT_OnPluginEnabled();
 		_TC_OnPluginStart();
 		_AS_OnPluginEnabled();
-		
+		_TS_OnPluginEnabled();
+
 		DebugLog("%s All MODULES SETUPED!", MAIN_TAG);
 	}
 	else{
@@ -362,7 +361,8 @@ SetPluginState(bool:enabled)
 		_NET_OnPluginDisable();
 		_WSD_OnPluginDisabled();
 		_WT_OnPluginDisabled();
-		
+		_TS_OnPluginDisabled();
+
 		_DN_OnPluginDisabled();
 		_PM_OnPluginDisabled();
 		_CS_OnPluginDisabled();

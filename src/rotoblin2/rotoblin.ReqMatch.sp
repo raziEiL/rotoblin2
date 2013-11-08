@@ -27,13 +27,13 @@
 
 #define		RQ_TAG		"[ReqMatch]"
 
-static 		Handle:g_hAllowReq, Handle:g_fwdOnMatchStarts;
+static 		Handle:g_hAllowReq, Handle:g_fwdOnMatchStarts, String:g_sMap[64];
 
 _ReqMatch_OnPluginStart()
 {
 	g_fwdOnMatchStarts = CreateGlobalForward("R2comp_OnMatchStarts", ET_Ignore, Param_String);
 
-	g_hAllowReq = CreateConVarEx("allow_match_req", "0", "Allows to team choose a match", _, true, 0.0, true, 1.0);
+	g_hAllowReq = CreateConVarEx("allow_match_req", "0", "Sets whether players can request for match mode (use !match command)", _, true, 0.0, true, 1.0);
 
 	RegServerCmd("rotoblin_restartmap", CmdRestartMap);
 
@@ -51,13 +51,25 @@ _RM_OnPluginEnd()
 
 public Action:CmdRestartMap(args)
 {
+	if (args)
+		GetCmdArg(1, g_sMap, 64);
+
+	if (!args || args > 1 || !IsMapValid(g_sMap))
+		g_sMap[0] = '\0';
+
 	CreateTimer(1.5, AL_t_RestartMap);
+	return Plugin_Handled;
 }
 
 public Action:AL_t_RestartMap(Handle:timer)
 {
 	decl String:sMap[64];
-	GetCurrentMap(sMap, 64);
+
+	if (strlen(g_sMap))
+		strcopy(sMap, 64, g_sMap);
+	else
+		GetCurrentMap(sMap, 64);
+
 	ForceChangeLevel(sMap, "Resetting by Rotoblin 2");
 }
 
@@ -209,9 +221,8 @@ static MatchList(client)
 static ResetReqVars()
 {
 	g_bTeamReq = false;
-
-	for (new i = 0; i < 2; i++)
-		g_sReqMatch[i][0] = '\0';
+	g_sReqMatch[0][0] = '\0';
+	g_sReqMatch[1][0] = '\0';
 }
 // ===
 

@@ -38,8 +38,9 @@
 //       Public
 // --------------------
 
-new		SurvivorIndex[MAXPLAYERS+1], InfectedIndex[MAXPLAYERS+1], SpectateIndex[MAXPLAYERS+1],
-		SpectateCount, SurvivorCount, InfectedCount;
+new		SurvivorIndex[MAXPLAYERS+1], InfectedIndex[MAXPLAYERS+1], SpectateIndex[MAXPLAYERS+1], DeadSurvivorIndex[MAXPLAYERS+1],
+		SpectateCount, SurvivorCount, InfectedCount, DeadSurvivorCount,
+		bool:g_bBlackSpot;
 
 // --------------------
 //       Private
@@ -49,8 +50,6 @@ static	const	Float:	REBUILD_DELAY				= 0.3;
 
 static					g_iDebugChannel				= 0;
 static	const	String:	DEBUG_CHANNEL_NAME[]		= "ClientIndexes";
-
-new		bool:g_bBlackSpot; // Hello the fucking SRSMod/Rotoblin/Confogl client indexes system!
 
 // **********************************************
 //                   Forwards
@@ -80,7 +79,7 @@ _CI_OnPluginEnabled()
 	HookEvent("player_team",				_CI_Event_TempStop_Event, 	EventHookMode_PostNoCopy);
 	HookEvent("player_spawn",				_CI_Event, 						EventHookMode_PostNoCopy);
 	HookEvent("player_disconnect",		_CI_Event, 						EventHookMode_PostNoCopy);
-	HookEvent("player_death",				_CI_Event, 						EventHookMode_PostNoCopy);
+	HookEvent("entity_killed",			_CI_Event, 						EventHookMode_PostNoCopy);
 	HookEvent("player_bot_replace",		_CI_Event, 						EventHookMode_PostNoCopy);
 	HookEvent("bot_player_replace",		_CI_Event, 						EventHookMode_PostNoCopy);
 	DebugPrintToAllEx("Module is now loaded");
@@ -98,7 +97,7 @@ _CI_OnPluginDisabled()
 	UnhookEvent("player_team", 			_CI_Event_TempStop_Event, 	EventHookMode_PostNoCopy);
 	UnhookEvent("player_spawn", 			_CI_Event, 						EventHookMode_PostNoCopy);
 	UnhookEvent("player_disconnect", 	_CI_Event, 						EventHookMode_PostNoCopy);
-	UnhookEvent("player_death", 			_CI_Event, 						EventHookMode_PostNoCopy);
+	UnhookEvent("entity_killed", 		_CI_Event, 						EventHookMode_PostNoCopy);
 	UnhookEvent("player_bot_replace",	_CI_Event, 						EventHookMode_PostNoCopy);
 	UnhookEvent("bot_player_replace",	_CI_Event, 						EventHookMode_PostNoCopy);
 	ResetCounts();
@@ -191,8 +190,12 @@ static RebuildIndex()
 		{
 			case TEAM_SURVIVOR:
 			{
-				if (!IsPlayerAlive(i) || SurvivorCount == TEAM_LIMIT) continue;
-				SurvivorIndex[SurvivorCount++] = i;
+				if (SurvivorCount == TEAM_LIMIT) continue;
+
+				if (!IsPlayerAlive(i))
+					DeadSurvivorIndex[DeadSurvivorCount++] = i;
+				else
+					SurvivorIndex[SurvivorCount++] = i;
 			}
 			case TEAM_INFECTED:
 			{
@@ -221,6 +224,7 @@ static ResetCounts()
 	SurvivorCount = 0;
 	InfectedCount = 0;
 	SpectateCount = 0;
+	DeadSurvivorCount = 0;
 }
 
 /**

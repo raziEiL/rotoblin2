@@ -35,7 +35,7 @@ new			bool:g_bVehicleIncoming;
 
 _NoEscapeTank_OnPluginStart()
 {
-	g_hEnableNoEscTank	= CreateConVarEx("no_escape_tank", "0", "Remove escape tanks on final when vehicle incoming.", _, true, 0.0, true, 1.0);
+	g_hEnableNoEscTank	= CreateConVarEx("no_escape_tank", "0", "Removes tanks which spawn as the rescue vehicle arrives on finales.", _, true, 0.0, true, 1.0);
 }
 
 _NET_OnPluginEnabled()

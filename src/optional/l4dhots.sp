@@ -6,20 +6,21 @@
 public Plugin:myinfo =
 {
 	name = "L4D HOTs",
-	author = "ProdigySim, fixed by raziEiL [disawar1]",
+	author = "ProdigySim, raziEiL [disawar1]",
 	description = "Pills and Adrenaline heal over time",
-	version = "0.2",
+	version = "0.3",
 	url = "https://bitbucket.org/ProdigySim/misc-sourcemod-plugins"
 }
 
-static	Handle:g_hPillsHot, Handle:g_hAdrenHot, Handle:g_hContinueHot, Handle:g_hPillCvar, Handle:g_hAdrenCvar,
+static	Handle:g_hPillsHot, Handle:g_hAdrenHot, Handle:g_hContinueHot, Handle:g_hPillCvar, Handle:g_hAdrenCvar, Handle:g_hCvarHealthValue,
 		bool:g_bPillsHot, bool:g_bAdrenHot;
 
 public OnPluginStart()
 {
 	g_hPillCvar		= FindConVar("pain_pills_health_value");
-	g_hPillsHot		= CreateConVar("l4d_pills_hot", "0", "Pills heal over time (10 hp each 1s)", FCVAR_PLUGIN);
-	g_hContinueHot	= CreateConVar("l4d_pills_hot_continue", "0", "Continue healing after revive", FCVAR_PLUGIN);
+	g_hPillsHot			= CreateConVar("l4d_pills_hot", "0", "Pills heal over time (10 hp each 1s)", FCVAR_PLUGIN);
+	g_hContinueHot		= CreateConVar("l4d_pills_hot_continue", "0", "Continue healing after revive", FCVAR_PLUGIN);
+	g_hCvarHealthValue	= CreateConVar("l4d_pills_hot_value", "50", "Amount of health", FCVAR_PLUGIN, true, 1.0);
 
 	HookConVarChange(g_hPillsHot, PillHotChanged);
 
@@ -46,7 +47,7 @@ public OnPluginEnd()
 public Action:PillsUsed_Event(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	new client = GetClientOfUserId(GetEventInt(event, "userid"));
-	HealEntityOverTime(client, 1.0, 10, 50);
+	HealEntityOverTime(client, 1.0, 10, GetConVarInt(g_hCvarHealthValue));
 }
 
 public Action:AdrenalineUsed_Event(Handle:event, const String:name[], bool:dontBroadcast)

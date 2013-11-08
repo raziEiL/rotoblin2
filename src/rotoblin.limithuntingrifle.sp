@@ -41,27 +41,7 @@
 static	const	Float:	TIP_TIMEOUT						= 8.0;
 static			bool:	g_bHaveTipped[MAXPLAYERS + 1];
 
-
-#define WEAPINDEX_PUMP			0
-#define	WEAPINDEX_SMG			1
-#define	WEAPINDEX_SNIPER		2
-#define WEAPONS					3
-
-static const String:g_sWeapon[WEAPONS][] =
-{
-	"weapon_pumpshotgun",
-	"weapon_smg",
-	"weapon_hunting_rifle"
-};
-
-static const String:g_sWeaponName[WEAPONS][] =
-{
-	"Pump shotgun",
-	"SMG",
-	"Hunting rifle"
-};
-
-static Handle:g_hLimit[WEAPONS], g_iCvarLimit[WEAPONS];
+static Handle:g_hLimit[WEAPONS_LIMIT], g_iCvarLimit[WEAPONS_LIMIT];
 
 /**
  * Called on plugin start.
@@ -70,9 +50,14 @@ static Handle:g_hLimit[WEAPONS], g_iCvarLimit[WEAPONS];
  */
 _LimitHuntingRifl_OnPluginStart()
 {
-	g_hLimit[WEAPINDEX_PUMP]		= CreateConVarEx("limit_pumpshotgun",	"-1", "Maximum of Pump shotguns the survivors can pick up.",	_, true, -1.0);
-	g_hLimit[WEAPINDEX_SMG]		= CreateConVarEx("limit_submachinegun", "-1", "Maximum of SMG's the survivors can pick up.",			_, true, -1.0);
-	g_hLimit[WEAPINDEX_SNIPER]	= CreateConVarEx("limit_huntingrifle",	"-1", "Maximum of Hunting rifles the survivors can pick up.",	_, true, -1.0);
+	decl String:sCvar[64], String:sDescr[256];
+
+	for (new i; i < WEAPONS_LIMIT; i++){
+
+		FormatEx(sCvar, 64, "limit_%s", g_sWeapon_Names[i][CVAR]);
+		FormatEx(sDescr, 256, "Maximum of %ss that can be equipped by the Survivor team. (-1: unlimited, 0: not allowed, > 0: limits in according with cvar value).", g_sWeapon_Names[i][NAME]);
+		g_hLimit[i] = CreateConVarEx(sCvar, "-1", sDescr, _, true, -1.0);
+	}
 }
 
 /**
@@ -82,10 +67,10 @@ _LimitHuntingRifl_OnPluginStart()
  */
 _LHR_OnPluginEnabled()
 {
-	HookConVarChange(g_hLimit[WEAPINDEX_PUMP],		_LHR_OnCvarChange_LimitDualPistols);
-	HookConVarChange(g_hLimit[WEAPINDEX_SMG],			_LHR_OnCvarChange_LimitSubmachineGuns);
-	HookConVarChange(g_hLimit[WEAPINDEX_SNIPER], 	_LHR_OnCvarChange_LimitHuntingRifles);
 	_LHR_GetCvars();
+
+	for (new i; i < WEAPONS_LIMIT; i++)
+		HookConVarChange(g_hLimit[i], _LHR_OnCvarChange_Limit);
 
 	for (new client = 1; client <= MaxClients; client++)
 	{
@@ -101,9 +86,8 @@ _LHR_OnPluginEnabled()
  */
 _LHR_OnPluginDisabled()
 {
-	UnhookConVarChange(g_hLimit[WEAPINDEX_PUMP],			_LHR_OnCvarChange_LimitDualPistols);
-	UnhookConVarChange(g_hLimit[WEAPINDEX_SMG],			_LHR_OnCvarChange_LimitSubmachineGuns);
-	UnhookConVarChange(g_hLimit[WEAPINDEX_SNIPER], 		_LHR_OnCvarChange_LimitHuntingRifles);
+	for (new i; i < WEAPONS_LIMIT; i++)
+		UnhookConVarChange(g_hLimit[i], _LHR_OnCvarChange_Limit);
 
 	for (new client = 1; client <= MaxClients; client++)
 	{
@@ -137,7 +121,7 @@ public Action:_LHR_SDKh_OnWeaponCanUse(client, weapon)
 	if (GetClientTeam(client) != TEAM_SURVIVOR) return Plugin_Continue;
 
 	decl iWeap;
-	if ((iWeap = WeapIDtoIndex(weapon)) == NULL || g_iCvarLimit[iWeap] == NULL) return Plugin_Continue;
+	if ((iWeap = GetWeaponIndexByClassEx(weapon)) == NULL || g_iCvarLimit[iWeap] == NULL) return Plugin_Continue;
 
 	if ((iWeap == WEAPINDEX_SNIPER && IsFakeClient(client))) return Plugin_Handled;
 
@@ -148,21 +132,21 @@ public Action:_LHR_SDKh_OnWeaponCanUse(client, weapon)
 		GetEntityClassname(icurWeapon, sClassName, 64);
 
 		// Survivor already got a weapon and trying to pick up a ammo refill, allow it
-		if (StrEqual(sClassName, g_sWeapon[iWeap])) return Plugin_Continue;
+		if (StrEqual(sClassName, g_sWeapon_Names[iWeap][CLASS])) return Plugin_Continue;
 	}
 
 	if (g_bBlackSpot) return Plugin_Handled;
 
-	if (GetActiveWeap(g_sWeapon[iWeap]) >= g_iCvarLimit[iWeap]) // If ammount of active weapons are at the limit
+	if (GetActiveWeap(g_sWeapon_Names[iWeap][CLASS]) >= g_iCvarLimit[iWeap]) // If ammount of active weapons are at the limit
 	{
 		if (!IsFakeClient(client) && !g_bHaveTipped[client])
 		{
 			g_bHaveTipped[client] = true;
 
 			if (g_iCvarLimit[iWeap] > 0)
-				PrintToChat(client, "%s %s weapon group has reached its max of %d", MAIN_TAG, g_sWeaponName[iWeap], g_iCvarLimit[iWeap]);
+				PrintToChat(client, "%s %s weapon group has reached its max of %d", MAIN_TAG, g_sWeapon_Names[iWeap][NAME], g_iCvarLimit[iWeap]);
 			else
-				PrintToChat(client, "%s %s is not allowed.", MAIN_TAG, g_sWeaponName[iWeap]);
+				PrintToChat(client, "%s %s is not allowed.", MAIN_TAG, g_sWeapon_Names[iWeap][NAME]);
 
 			CreateTimer(TIP_TIMEOUT, _LHR_Tip_Timer, client);
 		}
@@ -175,17 +159,6 @@ public Action:_LHR_SDKh_OnWeaponCanUse(client, weapon)
 public Action:_LHR_Tip_Timer(Handle:timer, any:client)
 {
 	g_bHaveTipped[client] = false;
-}
-
-static WeapIDtoIndex(iEnt)
-{
-	decl String:sClassName[64];
-	GetEntityClassname(iEnt, sClassName, 64);
-
-	for (new INDEX; INDEX < WEAPONS; INDEX++)
-		if (StrEqual(sClassName, g_sWeapon[INDEX])) return INDEX;
-
-	return NULL;
 }
 
 static GetActiveWeap(const String:sWeapClassName[])
@@ -206,35 +179,21 @@ static GetActiveWeap(const String:sWeapClassName[])
 	return count;
 }
 
-public _LHR_OnCvarChange_LimitDualPistols(Handle:convar, const String:oldValue[], const String:newValue[])
+public _LHR_OnCvarChange_Limit(Handle:convar, const String:oldValue[], const String:newValue[])
 {
-	g_iCvarLimit[WEAPINDEX_PUMP] = GetConVarInt(g_hLimit[WEAPINDEX_PUMP]);
-}
-
-public _LHR_OnCvarChange_LimitSubmachineGuns(Handle:convar, const String:oldValue[], const String:newValue[])
-{
-	g_iCvarLimit[WEAPINDEX_SMG] = GetConVarInt(g_hLimit[WEAPINDEX_SMG]);
-}
-
-public _LHR_OnCvarChange_LimitHuntingRifles(Handle:convar, const String:oldValue[], const String:newValue[])
-{
-	g_iCvarLimit[WEAPINDEX_SNIPER] = GetConVarInt(g_hLimit[WEAPINDEX_SNIPER]);
+	_LHR_GetCvars();
 }
 
 static _LHR_GetCvars()
 {
-	g_iCvarLimit[WEAPINDEX_PUMP] = GetConVarInt(g_hLimit[WEAPINDEX_PUMP]);
-	g_iCvarLimit[WEAPINDEX_SMG] = GetConVarInt(g_hLimit[WEAPINDEX_SMG]);
-	g_iCvarLimit[WEAPINDEX_SNIPER] = GetConVarInt(g_hLimit[WEAPINDEX_SNIPER]);
+	for (new i; i < WEAPONS_LIMIT; i++)
+		g_iCvarLimit[i] = GetConVarInt(g_hLimit[i]);
 }
 
 stock _LHR_CvarDump()
 {
 	decl iVal;
-	if ((iVal = GetConVarInt(g_hLimit[WEAPINDEX_PUMP])) != g_iCvarLimit[WEAPINDEX_PUMP])
-		DebugLog("%d		|	%d		|	rotoblin_limit_pumpshotgun", iVal, g_iCvarLimit[WEAPINDEX_PUMP]);
-	if ((iVal = GetConVarInt(g_hLimit[WEAPINDEX_SMG])) != g_iCvarLimit[WEAPINDEX_SMG])
-		DebugLog("%d		|	%d		|	rotoblin_limit_submachinegun", iVal, g_iCvarLimit[WEAPINDEX_SMG]);
-	if ((iVal = GetConVarInt(g_hLimit[WEAPINDEX_SNIPER])) != g_iCvarLimit[WEAPINDEX_SNIPER])
-		DebugLog("%d		|	%d		|	rotoblin_limit_huntingrifle", iVal, g_iCvarLimit[WEAPINDEX_SNIPER]);
+	for (new i; i < WEAPONS_LIMIT; i++)
+		if ((iVal = GetConVarInt(g_hLimit[i])) != g_iCvarLimit[i])
+			DebugLog("%d		|	%d		|	rotoblin_limit_%s", iVal, g_iCvarLimit[i], g_sWeapon_Names[i][CVAR]);
 }

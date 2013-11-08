@@ -27,19 +27,17 @@
 
 #define		MC_TAG	 "[MobsControl]"
 
-static		Handle:g_hNoMobs, Handle:g_hMobTimer, Handle:g_hAllowHordes, Handle:g_hTankHordes, Handle:g_hCvarNoStartsCI, 
+static		Handle:g_hMobTimer, Handle:g_hAllowHordes, Handle:g_hTankHordes, Handle:g_hCvarNoStartsCI, 
 			g_iCvarMobTime, bool:g_bCvarTankHordes, bool:g_bCvarNoStartsCI, bool:g_bEvents, bool:g_bLeftStartArea, g_iTick;
 
 _MobsControl_OnPluginStart()
 {
-	g_hNoMobs				= FindConVar("director_no_mobs");
-
-	g_hAllowHordes		= CreateConVarEx("allow_natural_hordes",		"0", "Allow natural hordes to spawn.", _, true, 0.0);
-	g_hTankHordes		= CreateConVarEx("disable_tank_hordes",		"0", "Disables natural hordes while tanks are in play.", _, true, 0.0, true, 1.0);
+	g_hAllowHordes		= CreateConVarEx("allow_natural_hordes",		"-1", "Allow natural hordes to spawn. (-1: director settings, 0: disable, > 0: spawn interval to cvar value).", _, true, -1.0);
+	g_hTankHordes		= CreateConVarEx("disable_tank_hordes",			"0", "Disables natural hordes while tanks are in play. (0: enable, 1: disable).", _, true, 0.0, true, 1.0);
 	g_hCvarNoStartsCI	= CreateConVarEx("remove_start_commons",		"0", "Removes all common infected near by a saferoom and returns them when one of survivors leaves a saferoom.", _, true, 0.0, true, 1.0);
 
 	#if DEBUG_COMMANDS
-		RegAdminCmd("sm_mobtimer", Cmmand_dGetMobTimer, ADMFLAG_ROOT);
+		RegAdminCmd("sm_mobtimer", Command_GetMobTimer, ADMFLAG_ROOT);
 	#endif
 }
 
@@ -52,7 +50,6 @@ _MC_OnPluginEnabled()
 
 	HookConVarChange(g_hAllowHordes,		_MC_Enable_CvarChange);
 	HookConVarChange(g_hTankHordes,		_MC_TankHordes_CvarChange);
-	HookConVarChange(g_hNoMobs,			_MC_NoMobs_CvarChange);
 	HookConVarChange(g_hCvarNoStartsCI,	_MC_NoStartsCI_CvarChange);
 
 	Update_MC_EnableConVar();
@@ -72,9 +69,6 @@ _MC_OnPluginDisabled()
 	UnhookConVarChange(g_hCvarNoStartsCI,	_MC_NoStartsCI_CvarChange);
 
 	_MC_ToggleEvents(false);
-	_MC_ToggleHordes(false);
-
-	UnhookConVarChange(g_hNoMobs,			_MC_NoMobs_CvarChange);
 }
 
 _MC_OnMapEnd()
@@ -85,11 +79,12 @@ _MC_OnMapEnd()
 public Action:_MC_ev_RoundStart(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	g_bLeftStartArea = false;
+	_MC_TogggleBotBehavior(true);
 
 	if (g_bCvarNoStartsCI)
 		CreateTimer(0.5, _MC_t_SlayCI, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 
-	if (g_iCvarMobTime){
+	if (g_iCvarMobTime > 0){
 
 		_MC_ToggleHordes(true);
 		_MC_KillMobTimer();
@@ -99,9 +94,11 @@ public Action:_MC_ev_RoundStart(Handle:event, const String:name[], bool:dontBroa
 public Action:_MC_ev_PlayerLeftStartArea(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	g_bLeftStartArea = true;
+	_MC_TogggleBotBehavior(false);
+
 	DebugLog("%s Surv left start area. Timer _MC_t_SlayCI killed", MC_TAG);
 
-	if (g_iCvarMobTime){
+	if (g_iCvarMobTime > 0){
 
 		DebugLog("%s Mobs every %d sec", MC_TAG, g_iCvarMobTime);
 		_MC_ResetMobTimer();
@@ -130,7 +127,7 @@ public Action:_MC_t_SlayCI(Handle:timer)
 // left4downtown
 _MC_L4D_OnSpawnTank()
 {
-	if (g_iCvarMobTime && g_bCvarTankHordes && !g_bVehicleIncoming){
+	if (g_iCvarMobTime > 0 && g_bCvarTankHordes && !g_bVehicleIncoming){
 
 		if (_MC_KillMobTimer())
 			DebugLog("%s Tank spawn. Hordes are turned OFF!", MC_TAG);
@@ -173,7 +170,7 @@ public Action:_MC_t_DisableSapwn(Handle:timer)
 
 static bool:_MC_KillMobTimer()
 {
-	g_iTick = -1;
+	g_iTick = 0;
 
 	if (g_hMobTimer != INVALID_HANDLE){
 
@@ -186,9 +183,26 @@ static bool:_MC_KillMobTimer()
 
 static _MC_ToggleHordes(bool:bVal)
 {
-	UnhookConVarChange(g_hNoMobs,			_MC_NoMobs_CvarChange);
-	SetConVarBool(g_hNoMobs, bVal);
-	HookConVarChange(g_hNoMobs,				_MC_NoMobs_CvarChange);
+	if (bVal)
+		AddConVarToTrack("director_no_mobs", "1");
+	else
+		ReleaseTrackedConVar("director_no_mobs");
+}
+
+static _MC_TogggleBotBehavior(bool:bStopRushing)
+{
+	DebugLog("%s Toggle bot behavior: %s", MC_TAG, bStopRushing ? "don't rush" : "default");
+
+	if (bStopRushing){
+
+		AddConVarToTrack("sb_separation_danger_min_range", "120");
+		AddConVarToTrack("sb_separation_danger_max_range", "0");
+	}
+	else {
+
+		ReleaseTrackedConVar("sb_separation_danger_min_range");
+		ReleaseTrackedConVar("sb_separation_danger_max_range");
+	}
 }
 
 public Native_R2comp_GetMobTimer(Handle:plugin, numParams)
@@ -198,7 +212,7 @@ public Native_R2comp_GetMobTimer(Handle:plugin, numParams)
 
 MC_GetMobTimer()
 {
-	return g_iTick == -1 ? -1 : g_iCvarMobTime - g_iTick;
+	return g_iCvarMobTime < 1 ? -1 : g_iCvarMobTime - g_iTick;
 }
 
 public _MC_Enable_CvarChange(Handle:convar, const String:oldValue[], const String:newValue[])
@@ -211,6 +225,11 @@ public _MC_Enable_CvarChange(Handle:convar, const String:oldValue[], const Strin
 static Update_MC_EnableConVar()
 {
 	g_iCvarMobTime = GetConVarInt(g_hAllowHordes);
+
+	if (g_iCvarMobTime == -1) return;
+
+	AddConVarToTrack("z_mob_spawn_min_interval_normal", "8");
+	AddConVarToTrack("z_mob_spawn_max_interval_normal", "8");
 
 	_MC_ToggleEvents(bool:(g_iCvarMobTime));
 	_MC_ToggleHordes(true);
@@ -226,11 +245,6 @@ public _MC_TankHordes_CvarChange(Handle:convar, const String:oldValue[], const S
 static Update_MC_TankHordesConVar()
 {
 	g_bCvarTankHordes = GetConVarBool(g_hTankHordes);
-}
-
-public _MC_NoMobs_CvarChange(Handle:convar, const String:oldValue[], const String:newValue[])
-{
-	_MC_ToggleHordes(bool:StringToInt(oldValue));
 }
 
 static _MC_ToggleEvents(bool:bHook)
@@ -262,7 +276,7 @@ Update_MC_NoStartsCIConVar()
 }
 
 #if DEBUG_COMMANDS
-public Action:Cmmand_dGetMobTimer(client, args)
+public Action:Command_GetMobTimer(client, args)
 {
 	ReplyToCommand(client, "Mob timer: %d (-1 = Disabled)", MC_GetMobTimer());
 	return Plugin_Handled;

@@ -34,8 +34,8 @@ _PluginManager_OnPluginStart()
 {
 	if (!DirExists(ENABLED_DIR)){
 
-		DebugLog("%s Error: Directory <%s> not exists!", PM_TAG, ENABLED_DIR);
-		ThrowError("%s Error: Directory <%s> not exists!", PM_TAG, ENABLED_DIR);
+		DebugLog("%s Error: directory <%s> not exists!", PM_TAG, ENABLED_DIR);
+		ThrowError("%s Error: directory <%s> not exists!", PM_TAG, ENABLED_DIR);
 	}
 
 	RegServerCmd("rotoblin_load_plugin", CmdLoadPl);
@@ -62,7 +62,7 @@ public Action:CmdLoadPl(args)
 
 	if (!FileExists(sExistPl)){
 
-		DebugLog("%s Warning plugin <%s> not found in plugins/%s!", PM_TAG, sPlName, OPTIONAL);
+		DebugLogEx("%s Warning! plugin '%s' not found!", PM_TAG, sPlName);
 		return Plugin_Handled;
 	}
 
@@ -76,7 +76,7 @@ public Action:CmdUnloadPls(args)
 {
 	if (!DirExists(ENABLED_DIR)){
 
-		DebugLog("%s -> Warning cannot unload plugins, optional folder is missing!", PM_TAG);
+		DebugLogEx("%s -> Warning! Failed to unload plugins! (optional folder is missing)", PM_TAG);
 		return Plugin_Handled;
 	}
 

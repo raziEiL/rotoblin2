@@ -32,8 +32,10 @@
 
 enum WEAPON_STYLE
 {
-	REPLACE_NO_WEAPONS = 0, // Don't replace any tier 2 weapons
-	REPLACE_ALL_WEAPONS = 1 // Replace all tier 2 weapons
+	REPLACE_NO_WEAPONS, // Don't replace any tier 2 weapons
+	REPLACE_ALL_WEAPONS, // Replace all tier 2 weapons
+	REPLACE_ALL_RIFLE,
+	REPLACE_ALL_AUTOSHOTGUN
 }
 
 enum WEAPON_REPLACEMENT_ATTRIBUTES
@@ -97,7 +99,7 @@ static bool:g_bSkip;
 _WeaponControl_OnPluginStart()
 {
 	g_hWeaponStyle_Cvar = CreateConVarEx("weapon_style", "0",
-		"How weapons will be replaced. 0 - Don't replace any weapons, 1 - Replace all tier 2 weapons", _, true, 0.0, true, 1.0);
+		"Replace weapons with its tier 1 analogue. (0 - Don't replace any weapons, 1 - Replace all weapons, 2 - Replace all rifles, 3 - Replace all autoshotguns)", _, true, 0.0, true, 3.0);
 
 	if (g_hWeaponStyle_Cvar == INVALID_HANDLE) ThrowError("Unable to create weapon style cvar!");
 	AddConVarToReport(g_hWeaponStyle_Cvar); // Add to report status module
@@ -198,6 +200,9 @@ public Action:_WC_t_RoundStartDelay(Handle:timer)
 	// Replace all tier 2 weapons that are already spawned
 	for (new i = 0; i < WEAPON_REPLACEMENT_TOTAL; i++)
 	{
+		if (i != 0 && g_iWeaponStyle == REPLACE_ALL_RIFLE) break;
+		if (i == 0 && g_iWeaponStyle == REPLACE_ALL_AUTOSHOTGUN) continue;
+
 		ReplaceAllTier2(WEAPON_REPLACEMENT_ARRAY[i][WEAPON_CLASSNAME],
 			WEAPON_REPLACEMENT_ARRAY[i][WEAPON_MODEL],
 			WEAPON_REPLACEMENT_ARRAY[i][WEAPON_REPLACECLASSNAME],
@@ -241,6 +246,8 @@ _WC_OnEntityCreated(entity, const String:classname[])
 	for (new i = 0; i < WEAPON_REPLACEMENT_TOTAL; i++)
 	{
 		if (!StrEqual(classname, WEAPON_REPLACEMENT_ARRAY[i][WEAPON_CLASSNAME])) continue;
+		if (i != 0 && g_iWeaponStyle == REPLACE_ALL_RIFLE) break;
+		if (i == 0 && g_iWeaponStyle == REPLACE_ALL_AUTOSHOTGUN) continue;
 
 		new ref = EntIndexToEntRef(entity);
 
