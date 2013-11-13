@@ -49,7 +49,7 @@ _AutoLoader_OnPluginStart()
 
 	g_hAllowLoader		= CreateConVarEx("allow_autoloader", "", "Name of the match config uses by default. Empty this line to disable an autoloader (value: \"\").");
 	g_hAllowMatchReset	= CreateConVarEx("allow_match_resets", "0", "When server becomes empty resets the last played match to default match (see \"rotoblin_allow_autoloader\" convar)");
-	g_hAllowMapReset	= CreateConVarEx("allow_map_resets", "0", "Set whether or not change map to the first map of a random campaign when server becomes empty");
+	g_hAllowMapReset	= CreateConVarEx("allow_map_resets", "0", "Sets whether or not change map to the first map of a random campaign when server becomes empty");
 
 	ExecuteScritp(sMatchCfg[SETTINGS]);
 }

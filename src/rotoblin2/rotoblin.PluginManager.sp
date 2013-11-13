@@ -38,8 +38,8 @@ _PluginManager_OnPluginStart()
 		ThrowError("%s Error: directory <%s> not exists!", PM_TAG, ENABLED_DIR);
 	}
 
-	RegServerCmd("rotoblin_load_plugin", CmdLoadPl);
-	RegServerCmd("rotoblin_unload_plugins", CmdUnloadPls);
+	RegServerCmd("rotoblin_load_plugin", CmdLoadPl, "Load a plugin from optional folder");
+	RegServerCmd("rotoblin_unload_plugins", CmdUnloadPls, "Unloads all plugins from optional folder");
 }
 
 _PM_OnPluginDisabled()
@@ -62,7 +62,7 @@ public Action:CmdLoadPl(args)
 
 	if (!FileExists(sExistPl)){
 
-		DebugLogEx("%s Warning! plugin '%s' not found!", PM_TAG, sPlName);
+		DebugLogEx("%s Warning! plugin \"%s\" not found!", PM_TAG, sPlName);
 		return Plugin_Handled;
 	}
 

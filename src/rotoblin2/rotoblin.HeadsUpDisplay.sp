@@ -28,7 +28,9 @@
 
 static	Handle:g_hCvarAllowSpecHud, Handle:g_hCvarTwoTanks, Handle:g_hTankHealth, Handle:g_hVsBonusHealth, Handle:g_hLotteryTime, Handle:g_hCvarCompactHud, Handle:g_hBurnLifeTime, Float:g_fBurnDmg,
 		bool:g_bCvarAllowSpecHud, bool:g_bCvarTwoTanks, bool:g_bCvarCompactHud, Float:g_fTankHealth = 6000.0, bool:g_bShowTankHud[MAXPLAYERS+1], bool:g_bHudEnabled, g_iPassCount,
-		g_iStasis, g_iHits[2], bool:g_bTankKilled, Handle:g_hSpecHudTimer, bool:g_bShowSpecHud[MAXPLAYERS+1], g_iSISpawnTime[MAXPLAYERS+1][2], bool:g_bBlockSpecHUD, bool:g_bTips[MAXPLAYERS+1][2];
+		g_iStasis, g_iHits[2], Handle:g_hSpecHudTimer, bool:g_bShowSpecHud[MAXPLAYERS+1], g_iSISpawnTime[MAXPLAYERS+1][2], bool:g_bBlockSpecHUD, bool:g_bTips[MAXPLAYERS+1][2];
+
+static stock bool:g_bTankKilled;
 
 #define ELEM	(g_iPassCount - 1)
 
@@ -39,12 +41,12 @@ _HeadsUpDisplay_OnPluginStart()
 	g_hLotteryTime		= FindConVar("director_tank_lottery_selection_time");
 	g_hBurnLifeTime		= FindConVar("z_tank_burning_lifetime");
 
-	g_hCvarAllowSpecHud		= CreateConVarEx("allow_spec_hud", "0", "Enable/disable spectator HUD");
+	g_hCvarAllowSpecHud		= CreateConVarEx("allow_spec_hud", "0", "Enables/disables spectator HUD");
 	g_hCvarTwoTanks				= CreateConVarEx("two_tanks", "0", "Support double tank mod");
 	g_hCvarCompactHud			= CreateConVarEx("compact_tankhud", "0", "Style of Tank HUD. (0: old style, 1: new style)");
 
-	RegConsoleCmd("tankhud", HUD_CmdToogleTankHud);
-	RegConsoleCmd("spechud", HUD_CmdToogleSpecHud);
+	RegConsoleCmd("sm_tankhud", Command_ToogleTankHud, "Toggles the Tank HUD visibility");
+	RegConsoleCmd("sm_spechud", Command_ToogleSpecHud, "Toggles the Spectator HUD visibility");
 
 	RegServerCmd("rotoblin_pause_spechud", Command_PauseSpecHUD);
 }
@@ -57,7 +59,7 @@ public Action:Command_PauseSpecHUD(args)
 	g_bBlockSpecHUD = StrEqual(sArgs, "true");
 }
 
-public Action:HUD_CmdToogleTankHud(client, args)
+public Action:Command_ToogleTankHud(client, args)
 {
 	if (!client) return Plugin_Handled;
 
@@ -67,7 +69,7 @@ public Action:HUD_CmdToogleTankHud(client, args)
 	return Plugin_Handled;
 }
 
-public Action:HUD_CmdToogleSpecHud(client, args)
+public Action:Command_ToogleSpecHud(client, args)
 {
 	if (!client || !g_bCvarAllowSpecHud) return Plugin_Handled;
 

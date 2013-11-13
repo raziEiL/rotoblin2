@@ -73,6 +73,4 @@
 #include "rotoblin2/rotoblin.DynamicHostname.sp"
 #include "rotoblin2/rotoblin.HeadsUpDisplay.sp"
 #include "rotoblin2/rotoblin.ClientSettings.sp"
-
 #include "rotoblin2/rotoblin.TankSpawns.sp"
-

@@ -17,9 +17,9 @@ static Handle:g_hEnable, Handle:g_hSIExcept, bool:g_bCvarEnable, g_iSIExpectFlag
 
 public OnPluginStart()
 {
-	g_hEnable				=		CreateConVar("simple_antibhop_enable", "0", "Enable or disable the Simple Anti-Bhop plugin", FCVAR_PLUGIN);
+	g_hEnable				=		CreateConVar("simple_antibhop_enable", "0", "Enable or disable the Simple Anti-Bhop plugin", FCVAR_PLUGIN|FCVAR_NOTIFY);
 	g_hSIExcept			=		CreateConVar("bhop_except_si_flags", "64", 
-		"Bitfield for exempting SI in anti-bhop functionality. From least significant: 2=Smoker, 4=Boomer, 8=Hunter, 32=Tank, 64=Survivors, 110=All", FCVAR_PLUGIN);
+		"Bitfield for exempting SI in anti-bhop functionality. From least significant: 2=Smoker, 4=Boomer, 8=Hunter, 32=Tank, 64=Survivors, 110=All", FCVAR_PLUGIN|FCVAR_NOTIFY);
 		
 	HookConVarChange(g_hEnable,		OnCvarChange_Enable);
 	HookConVarChange(g_hSIExcept,	OnCvarChange_SIExcept);

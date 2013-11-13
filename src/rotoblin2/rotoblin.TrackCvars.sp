@@ -28,7 +28,7 @@
 #define		TC_TAG		"[TrackCvars]"
 #define		SILENT		1
 
-static		Handle:g_hConVarArray, Handle:g_hConVarArrayEx, bool:g_bLockConVars;
+static		Handle:g_hConVarArray, Handle:g_hConVarArrayEx, Handle:g_hSilentMode, bool:g_bCvarSilentMode, bool:g_bLockConVars;
 
 enum CVAR_STRUCTURE
 {
@@ -56,6 +56,9 @@ static const g_aStaticVars[][CVAR_STRUCTURE] =
 //-----------------------------------------------------------------------------
 _TrackCvars_OnPluginStart()
 {
+	g_hSilentMode = CreateConVarEx("cvar_silent_style", "0", "If set, clients will be not notified that the tracked convar has changed", _, true, 0.0, true, 1.0);
+	HookConVarChange(g_hSilentMode, SilentMode_ConVarChange);
+
 	RegServerCmd("rotoblin_track_variable",		CmdTrackVariable,		"Add a convar to track");
 	RegServerCmd("rotoblin_track_variable_ex",	CmdTrackVariableEx,	"Add a convar to track but ignore a global lock");
 	RegServerCmd("rotoblin_lock_variables",		CmdLockVariable,		"Lock all tracked convar to changes");
@@ -81,6 +84,10 @@ _TC_OnPluginDisabled()
 	CmdUnlockVariable(0);
 	CmdResetVariable(0);
 }
+_TC_OnPluginEnd()
+{
+	ResetConVar(g_hSilentMode);
+}
 
 // Only for convars that added throught 'rotoblin_track_variable' command
 bool:AddConVarToTrack(const String:sConvar[64], const String:sValue[64], bool:bCanBeReseted=true)
@@ -89,6 +96,7 @@ bool:AddConVarToTrack(const String:sConvar[64], const String:sValue[64], bool:bC
 	if (!IsValidConVar(hConVar)){
 
 		DebugLog("%s Warning ConVar \"%s\" not found!", TC_TAG, sConvar);
+		DebugLogEx("%s Warning ConVar \"%s\" not found!", TC_TAG, sConvar);
 		return false;
 	}
 	if (IsConVarTracked(g_hConVarArray, sConvar)){
@@ -99,6 +107,7 @@ bool:AddConVarToTrack(const String:sConvar[64], const String:sValue[64], bool:bC
 
 	DebugLog("%s ConVar \"%s\" \"%s\" is added to track", TC_TAG, sConvar, sValue);
 
+	RemoveConVarNotify(hConVar);
 	SetConVarString(hConVar, sValue, true);
 	HookConVarChange(hConVar, OnTracked_ConVarChange);
 
@@ -175,6 +184,7 @@ public Action:CmdTrackVariableEx(args)
 	decl String:sValue[64];
 	GetCmdArg(2, sValue, 64);
 
+	RemoveConVarNotify(hConVar);
 	SetConVarString(hConVar, sValue, true);
 
 	if (IsConVarTracked(g_hConVarArrayEx, sConvar))
@@ -270,6 +280,18 @@ static bool:IsValidConVar(Handle:hConVar)
 	return hConVar != INVALID_HANDLE;
 }
 
+static RemoveConVarNotify(Handle:hCvar)
+{
+	if (!g_bCvarSilentMode) return;
+	new iFlags = GetConVarFlags(hCvar);
+
+	if (iFlags & FCVAR_NOTIFY){
+
+		iFlags &= ~FCVAR_NOTIFY;
+		SetConVarFlags(hCvar, iFlags);
+	}
+}
+
 static StaticVars(bool:bHook)
 {
 	static bool:bHooked;
@@ -307,6 +329,12 @@ static StaticVars(bool:bHook)
 			ResetConVar(hCvar);
 		}
 	}
+}
+
+public SilentMode_ConVarChange(Handle:convar, const String:oldValue[], const String:newValue[])
+{
+	if (!StrEqual(oldValue, newValue))
+		g_bCvarSilentMode = GetConVarBool(convar);
 }
 
 public OnTracked_ConVarChange(Handle:convar, const String:oldValue[], const String:newValue[])

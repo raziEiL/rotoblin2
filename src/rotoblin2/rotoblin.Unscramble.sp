@@ -37,12 +37,12 @@ _AntiScrabble_OnPluginStart()
 	g_hTrine = CreateTrie();
 	g_fwdOnUnscrambleEnd = CreateGlobalForward("R2comp_OnUnscrambleEnd", ET_Ignore);
 
-	g_hCvarNotify = CreateConVarEx("unscramble_notify", "0", "Print notification when unscramble is complete (that specs know were they can join)", _, true, 0.0, true, 1.0);
-	g_hCvarEnable = CreateConVarEx("allow_unscramble", "0", "Enable/disable unscramble feature", _, true, 0.0, true, 1.0);
-	g_hCvarUnlocker = CreateConVarEx("choosemenu_unlocker", "0", "Allow spectator/infected players join as dead survivor bot (through M button)", _, true, 0.0, true, 1.0);
+	g_hCvarNotify = CreateConVarEx("unscramble_notify", "0", "Prints notification when unscramble is complete (lets spectators know when they can join)", _, true, 0.0, true, 1.0);
+	g_hCvarEnable = CreateConVarEx("allow_unscramble", "0", "Enables/disables unscramble feature", _, true, 0.0, true, 1.0);
+	g_hCvarUnlocker = CreateConVarEx("choosemenu_unlocker", "0", "Allows spectator/infected players to join as dead survivor bot (through M button)", _, true, 0.0, true, 1.0);
 
 	#if SCORES_COMMAND
-		RegConsoleCmd("sm_scores", Command_Scores);
+		RegConsoleCmd("sm_scores", Command_Scores, "Prints infected/survivor team campaign scores");
 	#endif
 
 	RegAdminCmd("sm_keepteams", Command_KeepTeams, ADMFLAG_ROOT, "Force to keep all teams right now.");

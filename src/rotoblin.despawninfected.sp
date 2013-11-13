@@ -72,7 +72,7 @@ static Handle:g_hDIEnable, bool:g_bCvarDIEnabled, Float:g_fLastHighestFlow = -1.
  */
 _DespawnInfected_OnPluginStart()
 {
-	g_hDIEnable = CreateConVarEx("despawn_infected", "0", "Despawn infected commons who is too far behind the survivors.", _, true, 0.0, true, 1.0);
+	g_hDIEnable = CreateConVarEx("despawn_infected", "0", "Despawns infected commons who is too far behind the survivors.", _, true, 0.0, true, 1.0);
 
 	g_iDebugChannel = DebugAddChannel(DEBUG_CHANNEL_NAME);
 	DebugPrintToAllEx("Module is now setup");
@@ -442,6 +442,42 @@ public Action:WI_t_DebugGetMobOrg(Handle:timer, any:entity)
 public Native_R2comp_GetHighestSurvivorFlowEx(Handle:plugin, numParams)
 {
 	return _:g_fLastHighestFlow;
+}
+
+public Native_R2comp_GetHighestSurvivorFlow(Handle:plugin, numParams)
+{
+	return _:GetHighestSurvFlow();
+}
+
+Float:GetHighestSurvFlow(bool:bDown = false)
+{
+	new Float:fFlow = -1.0, Float:iLastFlow;
+
+	if (g_bBlackSpot){
+
+		for (new i = 1; i <= MaxClients; i++){
+
+			if (IsSurvivor(i) && IsPlayerAlive(i)){
+
+				if (bDown && (IsIncapacitated(i) || IsHandingFromLedge(i))) continue;
+				
+				if ((iLastFlow = GetPlayerFlowDistance(i)) > fFlow)
+					fFlow = iLastFlow;
+			}
+		}
+	}
+	else if (SurvivorCount){
+
+		for (new i = 0; i < SurvivorCount; i++){
+
+			if (bDown && (IsIncapacitated(SurvivorIndex[i]) || IsHandingFromLedge(SurvivorIndex[i]))) continue;
+
+			if ((iLastFlow = GetPlayerFlowDistance(SurvivorIndex[i])) > fFlow)
+				fFlow = iLastFlow;
+		}
+	}
+
+	return fFlow;
 }
 
 _DI_ToogleHook(bool:bHook)

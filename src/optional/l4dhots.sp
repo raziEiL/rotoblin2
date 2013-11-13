@@ -18,9 +18,9 @@ static	Handle:g_hPillsHot, Handle:g_hAdrenHot, Handle:g_hContinueHot, Handle:g_h
 public OnPluginStart()
 {
 	g_hPillCvar		= FindConVar("pain_pills_health_value");
-	g_hPillsHot			= CreateConVar("l4d_pills_hot", "0", "Pills heal over time (10 hp each 1s)", FCVAR_PLUGIN);
-	g_hContinueHot		= CreateConVar("l4d_pills_hot_continue", "0", "Continue healing after revive", FCVAR_PLUGIN);
-	g_hCvarHealthValue	= CreateConVar("l4d_pills_hot_value", "50", "Amount of health", FCVAR_PLUGIN, true, 1.0);
+	g_hPillsHot			= CreateConVar("l4d_pills_hot", "0", "Pills heal over time (10 hp each 1s)", FCVAR_PLUGIN|FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	g_hContinueHot		= CreateConVar("l4d_pills_hot_continue", "0", "Continue healing after revive", FCVAR_PLUGIN|FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	g_hCvarHealthValue	= CreateConVar("l4d_pills_hot_value", "50", "Amount of health", FCVAR_PLUGIN|FCVAR_NOTIFY, true, 1.0);
 
 	HookConVarChange(g_hPillsHot, PillHotChanged);
 

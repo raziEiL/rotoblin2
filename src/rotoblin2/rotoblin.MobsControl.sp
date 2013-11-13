@@ -32,7 +32,7 @@ static		Handle:g_hMobTimer, Handle:g_hAllowHordes, Handle:g_hTankHordes, Handle:
 
 _MobsControl_OnPluginStart()
 {
-	g_hAllowHordes		= CreateConVarEx("allow_natural_hordes",		"-1", "Allow natural hordes to spawn. (-1: director settings, 0: disable, > 0: spawn interval to cvar value).", _, true, -1.0);
+	g_hAllowHordes		= CreateConVarEx("allow_natural_hordes",		"-1", "Allows natural hordes to spawn. (-1: director settings, 0: disable, > 0: spawn interval to cvar value)", _, true, -1.0);
 	g_hTankHordes		= CreateConVarEx("disable_tank_hordes",			"0", "Disables natural hordes while tanks are in play. (0: enable, 1: disable).", _, true, 0.0, true, 1.0);
 	g_hCvarNoStartsCI	= CreateConVarEx("remove_start_commons",		"0", "Removes all common infected near by a saferoom and returns them when one of survivors leaves a saferoom.", _, true, 0.0, true, 1.0);
 

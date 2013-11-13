@@ -14,6 +14,8 @@
 #define BOSSES				2
 #define TANK_PASS_TIME		(g_fCvarTankSelectTime + 1.0)
 
+#define CVAR_FLAGS			FCVAR_PLUGIN|FCVAR_NOTIFY
+
 enum DATA
 {
 	INDEX,
@@ -45,10 +47,10 @@ public OnPluginStart()
 	new Handle:hCvarSurvLimit			= FindConVar("survivor_limit");
 	new Handle:hCvarTankSelectTime		= FindConVar("director_tank_lottery_selection_time");
 
-	new Handle:hCvarFlags		= CreateConVar("prodmg_announce_flags",		"0", "Flags: 0=disabled, 1=witch, 2=tank, 3=all", _, true, 0.0, true, 3.0);
-	new Handle:hCvarSkipBots	= CreateConVar("prodmg_ignore_bots",			"0", "Don't print bots stats", _, true, 0.0, true, 1.0);
-	new Handle:hCvarPrivate		= CreateConVar("prodmg_announce_private",	"0", "Don't print stats to public chat. Flags (add together): 0=disabled, 1=witch, 2=tank, 3=all", _, true, 0.0, true, 3.0);
-	new Handle:hCvarRunAway		= CreateConVar("prodmg_failed_crown",		"1", "Don't print witch stats at round end if she run away", _, true, 0.0, true, 1.0);
+	new Handle:hCvarFlags		= CreateConVar("prodmg_announce_flags",		"0", "Flags: 0=disabled, 1=witch, 2=tank, 3=all", CVAR_FLAGS, true, 0.0, true, 3.0);
+	new Handle:hCvarSkipBots	= CreateConVar("prodmg_ignore_bots",			"0", "Don't print bots stats", CVAR_FLAGS, true, 0.0, true, 1.0);
+	new Handle:hCvarPrivate		= CreateConVar("prodmg_announce_private",	"0", "Don't print stats to public chat. Flags (add together): 0=disabled, 1=witch, 2=tank, 3=all", CVAR_FLAGS, true, 0.0, true, 3.0);
+	new Handle:hCvarRunAway		= CreateConVar("prodmg_failed_crown",		"1", "Don't print witch stats at round end if she run away", CVAR_FLAGS, true, 0.0, true, 1.0);
 
 	g_iCvarHealth[TANK]	= RoundFloat(FloatMul(GetConVarFloat(g_hTankHealth), GetConVarFloat(g_hVsBonusHealth)));
 	g_iCvarHealth[WITCH]	= GetConVarInt(hCvarWitchHealth);

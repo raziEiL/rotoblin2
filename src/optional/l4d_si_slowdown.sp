@@ -17,8 +17,8 @@ static		Handle:g_hAllowSlowDown, Handle:g_hSlowDownTank, bool:g_bCvarAllowSlowDo
 
 public OnPluginStart()
 {
-	g_hAllowSlowDown	=	CreateConVar("l4d_si_slowdown", "0");
-	g_hSlowDownTank		=	CreateConVar("l4d_si_slowdown_tank", "0");
+	g_hAllowSlowDown	=	CreateConVar("l4d_si_slowdown", "0", "Enables/disables removal of the slow down that weapons to do special infected", FCVAR_PLUGIN|FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	g_hSlowDownTank		=	CreateConVar("l4d_si_slowdown_tank", "0", "Enables/disables removal of the slow down that weapons do to tanks", FCVAR_PLUGIN|FCVAR_NOTIFY, true, 0.0, true, 1.0);
 
 	HookConVarChange(g_hAllowSlowDown,		OnCvarChange_AllowSlowDown);
 	HookConVarChange(g_hSlowDownTank,		OnCvarChange_SlowDownTank);

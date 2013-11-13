@@ -18,8 +18,8 @@ static Handle:hKillOnCrash, Handle:hKillOn;
 
 public OnPluginStart()
 {
-	hKillOn			=	CreateConVar("tankgank_enable", "0");
-	hKillOnCrash		=	CreateConVar("tankgank_killoncrash",	"0", "If 0, tank will not be killed if the player that controlled it crashes.", FCVAR_PLUGIN, true,  0.0, true, 1.0);
+	hKillOn			=	CreateConVar("tankgank_enable", "0", "Enables or disables the AI Tank Gank plugin", FCVAR_PLUGIN|FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	hKillOnCrash		=	CreateConVar("tankgank_killoncrash",	"0", "If 0, tank will not be killed if the player that controlles him crashes.", FCVAR_PLUGIN|FCVAR_NOTIFY, true, 0.0, true, 1.0);
 
 	HookEvent("player_bot_replace", OnTankGoneAi);
 }

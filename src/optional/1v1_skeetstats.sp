@@ -154,9 +154,9 @@ public OnPluginStart()
     HookEvent("ability_use", AbilityUse_Event, EventHookMode_Post);
 
     // Cvars
-    hCountTankDamage =  CreateConVar("sm_skeetstat_counttank",    "0",  "Damage on tank counts towards totals if enabled.", FCVAR_PLUGIN, true, 0.0, true, 1.0);
-    hCountWitchDamage = CreateConVar("sm_skeetstat_countwitch",   "0",  "Damage on witch counts towards totals if enabled.", FCVAR_PLUGIN, true, 0.0, true, 1.0);
-    hBrevityFlags =     CreateConVar("sm_skeetstat_brevity",     "32",  "Flags for setting brevity of the report (hide 1:SI, 2:CI, 4:Accuracy, 8:Skeets/Deadstops, 32: melee acc, 64: damage count).", FCVAR_PLUGIN, true, 0.0);
+    hCountTankDamage =  CreateConVar("sm_skeetstat_counttank",    "0",  "Damage on tank counts towards totals if enabled.", FCVAR_PLUGIN|FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    hCountWitchDamage = CreateConVar("sm_skeetstat_countwitch",   "0",  "Damage on witch counts towards totals if enabled.", FCVAR_PLUGIN|FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    hBrevityFlags =     CreateConVar("sm_skeetstat_brevity",     "32",  "Flags for setting brevity of the report (hide 1:SI, 2:CI, 4:Accuracy, 8:Skeets/Deadstops, 32: melee acc, 64: damage count).", FCVAR_PLUGIN|FCVAR_NOTIFY, true, 0.0);
 
     bCountTankDamage =  GetConVarBool(hCountTankDamage);
     bCountWitchDamage = GetConVarBool(hCountWitchDamage);

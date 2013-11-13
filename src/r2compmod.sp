@@ -168,6 +168,7 @@ public OnPluginEnd()
 	_AL_OnPluginEnd();
 	_RM_OnPluginEnd();
 	_AS_OnPluginEnd();
+	_TC_OnPluginEnd();
 }
 
 public OnMapStart()

@@ -50,8 +50,8 @@ public OnPluginStart()
                 Format(buffer, sizeof(buffer), "z_%s_health", SINames[i]);
                 hSpecialInfectedHP[i] = FindConVar(buffer);
         }
-        hCvarEnable = CreateConVar("sm_1v1_enable", "0");
-        hCvarDmgThreshold = CreateConVar("sm_1v1_dmgthreshold", "33", "Amount of damage done (at once) before SI suicides.", FCVAR_PLUGIN, true, 1.0);
+        hCvarEnable = CreateConVar("sm_1v1_enable", "0", "Enables or disables the 1v1 Pro Mod plugin", FCVAR_PLUGIN|FCVAR_NOTIFY, true, 0.0, true, 1.0);
+        hCvarDmgThreshold = CreateConVar("sm_1v1_dmgthreshold", "33", "Amount of damage done (at once) before SI suicides.", FCVAR_PLUGIN|FCVAR_NOTIFY, true, 1.0);
 
         HookEvent("player_hurt", Event_PlayerHurt, EventHookMode_Post);
         HookEvent("player_left_start_area", Event_PlayerLeftStartArea, EventHookMode_PostNoCopy);

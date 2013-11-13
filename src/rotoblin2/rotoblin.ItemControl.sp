@@ -76,7 +76,7 @@ _ItemControl_OnPluginStart()
 	g_hRemoveDualPistols				=	CreateConVarEx("remove_pistols",			"0", 	"Removes all pistols on each map. Prevent the use of double pistols. (0: disable, 1: enable)", _, true, 0.0, true, 1.0);
 	g_hAlterSpawningLogic				=	CreateConVarEx("spawning_logic",			"0", 	"Enables alternative spawning logic for items. More items on map, but only a limited number of them can be picked up", _, true, 0.0, true, 1.0);
 	g_hItemsSpawns						=	CreateConVarEx("item_spawns",				"14", 	"Enables forcing same coordinates in round2 for items. Flag (add together): 0=disable, 2=molotov, 4=pipe-bomb, 8=pills, 14=all", _, true, 0.0);
-	g_hMolotovFlowSpawn				=	CreateConVarEx("molotov_flow_spawn",		"0", 	"If it possible we trying to keep one molotov on map before tank.", _, true, 0.0, true, 1.0);
+	g_hMolotovFlowSpawn				=	CreateConVarEx("molotov_flow_spawn",		"0", 	"If it possible we try to keep one molotov on map before tank spawns.", _, true, 0.0, true, 1.0);
 
 	IC_WipeArray(false);
 }

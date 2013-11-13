@@ -68,7 +68,7 @@ static		Handle:g_hPauseDuration, bool:g_bLocked;
  */
 _Pause_OnPluginStart()
 {
-	g_hPauseEnable_Cvar	=	CreateConVarEx("pause_allowed", "0", "Sets whether the game can be paused", _, true, 0.0, true, 1.0);
+	g_hPauseEnable_Cvar	=	CreateConVarEx("pause_allowed", "0", "Sets whether the game can be paused by players", _, true, 0.0, true, 1.0);
 	g_hPauseDuration 		=	CreateConVarEx("pause_duration", "0", "The minimum required time of the pause, before either team can unpause", _, true, 0.0);
 
 	AddConVarToReport(g_hPauseEnable_Cvar); // Add to report status module

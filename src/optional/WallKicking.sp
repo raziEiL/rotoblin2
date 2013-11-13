@@ -18,7 +18,7 @@ static Handle:hWallKickEnable, bool:bWallKick[MAXPLAYERS+1];
 public OnPluginStart()
 {
 	CreateConVar("stop_wallkicking_version", PLUGIN_VERSION, "Stop Wall Kicking plugin version", FCVAR_REPLICATED|FCVAR_NOTIFY);
-	hWallKickEnable = CreateConVar("stop_wallkicking_enable", "0");
+	hWallKickEnable = CreateConVar("stop_wallkicking_enable", "0", "Enable or disable the Stop Wall Kicking plugin", FCVAR_PLUGIN|FCVAR_NOTIFY);
 
 	HookEvent("ability_use", WK_Event_AbilityUse);
 	HookEvent("player_jump", WK_Event_PlayerJump);

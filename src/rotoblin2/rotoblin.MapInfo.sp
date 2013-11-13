@@ -45,8 +45,8 @@ _MapInfo_OnPluginStart()
 	if (!FileToKeyValues(g_hKv, g_sPatch))
 		SetFailState("Couldn't load Rotoblin MapInfo file! Patch <configs/R2/MapInfo.cfg>");
 
-	RegAdminCmd("mapinfo", CmdMapInfo, ADMFLAG_ROOT);
-	RegAdminCmd("getmapinfo", GetMapInfo, ADMFLAG_ROOT);
+	RegAdminCmd("sm_mapinfo", Command_MapInfo, ADMFLAG_ROOT, "Adds start/end saferoom position to a MapInfo");
+	RegAdminCmd("sm_getmapinfo", Command_GetMapInfo, ADMFLAG_ROOT, "Prints start/end saferoom position from MapInfo");
 
 	#if DEBUG_COMMANDS
 		RegAdminCmd("r2comp_tp",		Command_TeleportToSafeRoom, ADMFLAG_ROOT);
@@ -55,7 +55,7 @@ _MapInfo_OnPluginStart()
 	#endif
 }
 
-public Action:CmdMapInfo(client, args)
+public Action:Command_MapInfo(client, args)
 {
 	if (!args || (args != 1 && args != 5)){
 
@@ -115,7 +115,7 @@ public Action:CmdMapInfo(client, args)
 	return Plugin_Handled;
 }
 
-public Action:GetMapInfo(client, args)
+public Action:Command_GetMapInfo(client, args)
 {
 	ReplyToCommand(client, "SFR %.1f %.1f %.1f \nESR %.1f %.1f %.1f", g_vStartSafeRoom[0], g_vStartSafeRoom[1], g_vStartSafeRoom[2], g_vEndSafeRoom[0], g_vEndSafeRoom[1], g_vEndSafeRoom[2]);
 	return Plugin_Handled;

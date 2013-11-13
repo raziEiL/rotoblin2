@@ -27,13 +27,7 @@
 
 #define		TS_TAG					"[TankSpawns]"
 
-enum Round
-{
-	First,
-	Second
-}
-
-static	Handle:g_hTankSpawns, bool:g_bCvarTankSpawns, bool:g_bTankFix, bool:g_bFixed, Float:g_fTankData[2][3], g_iFlow[Round], g_iDebugChannel;
+static	Handle:g_hTankSpawns, bool:g_bCvarTankSpawns, bool:g_bTankFix, bool:g_bFixed, Float:g_fTankData[2][3], g_iDebugChannel;
 
 _TankSpawns_OnPluginStart()
 {
@@ -54,8 +48,6 @@ _TS_OnPluginDisabled()
 
 _TS_OnMapEnd()
 {
-	g_iFlow[First] = 0;
-	g_iFlow[Second] = 0;
 	g_bTankFix = false;
 	g_bFixed = false;
 	ClearVec();
@@ -82,20 +74,6 @@ bool:_TS_L4D_OnSpawnTank(const Float:vector[3], const Float:qangle[3])
 	return false;
 }
 
-public Action:TS_t_UpdateFlow(Handle:timer)
-{
-	g_iFlow[Second] = RoundToFloor(GetHighestSurvFlow());
-
-	if (g_iFlow[Second] == -1 || g_iFlow[Second] >= g_iFlow[First]){
-
-		DebugPrintToAll(g_iDebugChannel,"unprohibit tank spawn! Flow: r1 %d, r2 %d ", g_iFlow[First], g_iFlow[Second]);
-		g_iFlow[Second] = g_iFlow[First];
-		return Plugin_Stop;
-	}
-
-	return Plugin_Continue;
-}
-
 _TS_ev_OnTankSpawn()
 {
 	if (g_bFixed || !g_bTankFix || !g_bCvarTankSpawns) return;
@@ -112,58 +90,20 @@ _TS_ev_OnTankSpawn()
 
 static CopyVec(const Float:vector[3], const Float:qangle[3])
 {
-	g_fTankData[0][0] = vector[0];
-	g_fTankData[0][1] = vector[1];
-	g_fTankData[0][2] = vector[2];
-	g_fTankData[1][0] = qangle[0];
-	g_fTankData[1][1] = qangle[1];
-	g_fTankData[1][2] = qangle[2];
+	for (new index; index < 3; index++){
+
+		g_fTankData[0][index] = vector[index];
+		g_fTankData[1][index] = qangle[index];
+	}
 }
 
 static ClearVec()
 {
-	g_fTankData[0][0] = 0.0;
-	g_fTankData[0][1] = 0.0;
-	g_fTankData[0][2] = 0.0;
-	g_fTankData[1][0] = 0.0;
-	g_fTankData[1][1] = 0.0;
-	g_fTankData[1][2] = 0.0;
-}
+	for (new index; index < 3; index++){
 
-public Native_R2comp_GetHighestSurvivorFlow(Handle:plugin, numParams)
-{
-	return _:GetHighestSurvFlow();
-}
-
-Float:GetHighestSurvFlow(bool:bDown = false)
-{
-	new Float:fFlow = -1.0, Float:iLastFlow;
-
-	if (g_bBlackSpot){
-
-		for (new i = 1; i <= MaxClients; i++){
-
-			if (IsSurvivor(i) && IsPlayerAlive(i)){
-
-				if (bDown && (IsIncapacitated(i) || IsHandingFromLedge(i))) continue;
-				
-				if ((iLastFlow = GetPlayerFlowDistance(i)) > fFlow)
-					fFlow = iLastFlow;
-			}
-		}
+		g_fTankData[0][index] = 0.0;
+		g_fTankData[1][index] = 0.0;
 	}
-	else if (SurvivorCount){
-
-		for (new i = 0; i < SurvivorCount; i++){
-
-			if (bDown && (IsIncapacitated(SurvivorIndex[i]) || IsHandingFromLedge(SurvivorIndex[i]))) continue;
-
-			if ((iLastFlow = GetPlayerFlowDistance(SurvivorIndex[i])) > fFlow)
-				fFlow = iLastFlow;
-		}
-	}
-
-	return fFlow;
 }
 
 static bool:IsTankSpawnsMatch(const Float:vector[3])
@@ -185,6 +125,6 @@ static Update_TS_TankSpawns()
 stock _TS_CvarDump()
 {
 	decl iVal;
-	if ((iVal = GetConVarInt(g_hTankSpawns)) != g_bCvarTankSpawns)
+	if (bool:(iVal = GetConVarInt(g_hTankSpawns)) != g_bCvarTankSpawns)
 		DebugLog("%d		|	%d		|	rotoblin_tank_spawns", iVal, g_bCvarTankSpawns);
 }

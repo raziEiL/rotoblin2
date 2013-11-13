@@ -36,7 +36,7 @@ public _WitchTracking_OnPluginStart()
 {
 	g_hWitchSpawns = CreateConVarEx("witch_spawns", "1", "Enables forcing same coordinates for witch spawns.", _, true, 0.0, true, 1.0);
 	g_hMaxWitches = CreateConVarEx("max_witches", "0", "Maximum number of Witches are allowed to spawn. (0: director settings, > 0: maximum limit to cvar value)", _, true, 0.0);
-	g_hWitchDistance = CreateConVarEx("witch_distance", "0", "Allow director to spawn a witch close to another witch.", _, true, 0.0, true, 1.0);
+	g_hWitchDistance = CreateConVarEx("witch_distance", "0", "Allows director to spawn a witch close to another witch.", _, true, 0.0, true, 1.0);
 
 	g_hWitchArray = CreateArray(3);
 }

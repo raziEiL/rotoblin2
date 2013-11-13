@@ -164,7 +164,14 @@ native Float:R2comp_GetHighestSurvivorFlowEx();
 forward R2comp_OnServerEmpty();
 
 /**
- * Called directly before map restarts as a new match starts.
+ * Called before a new match loads. Previous match has not been unloaded yet.
+ *
+ * @return			Name of a loaded match.
+ */
+forward R2comp_OnMatchStarts_Pre(const String:match[]);
+
+/**
+ *  Called when a new match has fully loaded.
  *
  * @return			Name of a loaded match.
  */

@@ -55,7 +55,7 @@ static		Handle:g_hAllowAttr, bool:g_bCvarAllowAttr, Float:g_fWeapAttrDB[WEAPONS_
 
 public OnPluginStart()
 {
-	g_hAllowAttr = CreateConVar("allow_weapon_attributes", "1");
+	g_hAllowAttr = CreateConVar("allow_weapon_attributes", "1", "Enable or disable the Weapon Attributes plugin", FCVAR_PLUGIN|FCVAR_NOTIFY);
 
 	HookConVarChange(g_hAllowAttr, OnCvarChange_AllowAttr);
 	WA_GetCvars();

@@ -9,7 +9,7 @@ Maybe control the damage done to tank per second (tank burn duration cvar) and h
 #include <l4d_lib>
 
 #define PLUGIN_VERSION 		"0.7"
-#define CVAR_FLAGS			FCVAR_PLUGIN|FCVAR_SPONLY
+#define CVAR_FLAGS			FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_NOTIFY
 
 public Plugin:myinfo =
 {

@@ -4,7 +4,7 @@
 #include <colors>
 #include <l4d_lib>
 
-#define CVAR_FLAGS 			FCVAR_PLUGIN
+#define CVAR_FLAGS 			FCVAR_PLUGIN|FCVAR_NOTIFY
 #define PLUGIN_VERSION 		"1.1"
 #define STEAMID_SIZE 		32
 #define L4D_TEAM_SPECTATE 1
@@ -58,7 +58,7 @@ public OnPluginStart() {
 	cVarMinLerp = CreateConVar("sm_min_lerp", "0.0", "Minimum allowed lerp value", CVAR_FLAGS, true, 0.0);
 	cVarMaxLerp = CreateConVar("sm_max_lerp", "0.1", "Maximum allowed lerp value", CVAR_FLAGS, true, 0.0);
 
-	RegConsoleCmd("sm_lerps", Lerps_Cmd, "List the Lerps of all players in game", CVAR_FLAGS);
+	RegConsoleCmd("sm_lerps", Lerps_Cmd, "List the Lerps of all players in game");
 
 	HookEvent("round_start", Event_RoundStart, EventHookMode_PostNoCopy);
 	HookEvent("round_end", Event_RoundEnd, EventHookMode_PostNoCopy);

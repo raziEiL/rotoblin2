@@ -84,20 +84,25 @@ public Action:Command_CheckNatives(client, args)
 
 public R2comp_OnServerEmpty()
 {
-	LogMessage("fwd R2comp_OnServerEmpty is fired!");
+	LogMessage("fwd R2comp_OnServerEmpty() has been sent out!");
 }
 
 public R2comp_OnMatchStarts(const String:match[])
 {
-	LogMessage("fwd R2comp_OnMatchStarts is fired! Current match: %s", match);
+	LogMessage("fwd R2comp_OnMatchStarts(%s) has been sent out!", match);
+}
+
+public R2comp_OnMatchStarts_Pre(const String:match[])
+{
+	LogMessage("fwd R2comp_OnMatchStarts_Pre(%s) has been sent out!", match);
 }
 
 public R2comp_OnUnscrambleEnd()
 {
-	LogMessage("fwd R2comp_OnUnscrambleEnd is fired!");
+	LogMessage("fwd R2comp_OnUnscrambleEnd() has been sent out!");
 }
 
 public L4DReady_OnRoundIsLive()
 {
-	PrintToChatAll("fwd L4DReady_OnRoundIsLive is fired!");
+	PrintToChatAll("fwd L4DReady_OnRoundIsLive() has been sent out!");
 }

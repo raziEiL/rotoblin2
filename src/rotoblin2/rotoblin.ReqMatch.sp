@@ -27,15 +27,16 @@
 
 #define		RQ_TAG		"[ReqMatch]"
 
-static 		Handle:g_hAllowReq, Handle:g_fwdOnMatchStarts, String:g_sMap[64];
+static 		Handle:g_hAllowReq, Handle:g_fwdOnMatchStarts, Handle:g_fwdOnMatchStartsPre, String:g_sMap[64];
 
 _ReqMatch_OnPluginStart()
 {
 	g_fwdOnMatchStarts = CreateGlobalForward("R2comp_OnMatchStarts", ET_Ignore, Param_String);
-
+	g_fwdOnMatchStartsPre = CreateGlobalForward("R2comp_OnMatchStarts_Pre", ET_Ignore, Param_String);
+	
 	g_hAllowReq = CreateConVarEx("allow_match_req", "0", "Sets whether players can request for match mode (use !match command)", _, true, 0.0, true, 1.0);
 
-	RegServerCmd("rotoblin_restartmap", CmdRestartMap);
+	RegServerCmd("rotoblin_restartmap", CmdRestartMap, "Changelevels to the current map with 1.5 sec delay");
 
 	RegAdminCmd("sm_forcematch", CmdForceMatch, ADMFLAG_KICK, "Forces the game to use match mode");
 	RegAdminCmd("sm_resetmatch", CmdResetMatch, ADMFLAG_KICK, "Forces match mode to turn off");
@@ -230,6 +231,11 @@ static ResetReqVars()
 PreLoadMatch()
 {
 	DebugLog("%s Reset previous match, read required configs for the current match.", RQ_TAG);
+
+	Call_StartForward(g_fwdOnMatchStartsPre);
+	Call_PushString(sMatchName);
+	Call_Finish();
+
 	//_TC_OnPluginDisabled();
 	//_PM_OnPluginDisabled();
 	ExecuteScritp(sMatchCfg[DISABLE]);

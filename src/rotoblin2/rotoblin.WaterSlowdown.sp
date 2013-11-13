@@ -31,7 +31,7 @@ static  	Handle:g_hWSDEnable, bool:g_bCvarWSDEnable, g_bBarge;
 
 _WaterSlowdown_OnPluginStart()
 {
-	g_hWSDEnable = CreateConVarEx("water_slowdown", "0", "Allow the water to slow down survivors when they are in.", _, true, 0.0, true, 1.0);
+	g_hWSDEnable = CreateConVarEx("water_slowdown", "0", "Allows the water to slow down survivors when they are in it.", _, true, 0.0, true, 1.0);
 	g_bCvarWSDEnable = GetConVarBool(g_hWSDEnable);
 }
 

@@ -17,7 +17,7 @@ static		Handle:cvar_bashKills, bool:g_bCvarAllowBashKill;
 
 public OnPluginStart()
 {
-	cvar_bashKills = CreateConVar("l4d_no_bash_kills", "0", "Prevent special infected from getting bashed to death", FCVAR_PLUGIN);
+	cvar_bashKills = CreateConVar("l4d_no_bash_kills", "0", "Prevent special infected from getting bashed to death", FCVAR_PLUGIN|FCVAR_NOTIFY);
 
 	HookConVarChange(cvar_bashKills, OnCvarChange_cvar_bashKills);
 	BK_GetCvars();
