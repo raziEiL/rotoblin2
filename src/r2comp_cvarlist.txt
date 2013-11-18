@@ -63,7 +63,6 @@ rotoblin_witch_spawns                                              : Enables for
 ------------------------------------------------------------------------------------------
 
 [1v1pm.sp]
-
 sm_1v1_enable                                                      : Enables or disables the 1v1 Pro Mod plugin
 sm_1v1_dmgthreshold                                                : Amount of damage done (at once) before SI suicides.
 
@@ -73,7 +72,6 @@ sm_skeetstat_countwitch                                            : Damage on w
 sm_skeetstat_brevity                                               : Flags for setting brevity of the report (hide 1:SI, 2:CI, 4:Accuracy, 8:Skeets/Deadstops, 32: melee acc, 64: damage count).
 
 [aitankgank.sp]
-
 tankgank_enable                                                    : Enables or disables the AI Tank Gank plugin
 tankgank_killoncrash                                               : If 0, tank will not be killed if the player that controlles him crashes
 

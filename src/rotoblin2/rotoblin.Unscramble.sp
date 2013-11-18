@@ -27,13 +27,21 @@
 
 #define AS_TAG				"[Unscramble]"
 
+#if UNSCRABBLE_LOG
+static const String:g_LogFile[] = "logs\\rotoblin_unscramble.log";
+static String:g_sLogPatch[128];
+#endif
+
 #define MAX_UNSRAMBLE_TIME 45.0
 
 static	Handle:g_hTrine, Handle:g_hCvarNotify, Handle:g_hCvarEnable, Handle:g_fwdOnUnscrambleEnd, Handle:g_hCvarUnlocker, bool:g_bCvarUnlocker, bool:g_bCvarASEnable, bool:g_bCheked[MAXPLAYERS+1], bool:g_bJoinTeamUsed[MAXPLAYERS+1],
 		g_iFailureCount[MAXPLAYERS+1], bool:g_bMapTranslition, bool:g_bTeamLock, g_isOldTeamFlipped, g_isNewTeamFlipped, g_iTrineSize;
 
-_AntiScrabble_OnPluginStart()
+_Unscramble_OnPluginStart()
 {
+#if UNSCRABBLE_LOG
+	BuildPath(Path_SM, g_sLogPatch, 128, g_LogFile);
+#endif
 	g_hTrine = CreateTrie();
 	g_fwdOnUnscrambleEnd = CreateGlobalForward("R2comp_OnUnscrambleEnd", ET_Ignore);
 
@@ -48,14 +56,14 @@ _AntiScrabble_OnPluginStart()
 	RegAdminCmd("sm_keepteams", Command_KeepTeams, ADMFLAG_ROOT, "Force to keep all teams right now.");
 }
 
-_AS_OnPluginEnd()
+_UM_OnPluginEnd()
 {
 	ResetConVar(g_hCvarNotify);
 	ResetConVar(g_hCvarEnable);
 	ResetConVar(g_hCvarUnlocker);
 }
 
-_AS_OnPluginEnabled()
+_UM_OnPluginEnabled()
 {
 	AddCommandListener(AS_cmdh_JoinTeam, "jointeam");
 
@@ -73,7 +81,7 @@ _AS_OnPluginEnabled()
 	HookEvent("vote_passed", AS_ev_VotePassed);
 }
 
-_AS_OnPluginDisabled()
+_UM_OnPluginDisabled()
 {
 	RemoveCommandListener(AS_cmdh_JoinTeam, "jointeam");
 
@@ -127,7 +135,7 @@ public Action:AS_cmdh_JoinTeam(client, const String:command[], argc)
 	if (g_bTeamLock && !g_bJoinTeamUsed[client]){
 
 		#if UNSCRABBLE_LOG
-			LogMessage("%N use '%s' cmd, but blocked!", client, command);
+			LogToFile(g_sLogPatch, "%N use '%s' cmd, but blocked!", client, command);
 		#endif
 
 		return Plugin_Handled;
@@ -166,7 +174,7 @@ public Action:AS_cmdh_JoinTeam(client, const String:command[], argc)
 			CheatCommandEx(client, "sb_takecontrol", sSurvivor);
 
 			#if UNSCRABBLE_LOG
-				LogMessage("[chooseteam] %N trying to join survivor (%s) (%s)", client, sSurvivor, GetClientTeam(client) == 2 ? "Okay" : "Fail");
+				LogToFile(g_sLogPatch, "[chooseteam] %N trying to join survivor (%s) (%s)", client, sSurvivor, GetClientTeam(client) == 2 ? "Okay" : "Fail");
 			#endif
 
 			return Plugin_Handled;
@@ -292,7 +300,7 @@ static AS_KeepTeams()
 				SetTrieValue(g_hTrine, sSteamID, iTeam);
 
 				#if UNSCRABBLE_LOG
-					LogMessage("team %d. %N (%s)", iTeam, i, sSteamID);
+					LogToFile(g_sLogPatch, "team %d. %N (%s)", iTeam, i, sSteamID);
 				#endif
 			}
 		}
@@ -357,7 +365,7 @@ public Action:AS_t_UnscrabbleMe(Handle:timer, any:client)
 		}
 
 		#if UNSCRABBLE_LOG
-			LogMessage("%N (%s). Teams: last %d, current %d. Moved to %d (%s).", client, sSteamID, iLTeam, iCTeam, iNTeam, GetClientTeam(client) == iNTeam ? "Okay" : "Fail");
+			LogToFile(g_sLogPatch, "%N (%s). Teams: last %d, current %d. Moved to %d (%s).", client, sSteamID, iLTeam, iCTeam, iNTeam, GetClientTeam(client) == iNTeam ? "Okay" : "Fail");
 		#endif
 
 		if (GetClientTeam(client) != iNTeam){
@@ -373,7 +381,7 @@ public Action:AS_t_UnscrabbleMe(Handle:timer, any:client)
 		else if (--g_iTrineSize == 0){
 
 			#if UNSCRABBLE_LOG
-				LogMessage("Trine is empty. Unlock 'jointeam' cmd");
+				LogToFile(g_sLogPatch, "Trine is empty. Unlock 'jointeam' cmd");
 			#endif
 
 			ForceToUnlockTeams();
@@ -384,7 +392,7 @@ public Action:AS_t_UnscrabbleMe(Handle:timer, any:client)
 		ChangeClientTeam(client, 1);
 
 		#if UNSCRABBLE_LOG
-			LogMessage("%N (%s). Unknown client. Moved to 1", client, sSteamID);
+			LogToFile(g_sLogPatch, "%N (%s). Unknown client. Moved to 1", client, sSteamID);
 		#endif
 	}
 
@@ -396,7 +404,7 @@ public Action:AS_t_UnscrabbleMe(Handle:timer, any:client)
 public Action:AS_t_AllowTeamChanges(Handle:timer)
 {
 	#if UNSCRABBLE_LOG
-		LogMessage("Time is up (%.0f sec). Force to unlock 'jointeam' cmd", MAX_UNSRAMBLE_TIME);
+		LogToFile(g_sLogPatch, "Time is up (%.0f sec). Force to unlock 'jointeam' cmd", MAX_UNSRAMBLE_TIME);
 	#endif
 
 	ForceToUnlockTeams();
@@ -410,7 +418,7 @@ public Action:AS_t_CheckConnected(Handle:timer)
 	if (IsUnscrabbleComplete()){
 
 		#if UNSCRABBLE_LOG
-			LogMessage("Last client connected. Unlock 'jointeam' cmd");
+			LogToFile(g_sLogPatch, "Last client connected. Unlock 'jointeam' cmd");
 		#endif
 
 		ForceToUnlockTeams();

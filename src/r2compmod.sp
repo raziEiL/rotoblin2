@@ -142,7 +142,7 @@ public OnPluginStart()
 	_DHostName_OnPluginStart();
 	_HeadsUpDisplay_OnPluginStart();
 	_ClientSettings_OnPluginStart();
-	_AntiScrabble_OnPluginStart();
+	_Unscramble_OnPluginStart();
 	_TankSpawns_OnPluginStart();
 
 	SetPluginState(bEnable);
@@ -167,7 +167,7 @@ public OnPluginEnd()
 	_DN_OnPluginEnd();
 	_AL_OnPluginEnd();
 	_RM_OnPluginEnd();
-	_AS_OnPluginEnd();
+	_UM_OnPluginEnd();
 	_TC_OnPluginEnd();
 }
 
@@ -334,7 +334,7 @@ SetPluginState(bool:enabled)
 		_WSD_OnPluginEnabled();
 		_WT_OnPluginEnabled();
 		_TC_OnPluginStart();
-		_AS_OnPluginEnabled();
+		_UM_OnPluginEnabled();
 		_TS_OnPluginEnabled();
 
 		DebugLog("%s All MODULES SETUPED!", MAIN_TAG);
@@ -367,7 +367,7 @@ SetPluginState(bool:enabled)
 		_DN_OnPluginDisabled();
 		_PM_OnPluginDisabled();
 		_CS_OnPluginDisabled();
-		_AS_OnPluginDisabled();
+		_UM_OnPluginDisabled();
 	}
 }
 
