@@ -1180,7 +1180,7 @@ public Action:Command_readyUnpause(client, args)
 
 	new bool:bIsADM;
 	if (client)
-		bIsADM = g_bIsADMPause && GetUserFlagBits(client);
+		bIsADM = (g_bIsADMPause || lastTeamPause != GetClientTeam(client)) && GetUserFlagBits(client);
 
 	//server can unpause without a request
 	if(!client || bIsADM)
