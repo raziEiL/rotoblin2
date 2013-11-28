@@ -178,10 +178,11 @@ allow_weapon_attributes                                            : Enable or d
 -- sm_unready, sm_u
 -- sm_reready
 -- sm_pause
--- sm_unpause, unpause
+-- sm_unpause
 -- spectate
 - Admin Commands:
 -- sm_restartmap                       : ADMFLAG_CHANGEMAP
+-- sm_forcepause, sm_fpause            : ADMFLAG_KICK
 -- sm_abort                            : ADMFLAG_KICK
 -- sm_forcestart, sm_fstart            : ADMFLAG_KICK
 -- sm_cast                             : ADMFLAG_KICK

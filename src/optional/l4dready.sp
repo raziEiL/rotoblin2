@@ -105,7 +105,7 @@ static	bool:isCampaignBeingRestarted, bool:beforeMapStart = true, forcedStart, r
 		bool:unreadyTimerExists, Handle:cvarEnforceReady, Handle:cvarReadyCompetition, Handle:cvarReadyMinimum, Handle:cvarReadyHalves, Handle:cvarReadyServerCfg,
 		Handle:cvarReadySearchKeyDisable, Handle:cvarSearchKey, Handle:cvarGameMode, Handle:g_hCvarGod, Handle:cvarCFGName, Handle:cvarPausesAllowed,
 		Handle:cvarPauseDuration, Handle:cvarConnectEnabled, Handle:cvarBlockSpecGlobalChat, Handle:cvarDisableReadySpawns, Handle:fwdOnReadyRoundRestarted, Handle:fwdOnRoundIsLive,
-		Handle:teamPlacementTrie, Handle:casterTrie, teamScores[PersistentTeam], bool:defaultTeams = true, isMapRestartPending;
+		Handle:teamPlacementTrie, Handle:casterTrie, teamScores[PersistentTeam], bool:defaultTeams = true, isMapRestartPending, bool:g_bIsADMPause;
 
 
 static		Handle:cvarPauseMetod, Handle:g_hCvarNbStop, Handle:g_hCvarInfAmmo, bool:g_bRoundEnd, Handle:g_hSurvLimit, Handle:g_hInfLimit; // fix by raziEiL
@@ -188,17 +188,20 @@ public OnPluginStart()
 	RegConsoleCmd("say",		Command_Say);
 	RegConsoleCmd("say_team",	Command_Teamsay);
 
-	RegConsoleCmd("sm_r",		readyUp);
-	RegConsoleCmd("sm_ready",	readyUp);
+	RegConsoleCmd("sm_r",		Command_readyUp);
+	RegConsoleCmd("sm_ready",	Command_readyUp);
 
-	RegConsoleCmd("sm_u",		readyDown);
-	RegConsoleCmd("sm_unready", readyDown);
+	RegConsoleCmd("sm_u",		Command_readyDown);
+	RegConsoleCmd("sm_unready", Command_readyDown);
 
 	RegConsoleCmd("sm_reready", Command_Reready);
 
-	RegConsoleCmd("sm_pause",	readyPause);
-	RegConsoleCmd("sm_unpause", readyUnpause);
+	RegConsoleCmd("sm_pause",	Command_readyPause);
+	RegConsoleCmd("sm_unpause",	Command_readyUnpause);
 	RegConsoleCmd("unpause",	Command_Unpause);
+
+	RegAdminCmd("sm_forcepause",	Command_ForcereadyPause, ADMFLAG_KICK);
+	RegAdminCmd("sm_fpause",		Command_ForcereadyPause, ADMFLAG_KICK);
 
 	RegConsoleCmd("spectate",	Command_Spectate);
 	//RegConsoleCmd("sm_afk",		Command_Spectate);
@@ -206,11 +209,11 @@ public OnPluginStart()
 	RegConsoleCmd("vote",		Command_CallVote);
 
 	RegAdminCmd("sm_restartmap", CommandRestartMap, ADMFLAG_CHANGEMAP, "sm_restartmap - changelevels to the current map");
-	RegAdminCmd("sm_abort",		compAbort, ADMFLAG_KICK, "sm_abort");
-	RegAdminCmd("sm_fstart",		compStart, ADMFLAG_KICK, "sm_forcestart");
-	RegAdminCmd("sm_forcestart", compStart, ADMFLAG_KICK);
-	RegAdminCmd("sm_cast",		regCaster, ADMFLAG_GENERIC);
-	RegAdminCmd("sm_toready", 	CmdToReady, ADMFLAG_KICK);
+	RegAdminCmd("sm_abort",		Command_Abort, ADMFLAG_KICK, "sm_abort");
+	RegAdminCmd("sm_fstart",		Command_Start, ADMFLAG_KICK, "sm_forcestart");
+	RegAdminCmd("sm_forcestart", Command_Start, ADMFLAG_KICK);
+	RegAdminCmd("sm_cast",		Command_RegCaster, ADMFLAG_GENERIC);
+	RegAdminCmd("sm_toready", 	Command_ToReady, ADMFLAG_KICK);
 }
 
 native bool:BaseComm_IsClientGagged(client);
@@ -256,6 +259,7 @@ public OnPluginEnd()
 
 public OnMapStart()
 {
+	g_bIsADMPause = false;
 	isPaused = false;
 	DebugPrintToAll("Event map started.");
 	beforeMapStart = false;
@@ -1021,7 +1025,7 @@ public Action:Command_Teamsay(client, args)
 	return Plugin_Continue;
 }
 
-public Action:CmdToReady(client, args)
+public Action:Command_ToReady(client, args)
 {
 	if (!readyMode)
 		readyOn();
@@ -1029,7 +1033,7 @@ public Action:CmdToReady(client, args)
 	return Plugin_Handled;
 }
 
-public Action:readyUp(client, args)
+public Action:Command_readyUp(client, args)
 {
 	if (!readyMode
 	|| !client
@@ -1063,7 +1067,7 @@ public Action:readyUp(client, args)
 	return Plugin_Handled;
 }
 
-public Action:readyDown(client, args)
+public Action:Command_readyDown(client, args)
 {
 	if (!readyMode
 	|| !client
@@ -1087,7 +1091,7 @@ public Action:readyDown(client, args)
 	return Plugin_Handled;
 }
 
-public Action:regCaster(client, args)
+public Action:Command_RegCaster(client, args)
 {
 	if (!readyMode
 	|| !client
@@ -1121,22 +1125,16 @@ public Action:Command_Reready(client, args)
 	return Plugin_Handled;
 }
 
-public Action:readyPause(client, args)
+public Action:Command_readyPause(client, args)
 {
 	//blocking pause troller
-	if (temporarilyBlocked[client]) return Plugin_Handled;
+	if (isPaused || temporarilyBlocked[client]) return Plugin_Handled;
 
-	//server can pause without a request
-	if(!client)
-	{
-		for(new i = 1; i < L4D_MAXCLIENTS_PLUS1; i++)
-		{
-			if(IsClientInGame(i))
-			{
-				PauseGame(i);
-				return Plugin_Handled;
-			}
-		}
+	if (!client){
+
+		ServerPauseGame();
+		CPrintToChatAll("[SM] Admin {red}%N{default} has paused the game.", client);
+		return Plugin_Handled;
 	}
 
 	ClientAttemptsPause(client);
@@ -1144,10 +1142,35 @@ public Action:readyPause(client, args)
 	return Plugin_Handled;
 }
 
-public Action:readyUnpause(client, args)
+public Action:Command_ForcereadyPause(client, args)
+{
+	if (isPaused || temporarilyBlocked[client]) return Plugin_Handled;
+
+	g_bIsADMPause = true;
+
+	ServerPauseGame();
+	CPrintToChatAll("[SM] Admin {red}%N{default} has paused the game.", client);
+	return Plugin_Handled;
+}
+
+
+//server can pause without a request
+ServerPauseGame()
+{
+	for(new i = 1; i < L4D_MAXCLIENTS_PLUS1; i++)
+	{
+		if(IsClientInGame(i))
+		{
+			PauseGame(i);
+			break;
+		}
+	}
+}
+
+public Action:Command_readyUnpause(client, args)
 {
 	//blocking unpause troller
-	if (temporarilyBlocked[client]) return Plugin_Handled;
+	if (!isPaused || temporarilyBlocked[client]) return Plugin_Handled;
 
 	if (IsInAlterPause()){
 
@@ -1155,9 +1178,15 @@ public Action:readyUnpause(client, args)
 		return Plugin_Handled;
 	}
 
+	new bool:bIsADM;
+	if (client)
+		bIsADM = g_bIsADMPause && GetUserFlagBits(client);
+
 	//server can unpause without a request
-	if(!client)
+	if(!client || bIsADM)
 	{
+		g_bIsADMPause = false;
+		CPrintToChatAll("[SM] Admin {red}%N{default} has unpaused the game.", client);
 		for(new i = 1; i < L4D_MAXCLIENTS_PLUS1; i++)
 		{
 			if(IsClientInGame(i))
@@ -1705,7 +1734,7 @@ compOn()
 }
 
 //abort an impending countdown to a live match
-public Action:compAbort(client, args)
+public Action:Command_Abort(client, args)
 {
 	if (!goingLive)
 	{
@@ -1741,7 +1770,7 @@ public Action:compReady(client, args)
 }
 
 //force start a match using admin
-public Action:compStart(client, args)
+public Action:Command_Start(client, args)
 {
 	if(!readyMode)
 		return Plugin_Handled;
@@ -2350,7 +2379,7 @@ ToogleAntiFlood(bool:disable)
 {
 	new Handle:hFloodtime = FindConVar("sm_flood_time");
 	if (hFloodtime != INVALID_HANDLE){
-	
+
 		if (disable)
 			SetConVarFloat(hFloodtime, 0.0);
 		else
@@ -2389,7 +2418,7 @@ public Action:PauseGameDelayed(Handle:timer, any:client)
 	else {
 
 		canUnpause = true;
-		CmdToReady(0, 0);
+		Command_ToReady(0, 0);
 	}
 }
 bool:IsInAlterPause()
