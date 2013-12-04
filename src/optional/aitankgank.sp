@@ -2,6 +2,7 @@
 
 #include <sourcemod>
 #include <sdktools>
+#undef REQUIRE_PLUGIN
 #include <l4d_lib>
 
 #define TANK_CLAW			"weapon_tank_claw"

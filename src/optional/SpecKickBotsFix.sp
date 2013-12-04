@@ -1,7 +1,7 @@
 #define PLUGIN_VERSION "1.0"
 
 #include <sourcemod>
-#include <l4d_lib>
+
 
 #define ADD_BOT		"sb_add"
 

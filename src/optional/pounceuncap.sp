@@ -1,7 +1,6 @@
 #define PLUGIN_VERSION "1.2"
 
 #include <sourcemod>
-#include <l4d_lib>
 
 static Handle:hPounceDmg, Handle:hMaxPounceDist, Handle:hMinPounceDist, Handle:hMaxPounceDmg;
 

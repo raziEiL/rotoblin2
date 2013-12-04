@@ -1,5 +1,6 @@
 #include <sourcemod>
 #include <left4downtown>
+#undef REQUIRE_PLUGIN
 #include <l4d_lib>
 
 #define UNRESERVE_VERSION "1.1.2"

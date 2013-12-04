@@ -6,6 +6,7 @@ Maybe control the damage done to tank per second (tank burn duration cvar) and h
 
 #include <sourcemod>
 #include <sdktools>
+#undef REQUIRE_PLUGIN
 #include <l4d_lib>
 
 #define PLUGIN_VERSION 		"0.7"
