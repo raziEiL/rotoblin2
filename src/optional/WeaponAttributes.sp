@@ -2,6 +2,7 @@
 
 #include <sourcemod>
 #include <sdkhooks>
+#undef REQUIRE_PLUGIN
 #include <l4d_lib>
 
 public Plugin:myinfo =

@@ -2,6 +2,7 @@
 
 #include <sourcemod>
 #include <sdkhooks>
+#undef REQUIRE_PLUGIN
 #include <l4d_lib>
 
 public Plugin:myinfo = 
@@ -12,6 +13,14 @@ public Plugin:myinfo =
 	version = "1.1",
 	url = "http://code.google.com/p/rotoblin2/" // L4D2 version http://bitbucket.org/ProdigySim/misc-sourcemod-plugins/
 };
+
+static bool:g_bLoadLater;
+
+public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
+{
+	g_bLoadLater = late;
+	return APLRes_Success;
+}
 
 public OnPluginStart()
 {

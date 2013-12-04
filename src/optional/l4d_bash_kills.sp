@@ -2,6 +2,7 @@
 
 #include <sourcemod>
 #include <sdkhooks>
+#undef REQUIRE_PLUGIN
 #include <l4d_lib>
 
 public Plugin:myinfo =
@@ -13,7 +14,13 @@ public Plugin:myinfo =
 	url = "http://code.google.com/p/rotoblin2/"
 }
 
-static		Handle:cvar_bashKills, bool:g_bCvarAllowBashKill;
+static		Handle:cvar_bashKills, bool:g_bCvarAllowBashKill, bool:g_bLoadLater;
+
+public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
+{
+	g_bLoadLater = late;
+	return APLRes_Success;
+}
 
 public OnPluginStart()
 {

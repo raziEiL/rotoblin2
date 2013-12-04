@@ -105,10 +105,10 @@ static	bool:isCampaignBeingRestarted, bool:beforeMapStart = true, forcedStart, r
 		bool:unreadyTimerExists, Handle:cvarEnforceReady, Handle:cvarReadyCompetition, Handle:cvarReadyMinimum, Handle:cvarReadyHalves, Handle:cvarReadyServerCfg,
 		Handle:cvarReadySearchKeyDisable, Handle:cvarSearchKey, Handle:cvarGameMode, Handle:g_hCvarGod, Handle:cvarCFGName, Handle:cvarPausesAllowed,
 		Handle:cvarPauseDuration, Handle:cvarConnectEnabled, Handle:cvarBlockSpecGlobalChat, Handle:cvarDisableReadySpawns, Handle:fwdOnReadyRoundRestarted, Handle:fwdOnRoundIsLive,
-		Handle:teamPlacementTrie, Handle:casterTrie, teamScores[PersistentTeam], bool:defaultTeams = true, isMapRestartPending, bool:g_bIsADMPause;
+		Handle:teamPlacementTrie, Handle:casterTrie, teamScores[PersistentTeam], bool:defaultTeams = true, isMapRestartPending, bool:g_bIsADMPause, Handle:g_hCvarReadyPanelText, String:g_sCustomText[128];
 
 
-static		Handle:cvarPauseMetod, Handle:g_hCvarNbStop, Handle:g_hCvarInfAmmo, bool:g_bRoundEnd, Handle:g_hSurvLimit, Handle:g_hInfLimit; // fix by raziEiL
+static		Handle:cvarPauseMetod, Handle:g_hCvarNbStop, Handle:g_hCvarInfAmmo, bool:g_bRoundEnd, Handle:g_hSurvLimit, Handle:g_hInfLimit;
 
 #if L4D
 	#define GAMECONFIG_FILE "readyup"
@@ -165,10 +165,12 @@ public OnPluginStart()
 	cvarDisableReadySpawns		= CreateConVar("l4d_ready_disable_spawns",			"0",		"Prevent SI from having ghost-mode spawns during readyup.",								CONVAR_FLAGS_PLUGIN);
 	cvarPauseMetod					= CreateConVar("l4d_ready_pause_metod",				"0",		"0=defualt, 1=RUP turn on while game in pause",											CONVAR_FLAGS_PLUGIN);
 	g_hCvarReadyNotify				= CreateConVar("l4d_ready_notify",					"0",		"Print or not notifiy about ready",														CONVAR_FLAGS_PLUGIN);
+	g_hCvarReadyPanelText			= CreateConVar("l4d_ready_panel_text",				"",			"Adds this text to ready up panel",														CONVAR_FLAGS_PLUGIN);
 
 	HookConVarChange(cvarEnforceReady,			ConVarChange_ReadyEnabled);
-	HookConVarChange(cvarReadyCompetition,		ConVarChange_ReadyCompetition);
+	HookConVarChange(cvarReadyCompetition,	ConVarChange_ReadyCompetition);
 	HookConVarChange(cvarSearchKey,				ConVarChange_SearchKey);
+	HookConVarChange(g_hCvarReadyPanelText,	ConVarChange_ReadyPanelText);
 
 	HookEvent("round_start",			eventRSLiveCallback, EventHookMode_PostNoCopy);
 	HookEvent("round_end",			eventRoundEndCallback, EventHookMode_PostNoCopy);
@@ -1212,7 +1214,6 @@ public Action:Command_readyUnpause(client, args)
 DrawReadyPanelList()
 {
 	if (!readyMode) return;
-	static bool:scrollingText;
 	/*
 	#if READY_DEBUG
 	DebugPrintToAll("[DEBUG] Drawing the ready panel");
@@ -1322,41 +1323,37 @@ DrawReadyPanelList()
 
 	decl String:versionInfo[128];
 
-	if (scrollingText)
+	new iVal;
+
+	switch (GetRandomInt(0, 2))
 	{
-		#if !L4D
-			FormatEx(versionInfo, sizeof(versionInfo), "!rmatch / !addon");
-		#else
-			FormatEx(versionInfo, sizeof(versionInfo), "%s", !GetRandomInt(0, 1) ? "Ready Up Created by:\nDowntown1 & Frustian" : "Ready Up Continued by:\nAtomicStryker, raziEiL");
-		#endif
-	}
-	else
-	{
-		#if !L4D
-			FormatEx(versionInfo, sizeof(versionInfo), "!rmatch / !addon");
-		#else
+		case 0:{
+
+			if (strlen(g_sCustomText))
+				iVal = GetRandomInt(0, 1);
+
+			FormatEx(versionInfo, sizeof(versionInfo), "%s", !iVal ? "Ready Up Created by:\nDowntown1 & Frustian" : g_sCustomText);
+		}
+		case 1:{
 
 			static Handle:hR2Version;
 
 			if (hR2Version == INVALID_HANDLE)
 				hR2Version = FindConVar("rotoblin_2_version");
 
-			new iVal;
-
 			decl String:sVersion[32];
 			if (hR2Version != INVALID_HANDLE){
 
-
-				GetConVarString(hR2Version, sVersion, 32);
 				iVal = GetRandomInt(0, 1);
+				GetConVarString(hR2Version, sVersion, 32);
 			}
-			else
-				SetFailState("r2comp mod not found!");
 
 			FormatEx(versionInfo, sizeof(versionInfo), "%s v%s", !iVal ? "Ready Up" : "R2 CompMod", !iVal ? READY_VERSION : sVersion);
-		#endif
+		}
+		case 2:
+			FormatEx(versionInfo, sizeof(versionInfo), "%s", "Ready Up Continued by:\nAtomicStryker, raziEiL");
 	}
-	scrollingText = !scrollingText;
+
 	DrawPanelText(panel, versionInfo);
 
 	new bool:bVMAvalible = GetFeatureStatus(FeatureType_Native, "L4D_IsInMatchVoteMenu") == FeatureStatus_Available;
@@ -1486,15 +1483,6 @@ readyOn()
 		CreateTimer(READY_UNREADY_HINT_PERIOD, timerUnreadyCallback, _, TIMER_REPEAT);
 	}
 }
-
-#if L4D
-public SharedPlugin:__pl_r2compmod =
-{
-	name = "r2compmod",
-	file = "r2compmod.smx",
-	required = 1,
-};
-#endif
 
 //reset the scavenge setup timer so it stays in setup indefinitely
 public Action:Timer_ResetScavengeSetup(Handle:timer)
@@ -1786,6 +1774,11 @@ public Action:Command_Start(client, args)
 	liveTimer = CreateTimer(1.0, timerLiveCountCallback, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 
 	return Plugin_Handled;
+}
+
+public ConVarChange_ReadyPanelText(Handle:convar, const String:oldValue[], const String:newValue[])
+{
+	strcopy(g_sCustomText, sizeof(g_sCustomText), newValue);
 }
 
 //restart the map when we toggle the cvar

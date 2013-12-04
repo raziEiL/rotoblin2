@@ -2,6 +2,7 @@
 
 #include <sourcemod>
 #include <sdktools>
+#undef REQUIRE_PLUGIN
 #include <l4d_lib>
 
 //#define RESPAWN_SOUND	"UI/Pickup_GuitarRiff10.wav"

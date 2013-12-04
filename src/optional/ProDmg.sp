@@ -4,6 +4,7 @@
 
 #include <sourcemod>
 #include <sdktools>
+#undef REQUIRE_PLUGIN
 #include <l4d_lib>
 
 #define debug		0
