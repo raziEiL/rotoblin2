@@ -190,8 +190,6 @@ static RebuildIndex()
 		{
 			case TEAM_SURVIVOR:
 			{
-				if (SurvivorCount == TEAM_LIMIT) continue;
-
 				if (!IsPlayerAlive(i))
 					DeadSurvivorIndex[DeadSurvivorCount++] = i;
 				else
@@ -199,7 +197,6 @@ static RebuildIndex()
 			}
 			case TEAM_INFECTED:
 			{
-				if (InfectedCount == TEAM_LIMIT) continue;
 				InfectedIndex[InfectedCount++] = i;
 			}
 			case TEAM_SPECTATOR:

@@ -38,7 +38,6 @@
 #define UNSCRABBLE_LOG				0
 #define UNSCRABBLE_MAX_FAILURE	3
 #define SCORES_COMMAND				1
-#define TEAM_LIMIT					4
 
 // **********************************************
 //                   Reference
