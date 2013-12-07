@@ -323,7 +323,7 @@ static IC_RadomizeItems(&Handle:hArray, iCvar, const String:sClassName[], bool:b
 				decl Float:fItemFlow;
 				new Handle:hMoloArray = CloneArray(hArray), iMoloArraySize = iArraySize;
 
-				while (iCount != iCvar){
+				while (iCount < iArraySize){
 
 					iVal = GetRandomInt(0, iMoloArraySize - 1);
 					GetArrayArray(hMoloArray, iVal, vOrg);
@@ -337,32 +337,38 @@ static IC_RadomizeItems(&Handle:hArray, iCvar, const String:sClassName[], bool:b
 						bFlowSpawn = true;
 						PushArrayArray(hRandomItemArray, vOrg);
 						DebugLog("%s  - @L4DDirect: keep this item! molotov flow location %f (units)", IC_TAG, fItemFlow);
-						break;
 					}
+					else
+						DebugLog("%s  - @L4DDirect: molotov flow location %f (units)", IC_TAG, fItemFlow);
 
 					RemoveFromArray(hMoloArray, iVal);
 					iMoloArraySize--;
 					iCount++;
 				}
+				if (bFlowSpawn){
+
+					ClearArray(hArray);
+					hArray = CloneArray(hRandomItemArray);
+					iArraySize = GetArraySize(hRandomItemArray);
+					ClearArray(hRandomItemArray);
+				}
 				iCount = 0;
+				CloseHandle(hMoloArray);
 			}
 			DebugLog("%s  - @L4DDirect: done", IC_TAG);
 		}
 	}
 
-	if (!bFlowSpawn || !g_bCvarMolotovFlowSpawn){
+	while (iCount != iCvar){
 
-		while (iCount != iCvar){
+		iVal = GetRandomInt(0, iArraySize - 1);
 
-			iVal = GetRandomInt(0, iArraySize - 1);
+		GetArrayArray(hArray, iVal, vOrg);
+		PushArrayArray(hRandomItemArray, vOrg);
+		RemoveFromArray(hArray, iVal);
 
-			GetArrayArray(hArray, iVal, vOrg);
-			PushArrayArray(hRandomItemArray, vOrg);
-			RemoveFromArray(hArray, iVal);
-
-			iArraySize--;
-			iCount++;
-		}
+		iArraySize--;
+		iCount++;
 	}
 
 	iCount = 0;

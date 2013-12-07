@@ -111,6 +111,7 @@ public OnPluginStart()
 	_H_TankManager_OnPluginStart();
 	_H_ClientIndexes_OnPluginStart();
 	_H_CommandManager_OnPluginStart();
+	_H_MultiTargets_OnPluginStart();
 
 	//_AutoUpdate_OnPluginStart();
 	_HealthControl_OnPluginStart();

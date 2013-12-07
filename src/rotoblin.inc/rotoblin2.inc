@@ -36,6 +36,7 @@
 #include "rotoblin.inc/flowfunctions.inc"
 #include "rotoblin.inc/tankmanager.inc"
 #include "rotoblin.inc/wrappers.inc"
+#include "rotoblin.inc/multitargets.inc"
 
 // Misc
 #include "rotoblin.inc/global_forwards.inc"
