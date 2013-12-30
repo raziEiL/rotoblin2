@@ -55,7 +55,7 @@ _LimitHuntingRifl_OnPluginStart()
 	for (new i; i < WEAPONS_LIMIT; i++){
 
 		FormatEx(sCvar, 64, "limit_%s", g_sWeapon_Names[i][CVAR]);
-		FormatEx(sDescr, 256, "Maximum of %ss that can be equipped by the Survivor team. (-1: unlimited, 0: not allowed, > 0: limits in according with cvar value).", g_sWeapon_Names[i][NAME]);
+		FormatEx(sDescr, 256, "Maximum number of %ss that can be equipped by the Survivor team. (-1: unlimited, 0: not allowed, > 0: limits in according with cvar value).", g_sWeapon_Names[i][NAME]);
 		g_hLimit[i] = CreateConVarEx(sCvar, "-1", sDescr, _, true, -1.0);
 	}
 }

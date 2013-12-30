@@ -30,7 +30,7 @@ static 	Handle:g_hWarpEnable, bool:g_bWarpEnable, bool:g_bDelay[MAXPLAYERS+1], g
 
 _GhostWarp_OnPluginStart()
 {
-	g_hWarpEnable = CreateConVarEx("ghost_warp", "0", "Sets whether infected ghosts can Mouse2 click for warp to next survivor", _, true, 0.0, true, 1.0);
+	g_hWarpEnable = CreateConVarEx("ghost_warp", "0", "Sets whether infected ghosts can warp to survivors (mouse 2)", _, true, 0.0, true, 1.0);
 }
 
 _GW_OnPluginEnabled()

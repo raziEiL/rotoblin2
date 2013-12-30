@@ -5,7 +5,7 @@
  *
  *  File:			rotoblin.WitchesTracking.sp
  *  Type:			Module
- *  Description:	Enables forcing same coordinates for witch spawns.
+ *  Description:	Forces the Witch to spawn consistently for both teams.
  *
  *  Copyright (C) 2012-2013 raziEiL <war4291@mail.ru>
  *
@@ -34,9 +34,9 @@ static	Handle:g_hWitchArray, Handle:g_hMaxWitches, Handle:g_hWitchDistance, Hand
 
 public _WitchTracking_OnPluginStart()
 {
-	g_hWitchSpawns = CreateConVarEx("witch_spawns", "1", "Enables forcing same coordinates for witch spawns.", _, true, 0.0, true, 1.0);
+	g_hWitchSpawns = CreateConVarEx("witch_spawns", "1", "Forces the Witch to spawn consistently for both teams.", _, true, 0.0, true, 1.0);
 	g_hMaxWitches = CreateConVarEx("max_witches", "0", "Maximum number of Witches are allowed to spawn. (0: director settings, > 0: maximum limit to cvar value)", _, true, 0.0);
-	g_hWitchDistance = CreateConVarEx("witch_distance", "0", "Allows director to spawn a witch close to another witch.", _, true, 0.0, true, 1.0);
+	g_hWitchDistance = CreateConVarEx("witch_distance", "0", "Allows the director to spawn a witch close to another witch.", _, true, 0.0, true, 1.0);
 
 	g_hWitchArray = CreateArray(3);
 }
@@ -89,13 +89,17 @@ public Action:WT_t_SpawnWitch(Handle:timer)
 	new iArrayLimit = GetArraySize(g_hWitchArray);
 	if (!iArrayLimit) return;
 
+	new iEnt = -1;
+	while ((iEnt = FindEntityByClassname(iEnt , "witch")) != INVALID_ENT_REFERENCE)
+		AcceptEntityInput(iEnt, "Kill");
+
 	g_bWipeStage = true;
 	g_iWitchCount = g_iSpawnedWitches = iArrayLimit / 2;
 
 	UnhookEvent("witch_spawn", WT_ev_WitchSpawn);
 
 	decl Float:fWitchData[2][3];
-	new iEnt = -1;
+	iEnt = -1;
 
 	for (new i = 0; i < iArrayLimit; i += 2){
 

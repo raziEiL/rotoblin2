@@ -27,12 +27,10 @@
 #define SPEC_TIP		"Use !spechud to toggle the spectator HUD"
 
 static	Handle:g_hCvarAllowSpecHud, Handle:g_hCvarTwoTanks, Handle:g_hTankHealth, Handle:g_hVsBonusHealth, Handle:g_hLotteryTime, Handle:g_hCvarCompactHud, Handle:g_hBurnLifeTime, Float:g_fBurnDmg,
-		bool:g_bCvarAllowSpecHud, bool:g_bCvarTwoTanks, bool:g_bCvarCompactHud, Float:g_fTankHealth = 6000.0, bool:g_bShowTankHud[MAXPLAYERS+1], bool:g_bHudEnabled, g_iPassCount,
-		g_iStasis, g_iHits[2], Handle:g_hSpecHudTimer, bool:g_bShowSpecHud[MAXPLAYERS+1], g_iSISpawnTime[MAXPLAYERS+1][2], bool:g_bBlockSpecHUD, bool:g_bTips[MAXPLAYERS+1][2];
+		bool:g_bCvarAllowSpecHud, bool:g_bCvarTwoTanks, bool:g_bCvarCompactHud, Float:g_fTankHealth = 6000.0, bool:g_bShowTankHud[MAXPLAYERS+1], bool:g_bHudEnabled,
+		g_iStasis, Handle:g_hSpecHudTimer, bool:g_bShowSpecHud[MAXPLAYERS+1], g_iSISpawnTime[MAXPLAYERS+1][2], bool:g_bBlockSpecHUD, bool:g_bTips[MAXPLAYERS+1][2];
 
 static stock bool:g_bTankKilled;
-
-#define ELEM	(g_iPassCount - 1)
 
 _HeadsUpDisplay_OnPluginStart()
 {
@@ -41,9 +39,9 @@ _HeadsUpDisplay_OnPluginStart()
 	g_hLotteryTime		= FindConVar("director_tank_lottery_selection_time");
 	g_hBurnLifeTime		= FindConVar("z_tank_burning_lifetime");
 
-	g_hCvarAllowSpecHud		= CreateConVarEx("allow_spec_hud", "0", "Enables/disables spectator HUD");
-	g_hCvarTwoTanks				= CreateConVarEx("two_tanks", "0", "Support double tank mod");
-	g_hCvarCompactHud			= CreateConVarEx("compact_tankhud", "0", "Style of Tank HUD. (0: old style, 1: new style)");
+	g_hCvarAllowSpecHud		= CreateConVarEx("allow_spec_hud", "0", "Enables Rotoblin spectator HUD");
+	g_hCvarTwoTanks				= CreateConVarEx("two_tanks", "0", "Enables support for double tank mods (The Tank Hud)");
+	g_hCvarCompactHud			= CreateConVarEx("compact_tankhud", "0", "The style of the Tank HUD. (0: old style, 1: new style)");
 
 	RegConsoleCmd("sm_tankhud", Command_ToogleTankHud, "Toggles the Tank HUD visibility");
 	RegConsoleCmd("sm_spechud", Command_ToogleSpecHud, "Toggles the Spectator HUD visibility");
@@ -83,7 +81,6 @@ _HUD_OnPluginEnabled()
 {
 	HookEvent("round_start", HUD_ev_RoundStart, EventHookMode_PostNoCopy);
 	HookEvent("ghost_spawn_time", HUD_ev_GhostSpawnTime);
-	HookEvent("player_hurt_concise", HUD_ev_AwardEarned);
 
 	HookConVarChange(g_hCvarTwoTanks,		HUD_OnCvarChange_TwoTanks);
 	HookConVarChange(g_hCvarCompactHud,	HUD_OnCvarChange_CompactHud);
@@ -101,7 +98,6 @@ _HUD_OnPluginDisable()
 {
 	UnhookEvent("round_start", HUD_ev_RoundStart, EventHookMode_PostNoCopy);
 	UnhookEvent("ghost_spawn_time", HUD_ev_GhostSpawnTime);
-	UnhookEvent("player_hurt_concise", HUD_ev_AwardEarned);
 
 	UnhookConVarChange(g_hCvarTwoTanks,	HUD_OnCvarChange_TwoTanks);
 	UnhookConVarChange(g_hCvarCompactHud,	HUD_OnCvarChange_CompactHud);
@@ -127,17 +123,6 @@ public HUD_ev_RoundStart(Handle:event, const String:name[], bool:dontBroadcast)
 		g_bShowTankHud[i] = false;
 		g_bTips[i][0] = false;
 		g_bTips[i][1] = false;
-	}
-}
-
-public HUD_ev_AwardEarned(Handle:event, const String:name[], bool:dontBroadcast)
-{
-	if (GetEventInt(event, "dmg_health") == 24 && ELEM >= 0){
-
-		new client = GetEventInt(event, "attackerentid");
-
-		if (IsClient(client) && IsPlayerTank(client) && !IsFakeClient(client))
-			g_iHits[ELEM]++;
 	}
 }
 
@@ -175,23 +160,11 @@ _HUD_ev_OnTankSpawn()
 
 		g_bHudEnabled = true;
 		g_bTankKilled = false;
-		g_iPassCount = 0;
-		g_iHits[0] = 0;
-		g_iHits[1] = 0;
 		g_iStasis = GetConVarInt(g_hLotteryTime);
 		HUD_DrawTankPanel();
 		CreateTimer(float(g_iStasis), HUD_t_TankInControl, _, TIMER_FLAG_NO_MAPCHANGE);
 		CreateTimer(1.0, HUD_t_Timer, _, TIMER_REPEAT);
 	}
-}
-
-_HUD_ev_OnTankPassed()
-{
-	// director return tank back tanktickets=0
-	if (g_iPassCount == 2)
-		return;
-
-	g_iPassCount++;
 }
 
 public Action:HUD_t_TankInControl(Handle:timer)
@@ -226,7 +199,7 @@ static bool:HUD_DrawTankPanel()
 			case TEAM_SURVIVOR:{
 
 				if (!IsIncapacitated(i) && !IsHandingFromLedge(i))
-					iSurvTeamHealth += GetClientHealth(i) + RoundToFloor(GetSuvivorTempHealth(i));
+					iSurvTeamHealth += GetClientHealth(i) + RoundToFloor(GetTempHealth(i));
 			}
 			case TEAM_INFECTED:{
 
@@ -244,11 +217,13 @@ static bool:HUD_DrawTankPanel()
 	if (!bTankInGame) return false;
 
 
-	static Handle:hHUD, Handle:hTankPersonalHud, String:sNameA[32], String:sNameB[32];
+	static Handle:hHUD, Handle:hTankPersonalHud, String:sNameA[32], String:sNameB[32], iPassCount;
 
+	iPassCount = L4DDirect_GetTankPassedCount();
+	if (iPassCount > 2) iPassCount = 2;
 	hHUD = CreatePanel();
 	hTankPersonalHud = CreatePanel();
-
+	
 	decl String:sBuffer[256];
 	if (g_bCvarTwoTanks || !g_bCvarCompactHud)
 		DrawPanelText(hHUD, "Rotoblin Tank Spec HUD\n\n------------------------------");
@@ -352,9 +327,9 @@ static bool:HUD_DrawTankPanel()
 			else {
 
 				DrawPanelText(hHUD, " Pass Count :");
-				FormatEx(sBuffer, 256, "     %d/2", g_iPassCount);
+				FormatEx(sBuffer, 256, "     %d/2", iPassCount);
 
-				if (bIsAI && g_iPassCount == 2)
+				if (bIsAI && iPassCount == 2)
 					Format(sBuffer, 256, "%s (Lost)", sBuffer);
 				else
 					Format(sBuffer, 256, "%s (%d%%)", sBuffer, GetPrecentFrustration(iTanksIndex[0]));
@@ -387,27 +362,15 @@ static bool:HUD_DrawTankPanel()
 				FormatEx(sBuffer, 256, " Status         : On Fire (%d sec)", bIncap ? 0 : RoundToCeil(iHealth / g_fBurnDmg));
 			else {
 
-				FormatEx(sBuffer, 256, " Pass Count  : %d/2", g_iPassCount);
+				FormatEx(sBuffer, 256, " Pass Count  : %d/2", iPassCount);
 
-				if (bIsAI && g_iPassCount == 2)
+				if (bIsAI && iPassCount == 2)
 					Format(sBuffer, 256, "%s (Lost)", sBuffer);
 				else
 					Format(sBuffer, 256, "%s (%d%%)", sBuffer, GetPrecentFrustration(iTanksIndex[0]));
 
 			}
 			DrawPanelText(hHUD, sBuffer);
-
-/* 			switch (ELEM){
-
-				case 0:
-					FormatEx(sBuffer, 256, " Hits            : 1: %d", g_iHits[0]);
-				case 1:
-					FormatEx(sBuffer, 256, " Hits            : 1: %d. 2: %d", g_iHits[0], g_iHits[1]);
-				default:
-					FormatEx(sBuffer, 256, " Hits            : N/A");
-			}
-			DrawPanelText(hHUD, sBuffer); 
-*/
 		}
 	}
 
@@ -440,7 +403,7 @@ static bool:HUD_DrawTankPanel()
 
 	for (new i; i < SpectateCount; i++){
 
-		if (!g_bShowTankHud[SpectateIndex[i]] || SpectateIndex[i] <= 0  || !IsClientInGame(SpectateIndex[i]) || IsFakeClient(SpectateIndex[i])) continue; // If client is the tank or is a bot, continue
+		if (!g_bShowTankHud[SpectateIndex[i]] || SpectateIndex[i] <= 0  || !IsClientInGame(SpectateIndex[i]) || IsFakeClient(SpectateIndex[i]) || GetClientMenu(i) == MenuSource_Normal) continue; // If client is the tank or is a bot, continue
 
 		_HUD_ShowTankTip(SpectateIndex[i]);
 		SendPanelToClient(hHUD, SpectateIndex[i], HUD_HUD_Handler, 1);
@@ -503,12 +466,6 @@ static HUD_GetCvars()
 	g_fTankHealth = GetConVarFloat(g_hTankHealth) * GetConVarFloat(g_hVsBonusHealth);
 	g_bCvarCompactHud = GetConVarBool(g_hCvarCompactHud);
 	g_fBurnDmg = g_fTankHealth / GetConVarFloat(g_hBurnLifeTime);
-}
-
-// update hud
-public Native_R2comp_SetTankPassCount(Handle:plugin, numParams)
-{
-	g_iPassCount = GetNativeCell(1);
 }
 
 /*--------------------------------------
@@ -637,7 +594,7 @@ public Action:HUD_t_SpecTimer(Handle:timer)
 				GetCharacterName(SurvivorIndex[i], sBuffer, 256);
 				//Format(sBuffer, 256, "%s-AI", sBuffer);
 			}
-			Format(sBuffer, 256, "%s (%d) [%s]", sBuffer, GetClientHealth(SurvivorIndex[i]) + RoundToFloor(GetSuvivorTempHealth(SurvivorIndex[i])), sBufferB);
+			Format(sBuffer, 256, "%s (%d) [%s]", sBuffer, GetClientHealth(SurvivorIndex[i]) + RoundToFloor(GetTempHealth(SurvivorIndex[i])), sBufferB);
 			DrawPanelText(hSpecHUD, sBuffer);
 		}
 	}
@@ -723,7 +680,7 @@ public Action:HUD_t_SpecTimer(Handle:timer)
 
 		if (g_bBlackSpot) return Plugin_Continue;
 
-		if (!g_bShowSpecHud[SpectateIndex[i]] || IsFakeClient(SpectateIndex[i])) continue;
+		if (!g_bShowSpecHud[SpectateIndex[i]] || IsFakeClient(SpectateIndex[i]) || GetClientMenu(i) == MenuSource_Normal) continue;
 
 		_HUD_ShowSpecTip(SpectateIndex[i]);
 		SendPanelToClient(hSpecHUD, SpectateIndex[i], HUD_HUD_Handler, 2);

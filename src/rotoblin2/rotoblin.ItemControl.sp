@@ -67,16 +67,16 @@ _ItemControl_OnPluginStart()
 	g_hClusterCount						=	FindConVar("director_finale_item_cluster_count");
 	g_hVSBossBuffer						=	FindConVar("versus_boss_buffer");
 
-	g_hItem[WEAPINDEX_MOLOTOV] 		=	CreateConVarEx("molotov_limit",				"0",	"Limits the number of molotov on each map outside of safe rooms. (-1: remove all, 0: director settings, > 0: limit to cvar value)", _, true, -1.0);
-	g_hItem[WEAPINDEX_PIPEBOMB] 		=	CreateConVarEx("pipebomb_limit",			"0",	"Limits the number of pipe-bomb on each map outside of safe rooms. (-1: remove all, 0: director settings, > 0: limit to cvar value)", _, true, -1.0);
-	g_hItem[WEAPINDEX_PILLS]			=	CreateConVarEx("pills_limit",				"0",	"Limits the number of pills on each map outside of safe rooms. (-1: remove all, 0: director settings, > 0: limit to cvar value)", _, true, -1.0);
+	g_hItem[WEAPINDEX_MOLOTOV] 		=	CreateConVarEx("molotov_limit",				"0",	"Limits the number of molotovs on each map outside of the safe room. (-1: remove all, 0: director settings, > 0: limit to cvar value)", _, true, -1.0);
+	g_hItem[WEAPINDEX_PIPEBOMB] 		=	CreateConVarEx("pipebomb_limit",			"0",	"Limits the number of pipe-bombs on each map outside of the safe room. (-1: remove all, 0: director settings, > 0: limit to cvar value)", _, true, -1.0);
+	g_hItem[WEAPINDEX_PILLS]			=	CreateConVarEx("pills_limit",				"0",	"Limits the number of pills on each map outside of the safe room. (-1: remove all, 0: director settings, > 0: limit to cvar value)", _, true, -1.0);
 	g_hRemoveCannisters 				=	CreateConVarEx("remove_cannisters",			"0",	"Removes all cannisters (gascan, propane and oxygen)", _, true, 0.0, true, 1.0);
 	g_hRemoveBarrels 					=	CreateConVarEx("remove_explosive_barrels",	"0", 	"Removes all explosive barrels.", _, true, 0.0, true, 1.0);
 	g_hRemoveHuntingRiffle			=	CreateConVarEx("remove_huntingrifle", 		"0", 	"Removes all hunting rifles from start saferooms. (-1: on each map, 0: director settings, 1: only on final)", _, true, -1.0, true, 1.0);
-	g_hRemoveDualPistols				=	CreateConVarEx("remove_pistols",			"0", 	"Removes all pistols on each map. Prevent the use of double pistols. (0: disable, 1: enable)", _, true, 0.0, true, 1.0);
-	g_hAlterSpawningLogic				=	CreateConVarEx("spawning_logic",			"0", 	"Enables alternative spawning logic for items. More items on map, but only a limited number of them can be picked up", _, true, 0.0, true, 1.0);
-	g_hItemsSpawns						=	CreateConVarEx("item_spawns",				"14", 	"Enables forcing same coordinates in round2 for items. Flag (add together): 0=disable, 2=molotov, 4=pipe-bomb, 8=pills, 14=all", _, true, 0.0);
-	g_hMolotovFlowSpawn				=	CreateConVarEx("molotov_flow_spawn",		"0", 	"If it possible we try to keep one molotov on map before tank spawns.", _, true, 0.0, true, 1.0);
+	g_hRemoveDualPistols				=	CreateConVarEx("remove_pistols",			"0", 	"Removes all pistols on each map, prevents the use of double pistols. (0: disable, 1: enable)", _, true, 0.0, true, 1.0);
+	g_hAlterSpawningLogic				=	CreateConVarEx("spawning_logic",			"0", 	"Enables alternative spawning logic for items. More items on a map, but only a limited number of them can be picked up", _, true, 0.0, true, 1.0);
+	g_hItemsSpawns						=	CreateConVarEx("item_spawns",				"14", 	"Forces items to spawn consistently for both teams. Flag (add together): 0=disable, 2=molotov, 4=pipe-bomb, 8=pills, 14=all", _, true, 0.0);
+	g_hMolotovFlowSpawn				=	CreateConVarEx("molotov_before_tank",		"0", 	"Sets whether (If possible) a molotov will spawn on the map before the Tank spawns.", _, true, 0.0, true, 1.0);
 
 	IC_WipeArray(false);
 }
@@ -436,7 +436,7 @@ public Action:IC_ev_SpawnerGiveItem(Handle:event, const String:name[], bool:dont
 	if (++g_iPickUp[iWeapIndex] == g_iLimit[iWeapIndex]){
 
 		DebugLog("%s %s picked up %d/%d", IC_TAG, g_sSpawnName[iWeapIndex], g_iPickUp[iWeapIndex], g_iLimit[iWeapIndex]);
-		PrintToChatAll("%s Survivor team has reached %s limit", MAIN_TAG, g_sName[iWeapIndex]);
+		PrintToChatAll("%s Survivor team has the reached %s limit", MAIN_TAG, g_sName[iWeapIndex]);
 
 		new iEnt = -1;
 		while ((iEnt = FindEntityByClassname(iEnt, g_sSpawnName[iWeapIndex])) != INVALID_ENT_REFERENCE)

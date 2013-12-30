@@ -5,7 +5,7 @@
  *
  *  File:			rotoblin.TankSpawns.sp
  *  Type:			Module
- *  Description:	Enables forcing same coordinates for tank spawns. (BETA)
+ *  Description:	Forces Tank to spawn consistently for both teams. (BETA)
  *
  *  Copyright (C) 2012-2013 raziEiL <war4291@mail.ru>
  *
@@ -31,7 +31,7 @@ static	Handle:g_hTankSpawns, bool:g_bCvarTankSpawns, bool:g_bTankFix, bool:g_bFi
 
 _TankSpawns_OnPluginStart()
 {
-	g_hTankSpawns = CreateConVarEx("tank_spawns", "0", "Enables forcing same coordinates for tank spawns.", _, true, 0.0, true, 1.0);
+	g_hTankSpawns = CreateConVarEx("tank_spawns", "0", "Forces Tank to spawn consistently for both teams.", _, true, 0.0, true, 1.0);
 	g_iDebugChannel = DebugAddChannel(TS_TAG);
 }
 

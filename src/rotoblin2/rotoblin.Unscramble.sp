@@ -35,7 +35,7 @@ static String:g_sLogPatch[128];
 #define MAX_UNSRAMBLE_TIME 45.0
 
 static	Handle:g_hTrine, Handle:g_hCvarNotify, Handle:g_hCvarEnable, Handle:g_fwdOnUnscrambleEnd, Handle:g_hCvarUnlocker, bool:g_bCvarUnlocker, bool:g_bCvarASEnable, bool:g_bCheked[MAXPLAYERS+1], bool:g_bJoinTeamUsed[MAXPLAYERS+1],
-		g_iFailureCount[MAXPLAYERS+1], bool:g_bMapTranslition, bool:g_bTeamLock, g_isOldTeamFlipped, g_isNewTeamFlipped, g_iTrineSize;
+		g_iFailureCount[MAXPLAYERS+1], bool:g_bMapTranslition, bool:g_bTeamLock, g_isOldTeamFlipped, g_isNewTeamFlipped, g_iTrineSize, Handle:g_hCvarNoVotes, bool:g_bCvarNoVotes;
 
 _Unscramble_OnPluginStart()
 {
@@ -45,15 +45,16 @@ _Unscramble_OnPluginStart()
 	g_hTrine = CreateTrie();
 	g_fwdOnUnscrambleEnd = CreateGlobalForward("R2comp_OnUnscrambleEnd", ET_Ignore);
 
-	g_hCvarNotify = CreateConVarEx("unscramble_notify", "0", "Prints notification when unscramble is complete (lets spectators know when they can join)", _, true, 0.0, true, 1.0);
-	g_hCvarEnable = CreateConVarEx("allow_unscramble", "0", "Enables/disables unscramble feature", _, true, 0.0, true, 1.0);
-	g_hCvarUnlocker = CreateConVarEx("choosemenu_unlocker", "0", "Allows spectator/infected players to join as dead survivor bot (through M button)", _, true, 0.0, true, 1.0);
+	g_hCvarNotify = CreateConVarEx("unscramble_notify", "0", "Prints a notification to chat when unscramble is completed (lets spectators know when they can join a team)", _, true, 0.0, true, 1.0);
+	g_hCvarEnable = CreateConVarEx("allow_unscramble", "0", "Enables unscramble feature (Puts all players on the right team after map/campaign/match change)", _, true, 0.0, true, 1.0);
+	g_hCvarUnlocker = CreateConVarEx("choosemenu_unlocker", "0", "Allows spectator/infected players to join the survivor team even if the survivor bot is dead (through M button)", _, true, 0.0, true, 1.0);
+	g_hCvarNoVotes = CreateConVarEx("unscramble_novotes", "0", "Prevents calling votes until unscramble completes", _, true, 0.0, true, 1.0);
 
 	#if SCORES_COMMAND
 		RegConsoleCmd("sm_scores", Command_Scores, "Prints infected/survivor team campaign scores");
 	#endif
 
-	RegAdminCmd("sm_keepteams", Command_KeepTeams, ADMFLAG_ROOT, "Force to keep all teams right now.");
+	RegAdminCmd("sm_keepteams", Command_KeepTeams, ADMFLAG_ROOT, "Force teams to be the same each round.");
 }
 
 _UM_OnPluginEnd()
@@ -61,6 +62,7 @@ _UM_OnPluginEnd()
 	ResetConVar(g_hCvarNotify);
 	ResetConVar(g_hCvarEnable);
 	ResetConVar(g_hCvarUnlocker);
+	ResetConVar(g_hCvarNoVotes);
 }
 
 _UM_OnPluginEnabled()
@@ -71,11 +73,15 @@ _UM_OnPluginEnabled()
 
 	if (!(g_bCvarASEnable = GetConVarBool(g_hCvarEnable))){
 
-		DebugLog("%s Anti-Scramble is disable", AS_TAG);
+		DebugLog("%s unscramble is disable", AS_TAG);
 		return;
 	}
+	if ((g_bCvarNoVotes = GetConVarBool(g_hCvarNoVotes))){
 
-	DebugLog("%s Anti-Scramble is enable", AS_TAG);
+		AddCommandListener(AS_cmdh_Vote, "callvote");
+		AddCommandListener(AS_cmdh_Vote, "vote");
+	}
+	DebugLog("%s unscramble is enable", AS_TAG);
 
 	HookEvent("round_end", AS_ev_RoundEnd, EventHookMode_PostNoCopy);
 	HookEvent("vote_passed", AS_ev_VotePassed);
@@ -87,8 +93,25 @@ _UM_OnPluginDisabled()
 
 	if (!g_bCvarASEnable) return;
 
+	if (g_bCvarNoVotes){
+
+		RemoveCommandListener(AS_cmdh_Vote, "callvote");
+		RemoveCommandListener(AS_cmdh_Vote, "vote");
+	}
+
 	UnhookEvent("round_end", AS_ev_RoundEnd, EventHookMode_PostNoCopy);
 	UnhookEvent("vote_passed", AS_ev_VotePassed);
+}
+
+public Action:AS_cmdh_Vote(client, const String:command[], argc)
+{
+	if (g_bTeamLock){
+
+		PrintToChat(client, "%s Voting is not enabled until unscramble is completed", MAIN_TAG);
+		return Plugin_Handled;
+	}
+
+	return Plugin_Continue;
 }
 
 #if SCORES_COMMAND
@@ -206,6 +229,9 @@ public Action:OnLogAction(Handle:source, Identity:ident, client, target, const S
 */
 public R2comp_OnMatchStarts(const String:match[])
 {
+#if UNSCRABBLE_LOG
+	LogToFile(g_sLogPatch, "--------- MatchStarts ---------");
+#endif
 	AS_KeepTeams();
 
 	#if SCORES_COMMAND
@@ -215,7 +241,11 @@ public R2comp_OnMatchStarts(const String:match[])
 
 public R2comp_OnServerEmpty()
 {
+#if UNSCRABBLE_LOG
+	LogToFile(g_sLogPatch, "--------- ServerEmpty ---------");
+#endif
 	ClearTrie(g_hTrine);
+	g_bTeamLock = false;
 }
 
 public L4DReady_OnRoundIsLive()
@@ -229,6 +259,9 @@ _AS_OnMapStart()
 #if SCORES_COMMAND
 	if (IsNewMission())
 		ClearCampaingScores();
+#endif
+#if UNSCRABBLE_LOG
+	LogToFile(g_sLogPatch, "--------- MapStart ---------");
 #endif
 	PrecacheModel("models/survivors/survivor_manager.mdl", true);
 	PrecacheModel("models/survivors/survivor_biker.mdl", true);
@@ -273,6 +306,7 @@ static AS_KeepTeams()
 {
 	if (!g_bCvarASEnable) return;
 
+	g_bTeamLock = false;
 	g_bMapTranslition = true;
 	g_isOldTeamFlipped = GameRules_GetProp("m_bAreTeamsFlipped");
 	ClearTrie(g_hTrine);
@@ -289,13 +323,14 @@ static AS_KeepTeams()
 
 				if (bInGame){
 
-					bConnectedOnly = false;
-
 					iTeam = GetClientTeam(i);
 
 					if (!iTeam)
 						iTeam = 1;
 				}
+
+				if (iTeam != 1) // disable unscramble if both team is empty
+					bConnectedOnly = false;
 
 				SetTrieValue(g_hTrine, sSteamID, iTeam);
 
@@ -434,7 +469,7 @@ static ForceToUnlockTeams()
 	if (!g_bTeamLock) return;
 
 	if (GetConVarBool(g_hCvarNotify))
-		PrintToChatAll("\x03Unscramble completed.");
+		PrintToChatAll("%s Unscramble completed.", MAIN_TAG);
 
 	Call_StartForward(g_fwdOnUnscrambleEnd);
 	Call_Finish();

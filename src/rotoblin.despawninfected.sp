@@ -72,7 +72,7 @@ static Handle:g_hDIEnable, bool:g_bCvarDIEnabled, Float:g_fLastHighestFlow = -1.
  */
 _DespawnInfected_OnPluginStart()
 {
-	g_hDIEnable = CreateConVarEx("despawn_infected", "0", "Despawns infected commons who is too far behind the survivors.", _, true, 0.0, true, 1.0);
+	g_hDIEnable = CreateConVarEx("despawn_infected", "0", "If set, common infected will despawn if they are too far behind the survivors", _, true, 0.0, true, 1.0);
 
 	g_iDebugChannel = DebugAddChannel(DEBUG_CHANNEL_NAME);
 	DebugPrintToAllEx("Module is now setup");
@@ -175,7 +175,7 @@ public Action:_DI_Check_Timer(Handle:timer)
 
 	for (new i = 0; i < SurvivorCount; i++)
 	{
-		checkAgainst = GetPlayerFlowDistance(SurvivorIndex[i]);
+		checkAgainst = L4DDirect_GetFlowDistance(SurvivorIndex[i]);
 
 		if (checkAgainst < lastSurvivorFlow || lastSurvivorFlow == 0.0)
 		{
@@ -288,7 +288,7 @@ static DespawningCommons(Float:lastSurvivorFlow, firstSurvivor)
 	{
 		if (g_fCommonLifetime[entity] == 0.0) continue;
 
-		commonFlow = GetInfectedFlowDistance(entity);
+		commonFlow = L4DDirect_GetFlowDistance(entity, true);
 		if (commonFlow < 0) continue; // common is in a infected-only areas, continue
 
 		if ((lastSurvivorFlow - DESPAWN_DISTANCE) <= commonFlow) continue; // common is close to the survivors, continue
@@ -461,7 +461,7 @@ Float:GetHighestSurvFlow(bool:bDown = false)
 
 				if (bDown && (IsIncapacitated(i) || IsHandingFromLedge(i))) continue;
 				
-				if ((iLastFlow = GetPlayerFlowDistance(i)) > fFlow)
+				if ((iLastFlow = L4DDirect_GetFlowDistance(i)) > fFlow)
 					fFlow = iLastFlow;
 			}
 		}
@@ -472,7 +472,7 @@ Float:GetHighestSurvFlow(bool:bDown = false)
 
 			if (bDown && (IsIncapacitated(SurvivorIndex[i]) || IsHandingFromLedge(SurvivorIndex[i]))) continue;
 
-			if ((iLastFlow = GetPlayerFlowDistance(SurvivorIndex[i])) > fFlow)
+			if ((iLastFlow = L4DDirect_GetFlowDistance(SurvivorIndex[i])) > fFlow)
 				fFlow = iLastFlow;
 		}
 	}

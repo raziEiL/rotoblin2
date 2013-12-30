@@ -100,7 +100,7 @@ public OnPluginStart()
 	g_hR2Version = CreateConVarEx("2_version", PLUGIN_VERSION, sBuffer);
 	SetConVarString(g_hR2Version, PLUGIN_VERSION);
 
-	g_hR2Enable = CreateConVarEx("enable", "0", "Sets whether Rotoblin is enabled", _, true, 0.0, true, 1.0);
+	g_hR2Enable = CreateConVarEx("enable", "0", "Enables Rotoblin 2 Competitive Mod (R2compMod)", _, true, 0.0, true, 1.0);
 
 	new bool:bEnable = GetConVarBool(g_hR2Enable);
 
@@ -154,7 +154,6 @@ public OnAllPluginsLoaded()
 
 	_Zack_OnAllPluginsLoaded();
 	_AutoLoader_OnAllPluginsLoaded();
-	_ExpolitFixed_OnAllPluginsLoaded();
 }
 
 public OnPluginEnd()
@@ -207,6 +206,7 @@ public OnClientPutInServer(client)
 	_EF_OnClientPutInServer(client);
 	_AS_OnClientPutInServer(client);
 	_HUD_OnClientPutInServer(client);
+	_GT_OnClientPutInServer(client);
 }
 
 public OnClientDisconnect(client)
@@ -247,7 +247,7 @@ Global_ev_OnTankSpawn()
 
 Global_ev_OnTankPassed()
 {
-	_HUD_ev_OnTankPassed();
+
 }
 
 Global_ev_OnTankKilled()
@@ -403,6 +403,6 @@ CheckR2Cvars(bool:bVal)
 	{
 		SetConVarBool(g_hR2Enable, false);
 		DebugPrintToAll(DEBUG_CHANNEL_GENERAL, "[Main] Unable to enable rotoblin, running on a listen server!");
-		PrintToChatAll("[%s] Unable to enable %s! %s only support dedicated servers", PLUGIN_TAG, PLUGIN_FULLNAME, PLUGIN_FULLNAME);
+		PrintToChatAll("[%s] Unable to enable %s! %s is only supported on dedicated servers", PLUGIN_TAG, PLUGIN_FULLNAME, PLUGIN_FULLNAME);
 	}
 }

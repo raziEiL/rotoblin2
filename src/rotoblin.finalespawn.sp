@@ -61,7 +61,7 @@ static			Handle:g_hFnalSpawn, bool:g_bCvarFinalSpawn;
  */
 _FinaleSpawn_OnPluginStart()
 {
-	g_hFnalSpawn = CreateConVarEx("finalspawn_range",	"0", "Reduces the SI spawn range on finales to normal spawning range", _, true, 0.0, true, 1.0);
+	g_hFnalSpawn = CreateConVarEx("finalspawn_range",	"0", "Reduces the SI spawning range on finales to normal spawning range", _, true, 0.0, true, 1.0);
 }
 
 /**

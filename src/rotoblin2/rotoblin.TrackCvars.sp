@@ -26,7 +26,7 @@
  */
 
 #define		TC_TAG		"[TrackCvars]"
-#define		SILENT		1
+#define		SILENCE		1
 
 static		Handle:g_hConVarArray, Handle:g_hConVarArrayEx, Handle:g_hSilentMode, bool:g_bCvarSilentMode, bool:g_bLockConVars;
 
@@ -40,15 +40,7 @@ static const g_aStaticVars[][CVAR_STRUCTURE] =
 {
 	{ "versus_force_start_time",		 9999 },
 	{ "director_transition_timeout",		0 },
-
-	{ "sb_all_bot_team",					1 } // disable hibernation
-	//{ "sb_separation_danger_min_range",		120 }
-	//{ "sb_separation_danger_max_range",		0 }
-
-	//{ "z_mob_spawn_min_interval_normal",	8 }, // Req in rotoblin.MobsControl.sp
-	//{ "z_mob_spawn_max_interval_normal",	8 },
-	
-	//{ "sv_hibernate_when_empty",		0 }
+	{ "sv_hibernate_when_empty",			0 }
 };
 
 //-----------------------------------------------------------------------------
@@ -56,7 +48,7 @@ static const g_aStaticVars[][CVAR_STRUCTURE] =
 //-----------------------------------------------------------------------------
 _TrackCvars_OnPluginStart()
 {
-	g_hSilentMode = CreateConVarEx("cvar_silent_style", "0", "If set, clients will be not notified that the tracked convar has changed", _, true, 0.0, true, 1.0);
+	g_hSilentMode = CreateConVarEx("cvar_silent_style", "0", "If set, clients will be not notified that a tracked convar has been changed", _, true, 0.0, true, 1.0);
 	HookConVarChange(g_hSilentMode, SilentMode_ConVarChange);
 
 	RegServerCmd("rotoblin_track_variable",		CmdTrackVariable,		"Add a convar to track");
@@ -68,9 +60,10 @@ _TrackCvars_OnPluginStart()
 	g_hConVarArray = CreateArray(64);
 	g_hConVarArrayEx = CreateArray(64);
 
-	new Handle:hSBAllBotTeam = FindConVar(g_aStaticVars[2][sCVar]);
-	SetConVarInt(hSBAllBotTeam, g_aStaticVars[2][iCVar]);
-	HookConVarChange(hSBAllBotTeam, OnStatic_ConVarChange);
+	// make rotoblin loading when server starts
+	new Handle:hCvarHibernate = FindConVar(g_aStaticVars[2][sCVar]);
+	SetConVarInt(hCvarHibernate, g_aStaticVars[2][iCVar]);
+	HookConVarChange(hCvarHibernate, OnStatic_ConVarChange);
 }
 
 _TC_OnPluginStart()
@@ -343,10 +336,10 @@ public OnTracked_ConVarChange(Handle:convar, const String:oldValue[], const Stri
 
 	decl String:sConvar[128];
 	GetConVarName(convar, sConvar, 128);
-	#if !SILENT
-		PrintToChatAll("ConVar \"%s\" is tracked. Can not changed from \"%s\" to \"%s\"!", sConvar, oldValue, newValue);
+	#if !SILENCE
+		PrintToChatAll("ConVar \"%s\" is tracked. It Cannot be changed from \"%s\" to \"%s\"!", sConvar, oldValue, newValue);
 	#endif
-	DebugLog("%s ConVar \"%s\" is tracked. Can not changed from \"%s\" to \"%s\"!", TC_TAG, sConvar, oldValue, newValue);
+	DebugLog("%s ConVar \"%s\" is tracked. It Cannot be changed from \"%s\" to \"%s\"!", TC_TAG, sConvar, oldValue, newValue);
 
 	UnhookConVarChange(convar, OnTracked_ConVarChange);
 	SetConVarString(convar, oldValue, true);
@@ -360,7 +353,7 @@ public OnStatic_ConVarChange(Handle:convar, const String:oldValue[], const Strin
 	decl String:sConvar[128];
 	GetConVarName(convar, sConvar, 128);
 
-	DebugLog("%s StaticConVar \"%s\" is tracked. Can not changed from \"%s\" to \"%s\"!", TC_TAG, sConvar, oldValue, newValue);
+	DebugLog("%s StaticConVar \"%s\" is tracked. It Cannot be changed from \"%s\" to \"%s\"!", TC_TAG, sConvar, oldValue, newValue);
 
 	UnhookConVarChange(convar, OnStatic_ConVarChange);
 	SetConVarString(convar, oldValue, true);

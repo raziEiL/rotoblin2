@@ -33,7 +33,7 @@ enum CLSAction
 {
 	CLSA_Kick=0,
 	CLSA_Log,
-	CLSA_Retrieve
+	CLSA_Set
 };
 
 enum CLSEntry
@@ -112,7 +112,7 @@ public _EnforceCliSettings_QueryReply(QueryCookie:cookie, client, ConVarQueryRes
 
 	if (result != ConVarQuery_Okay)
 	{
-		DebugLog("%s Couldn't retrieve cvar %s from %L, kicked from server", CS_TAG, cvarName, client);
+		DebugLog("%s Couldn't set cvar %s from %L, kicked from server", CS_TAG, cvarName, client);
 		KickClient(client, "CVar '%s' protected or missing! Hax?", cvarName);
 		return;
 	}
@@ -148,7 +148,7 @@ public _EnforceCliSettings_QueryReply(QueryCookie:cookie, client, ConVarQueryRes
 				DebugLogEx("%s Client %L has a bad %s value (%f). Min: %d %f Max: %d %f", \
 					CS_TAG, client, cvarName, fCvarVal, clsetting[CLSE_hasMin], clsetting[CLSE_min], clsetting[CLSE_hasMax], clsetting[CLSE_max]);
 			}
-			case CLSA_Retrieve:
+			case CLSA_Set:
 			{
 				ClientCommand(client, "%s %f", cvarName, clsetting[CLSE_hasMax] ? clsetting[CLSE_max] : clsetting[CLSE_min]);
 				DebugLog("%s Change %L has a bad %s value (%f). Min: %d %f Max: %d %f. Cvar force changed to %f", \
@@ -189,7 +189,7 @@ public Action:_ClientSettings_Cmd(client, args)
 			{
 				StrCat(message, sizeof(message), "Action: Log");
 			}
-			case CLSA_Retrieve:
+			case CLSA_Set:
 			{
 				StrCat(message, sizeof(message), "Action: Change back");
 			}

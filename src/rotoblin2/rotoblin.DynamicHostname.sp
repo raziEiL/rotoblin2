@@ -33,7 +33,7 @@ _DHostName_OnPluginStart()
 {
 	g_hHostName	= FindConVar("hostname");
 
-	g_hAllowDN	=	CreateConVarEx("allow_dynamic_hostname", "", "Adds the name of current config (read from the \"l4d_ready_cfg_name\" cvar) to the server name and separate it by this symbol");
+	g_hAllowDN	=	CreateConVarEx("allow_dynamic_hostname", "", "Adds the name of the current config in the l4dready RUP Menu (\"l4d_ready_cfg_name\" cvar) to the servers hostname and separate it by this symbol");
 
 	HookConVarChange(g_hAllowDN, _DH_Allow_CvarChange);
 }

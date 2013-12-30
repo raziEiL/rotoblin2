@@ -47,9 +47,9 @@ _AutoLoader_OnPluginStart()
 
 	DebugLog("%s Rotoblin 2 competitive mode started :3", AL_TAG);
 
-	g_hAllowLoader		= CreateConVarEx("allow_autoloader", "", "Name of the match config uses by default. Empty this line to disable an autoloader (value: \"\").");
-	g_hAllowMatchReset	= CreateConVarEx("allow_match_resets", "0", "When server becomes empty resets the last played match to default match (see \"rotoblin_allow_autoloader\" convar)");
-	g_hAllowMapReset	= CreateConVarEx("allow_map_resets", "0", "Sets whether or not change map to the first map of a random campaign when server becomes empty");
+	g_hAllowLoader		= CreateConVarEx("autoloader_cfg", "", "The name of the config which will load on server start-up. Leave empty to disable Autoloader (value: \"\").");
+	g_hAllowMatchReset	= CreateConVarEx("allow_match_resets", "0", "Sets whether to reset to the default config when the server is empty (\"rotoblin_autoloader_cfg\" convar)");
+	g_hAllowMapReset	= CreateConVarEx("allow_map_resets", "0", "Sets whether to change map to the first map of a random campaign when server is empty");
 
 	ExecuteScritp(sMatchCfg[SETTINGS]);
 }

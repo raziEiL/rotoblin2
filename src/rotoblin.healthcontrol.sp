@@ -72,12 +72,12 @@ _HealthControl_OnPluginStart()
 	g_hConvert[PILLS_VS]	=	FindConVar("director_vs_convert_pills");
 
 	g_hOSF_Style				=	CreateConVarEx("replace_outsidekits",	"0", "How medkits will be replaced out of saferooms. (-1: remove medkits, 0: director settings, 1: replace with pain pills. Extra option 2: remove all healing items except of finals)", _, true, -1.0, true, 2.0);
-	g_hSSR_Style				=	CreateConVarEx("replace_startkits",		"0", "How medkits will be replaced at mission start. (-1: remove medkits, 0: director settings, 1: replace with pain pills)", _, true, -1.0, true, 1.0);
-	g_hFSR_Style				=	CreateConVarEx("replace_finalekits",	"0", "How medkits will be replaced during finale. (-1: remove medkits, 0: director settings, 1: replace with pain pills)", _, true, -1.0, true, 1.0);
-	g_hPills_Style			=	CreateConVarEx("pills_autogiver",		"0", "Gives pills to the Survivors after their leaving out of the saferoom", _, true, 0.0, true, 1.0);
+	g_hSSR_Style				=	CreateConVarEx("replace_startkits",		"0", "How medkits will be replaced in the saferoom. (-1: remove medkits, 0: director settings, 1: replace with pain pills)", _, true, -1.0, true, 1.0);
+	g_hFSR_Style				=	CreateConVarEx("replace_finalekits",	"0", "How medkits will be replaced on finales. (-1: remove medkits, 0: director settings, 1: replace with pain pills)", _, true, -1.0, true, 1.0);
+	g_hPills_Style			=	CreateConVarEx("pills_autogiver",		"0", "Sets whether the survivors will Automatically receive pills after they leave the saferoom", _, true, 0.0, true, 1.0);
 
 	// 1v1 match
-	g_h1v1WipePills =	CreateConVarEx("1v1_wipe_pills",		"0", "Number of pills that will be removed during the final (0: disable 1v1 features)", _, true, 0.0, true, 4.0);
+	g_h1v1WipePills =	CreateConVarEx("1v1_wipe_pills",		"0", "The number of pills that will be removed during the final (0: disable 1v1 features)", _, true, 0.0, true, 4.0);
 
 	AddConVarToReport(g_hOSF_Style); // Add to report status module
 

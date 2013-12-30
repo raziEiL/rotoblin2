@@ -238,14 +238,14 @@ static bool:SetupModule()
 	decl Handle:cvar;
 	cvar = CreateConVarEx("debug_channel",
 		"0",
-		"Sum of debug channel flags. -1 - Log all channels, 0 - General channel only, 0+ - Log channel of flag",
+		"The Sum of the debug channel. Flags: -1 - Log all channels, 0 - General channel only, 0+ - Log channel of flag",
 		FCVAR_PLUGIN);
 	g_iChannelFlags = GetConVarInt(cvar);
 	HookConVarChange(cvar, _H_D_Channel_CvarChange);
 
 	cvar = CreateConVarEx("debug_output",
 		"0",
-		"Sum of debug output flags. 0 - No logging, 1 - Print to server, 2 - Print to chat, 4 - Log to SM logs",
+		"The Sum of the debug output. Flags: 0 - No logging, 1 - Print to server, 2 - Print to chat, 4 - Log to SM logs",
 		FCVAR_PLUGIN);
 	g_iOutputFlags = GetConVarInt(cvar);
 	HookConVarChange(cvar, _H_D_Output_CvarChange);

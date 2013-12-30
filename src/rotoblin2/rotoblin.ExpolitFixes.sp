@@ -27,9 +27,6 @@
 
 #define		EF_TAG					"[ExpolitFixes]"
 
-#define		ENGIGE_FIX				"fix_Engine"
-#define		HEALTH_EXPOLIT_FIX		"HealthExpolitFixes"
-
 // debug
 #define		DEBUG_CHANNEL_NAME		"SurvivorExploitFixes"
 static		g_iDebugChannel;
@@ -41,48 +38,21 @@ enum ()
 	NoLadderBlock = 1,
 	SurvivorDuckBlock,
 	GhostDuckBlock,
-	LadderSpeedGlitch,
-	NoFallDamageBlock,
 	ESpawnBlock,
-	HealthExpolitFixes,
+	AmmoPickup,
+	IncapacitatedFF
 }
 
-static		bool:g_bIsEngineFixLoaded, bool:g_bIsHealthExpolitFixLoaded, bool:g_bAllPlLoaded, Handle:g_hCvarExpolitFixes, g_iCvarExpolitFixes;
+static		Handle:g_hCvarExpolitFixes, g_iCvarExpolitFixes;
 
 public EF_GetExpolitFixesCvar() return g_iCvarExpolitFixes;
 public EF_GetNumOfESpawnBlock() return ESpawnBlock;
 
 _ExpoliteFixed_OnPluginStart()
 {
-	g_hCvarExpolitFixes = CreateConVarEx("expolit_fixes_flag", "238", "What kind of expolit should be fixed/blocked. Flag (add together): 0=Disable, 2=No ladder block, 4=Survivor duck block, 8=Ghost duck block, 16=Ladder speed glitch, 32=No fall damage expolit, 64=E spawn expolit, 128=Health expolit fixes, 254=all", _, true, 0.0);
+	g_hCvarExpolitFixes = CreateConVarEx("expolit_fixes_flag", "238", "Enables what kind of exploit should be fixed/blocked. Flag (add together): 0=Disable, 2=No ladder block, 4=Survivor duck block, 8=Ghost duck block, 16=E spawn expolit block, 32=Ammo pickup fix, 64=Incapacitated survivor ff block, 126=all", _, true, 0.0, true, 126.0);
 
 	g_iDebugChannel = DebugAddChannel(DEBUG_CHANNEL_NAME);
-}
-
-_ExpolitFixed_OnAllPluginsLoaded()
-{
-	decl String:sPlName[128];
-	new Handle:hIterator = GetPluginIterator();
-
-	while (MorePlugins(hIterator)){
-
-		GetPluginFilename(ReadPlugin(hIterator), sPlName, 128);
-
-		if (StrContains(sPlName, ENGIGE_FIX) != -1)
-			g_bIsEngineFixLoaded = true;
-		if (StrContains(sPlName, HEALTH_EXPOLIT_FIX) != -1)
-			g_bIsHealthExpolitFixLoaded = true;
-		if (g_bIsEngineFixLoaded && g_bIsHealthExpolitFixLoaded)
-			break;
-	}
-	CloseHandle(hIterator);
-
-	DebugLog("%s _ExpolitFixed_OnAllPluginsLoaded() EngineFix %d, HealthExpolitFix %d", EF_TAG, g_bIsEngineFixLoaded, g_bIsHealthExpolitFixLoaded);
-
-	if (IsPluginEnabled())
-		_EF_SetupPLFunction(true);
-
-	g_bAllPlLoaded = true;
 }
 
 _EF_OnPluginEnabled()
@@ -92,13 +62,6 @@ _EF_OnPluginEnabled()
 
 	HookEvent("ammo_pickup", EF_ev_AmmoPickup);
 	HookEvent("player_use", EF_ev_PlayerUse);
-
-	if (g_bAllPlLoaded){
-
-		DebugLog("%s _EF_OnPluginEnabled", EF_TAG);
-
-		_EF_SetupPLFunction(true);
-	}
 
 	if (g_bLoadLater)
 		_EF_ToogleHook(true);
@@ -113,21 +76,24 @@ _EF_OnPluginDisabled()
 	UnhookEvent("ammo_pickup", EF_ev_AmmoPickup);
 	UnhookEvent("player_use", EF_ev_PlayerUse);
 
-	DebugLog("%s _EF_OnPluginDisabled", EF_TAG);
-
-	_EF_SetupPLFunction(false);
 	_EF_ToogleHook(false);
+
+	DebugLog("%s _EF_OnPluginDisabled", EF_TAG);
 }
 
 // Fixed up the game mechanics bug when the ammo piles use didn't provide a full ammo refill for weapons.
 public Action:EF_ev_AmmoPickup(Handle:event, const String:name[], bool:dontBroadcast)
 {
+	if (!(g_iCvarExpolitFixes & (1 << AmmoPickup))) return;
+
 	new client = GetClientOfUserId(GetEventInt(event, "userid"));
 	_EF_DoAmmoPilesFix(client);
 }
 
 public Action:EF_ev_PlayerUse(Handle:event, const String:name[], bool:dontBroadcast)
 {
+	if (!(g_iCvarExpolitFixes & (1 << AmmoPickup))) return;
+
 	new target = GetEventInt(event, "targetid");
 	if (!IsWeaponSpawnEx(target) || GetEntProp(target, Prop_Send, "m_weaponID") != WEAPID_AMMO) return;
 
@@ -284,218 +250,10 @@ bool:IsGuyTroll(victim, troll)
 
 public Action:_IF_SDKh_OnTakeDamage(victim, &attacker, &inflictor, &Float:damage, &damagetype, &weapon, Float:damageForce[3], Float:damagePosition[3], damagecustom)
 {
-	if (damagetype & DMG_BULLET && IsClientAndInGame(attacker) && IsIncapacitated(attacker) && GetClientTeam(attacker) == 2 &&
+	if (g_iCvarExpolitFixes & (1 << IncapacitatedFF) && damagetype & DMG_BULLET && IsClientAndInGame(attacker) && IsIncapacitated(attacker) && GetClientTeam(attacker) == 2 &&
 		IsClientAndInGame(victim) && GetClientTeam(victim) == 2) return Plugin_Handled;
 
 	return Plugin_Continue;
-}
-
-static		Handle:g_hDecayRate, Float:g_fCvarDecayRate, Handle:g_hTimer[MAXPLAYERS+1], Float:g_fTempHp[MAXPLAYERS+1];
-
-_EF_SetupPLFunction(bool:bHook)
-{
-	if (bHook){
-
-		if (!g_bIsEngineFixLoaded){
-
-			DebugLog("%s _EF_SetupPLFunction() Hook EngineFix Events", EF_TAG);
-
-			HookEvent("pills_used", EF_ev_PillsUsed);
-			HookEvent("heal_success", EF_ev_HealSuccess);
-		}
-		if (!g_bIsHealthExpolitFixLoaded){
-
-			DebugLog("%s _EF_SetupPLFunction() Hook HelthExpolitFix Events", EF_TAG);
-
-			HookEvent("player_ledge_grab", HE_ev_PlayerLedgeGrab);
-			HookEvent("revive_success", HE_ev_ReviveSuccess);
-		}
-		if (!g_bIsEngineFixLoaded || !g_bIsHealthExpolitFixLoaded){
-
-			DebugLog("%s _EF_SetupPLFunction() Hook pain_pills_decay_rate convar", EF_TAG);
-
-			g_hDecayRate = FindConVar("pain_pills_decay_rate");
-
-			HookConVarChange(g_hDecayRate, _EF_OnCvarChange_PillsRate);
-			Update_EF_PillsRateConVars();
-		}
-
-		HookEvent("player_incapacitated", HE_ev_PlayerIncapacitated);
-	}
-	else {
-
-		if (!g_bIsEngineFixLoaded){
-
-			DebugLog("%s _EF_SetupPLFunction() Unhook EngineFix Events", EF_TAG);
-
-			UnhookEvent("pills_used", EF_ev_PillsUsed);
-			UnhookEvent("heal_success", EF_ev_HealSuccess);
-		}
-		if (!g_bIsHealthExpolitFixLoaded){
-
-			DebugLog("%s _EF_SetupPLFunction() Unhook HelthExpolitFix Events", EF_TAG);
-
-			UnhookEvent("player_ledge_grab", HE_ev_PlayerLedgeGrab);
-			UnhookEvent("revive_success", HE_ev_ReviveSuccess);
-		}
-		if (!g_bIsEngineFixLoaded || !g_bIsHealthExpolitFixLoaded){
-
-			DebugLog("%s _EF_SetupPLFunction() Unhook pain_pills_decay_rate convar", EF_TAG);
-
-			UnhookConVarChange(g_hDecayRate, _EF_OnCvarChange_PillsRate);
-		}
-
-		UnhookEvent("player_incapacitated", HE_ev_PlayerIncapacitated);
-	}
-}
-
-public bool:_EF_OnPlayerRunCmd(client)
-{
-	return g_iCvarExpolitFixes & (1 << LadderSpeedGlitch) && IsPlayerAlive(client) && !IsFakeClient(client) && GetEntityMoveType(client) == MOVETYPE_LADDER;
-}
-
-public bool:_EF_OnPlayerRunCmdTwo(client, buttons)
-{
-	return g_iCvarExpolitFixes & (1 << NoFallDamageBlock) && buttons & IN_USE && GetClientTeam(client) == 2 && GetEntPropFloat(client, Prop_Send, "m_flFallVelocity") > 440;
-}
-
-public Action:EF_ev_PillsUsed(Handle:event, const String:name[], bool:dontBroadcast)
-{
-	if (!(g_iCvarExpolitFixes & (1 << HealthExpolitFixes))) return;
-
-	new client = GetClientOfUserId(GetEventInt(event, "userid"));
-
-	if (DrownNotEqual(client)){
-		TimeToKill(client);
-		g_hTimer[client] = CreateTimer(0.1, EF_t_FixPillsGlitch, client, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
-	}
-}
-
-public Action:EF_ev_HealSuccess(Handle:event, const String:name[], bool:dontBroadcast)
-{
-	if (!(g_iCvarExpolitFixes & (1 << HealthExpolitFixes))) return;
-
-	new healer = GetClientOfUserId(GetEventInt(event, "userid"));
-	new client = GetClientOfUserId(GetEventInt(event, "subject"));
-
-	if (DrownNotEqual(healer) || DrownNotEqual(client)){
-		new id;
-
-		if (DrownNotEqual(healer))
-			id = healer;
-		else
-			id = client;
-
-		TimeToKill(id);
-		g_hTimer[id] = CreateTimer(0.1, EF_t_FixPillsGlitch, id, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
-	}
-}
-
-public Action:EF_t_FixPillsGlitch(Handle:timer, any:client)
-{
-	if (IsClientInGame(client) && GetClientTeam(client) == 2 && IsPlayerAlive(client) && DrownNotEqual(client)){
-
-		if ((CalculateLife(client) > 100 || GetClientHealth(client) == 100) && !IsIncapacitated(client)){
-
-			if (CalculateLife(client) > 100){
-
-				new Float:fProp = (CalculateLife(client) - 100) + (GetGameTime() - GetEntPropFloat(client, Prop_Send, "m_healthBufferTime")) * g_fCvarDecayRate;
-				SetEntPropFloat(client, Prop_Send, "m_healthBuffer", GetEntPropFloat(client, Prop_Send, "m_healthBuffer") - fProp);
-			}
-
-			SetEntProp(client, Prop_Data, "m_idrownrestored", GetEntProp(client, Prop_Data, "m_idrowndmg"));
-			TimeToKill(client);
-		}
-	}
-	else
-		TimeToKill(client);
-}
-
-TimeToKill(client)
-{
-	if (g_hTimer[client] != INVALID_HANDLE){
-
-		KillTimer(g_hTimer[client]);
-		g_hTimer[client] = INVALID_HANDLE;
-	}
-}
-
-// @ Code by SilverShot
-CalculateLife(client)
-{
-	new Float:fHealth = GetEntPropFloat(client, Prop_Send, "m_healthBuffer") - ((GetGameTime() - GetEntPropFloat(client, Prop_Send, "m_healthBufferTime")) * g_fCvarDecayRate);
-	return fHealth < 0 ? 0 : (RoundToFloor(fHealth) + GetClientHealth(client));
-}
-
-bool:DrownNotEqual(client)
-{
-	return GetEntProp(client, Prop_Data, "m_idrowndmg") != GetEntProp(client, Prop_Data, "m_idrownrestored");
-}
-
-public Action:HE_ev_PlayerIncapacitated(Handle:event, const String:name[], bool:dontBroadcast)
-{
-	if (!(g_iCvarExpolitFixes & (1 << HealthExpolitFixes))) return;
-
-	new client = GetClientOfUserId(GetEventInt(event, "userid"));
-
-	if (GetClientTeam(client) == 2){
-
-		SetEntPropFloat(client, Prop_Send, "m_healthBufferTime", GetGameTime());
-		SetEntPropFloat(client, Prop_Send, "m_healthBuffer", 0.0);
-	}
-}
-
-public Action:HE_ev_PlayerLedgeGrab(Handle:event, const String:name[], bool:dontBroadcast)
-{
-	if (!(g_iCvarExpolitFixes & (1 << HealthExpolitFixes))) return;
-
-	new client = GetClientOfUserId(GetEventInt(event, "userid"));
-
-	if ((g_fTempHp[client] = GetSuvivorTempHealth(client)))
-		SetEntPropFloat(client, Prop_Send, "m_healthBuffer", 0.0);
-}
-
-public Action:HE_ev_ReviveSuccess(Handle:event, const String:name[], bool:dontBroadcast)
-{
-	if (!(g_iCvarExpolitFixes & (1 << HealthExpolitFixes)) || !GetEventBool(event, "ledge_hang")) return;
-
-	new client = GetClientOfUserId(GetEventInt(event, "subject"));
-
-	if (g_fTempHp[client])
-		CreateTimer(0.0, HE_t_PreRestoreHealth, client);
-	else if (GetClientHealth(client) < 30)
-		SetSurvivorTempHealth(client);
-}
-
-public Action:HE_t_PreRestoreHealth(Handle:timer, any:client)
-{
-	if (IsClientInGame(client))
-		SetSurvivorTempHealth(client);
-}
-
-Float:GetSuvivorTempHealth(client)
-{
-	new Float:fHealth = GetEntPropFloat(client, Prop_Send, "m_healthBuffer");
-	fHealth -= (GetGameTime() - GetEntPropFloat(client, Prop_Send, "m_healthBufferTime")) * g_fCvarDecayRate;
-	return fHealth < 0.0 ? 0.0 : fHealth;
-}
-
-static SetSurvivorTempHealth(client)
-{
-	SetEntPropFloat(client, Prop_Send, "m_healthBufferTime", GetGameTime());
-	SetEntPropFloat(client, Prop_Send, "m_healthBuffer", g_fTempHp[client]);
-}
-
-public _EF_OnCvarChange_PillsRate(Handle:convar_hndl, const String:oldValue[], const String:newValue[])
-{
-	if (StrEqual(oldValue, newValue)) return;
-
-	Update_EF_PillsRateConVars();
-}
-
-static Update_EF_PillsRateConVars()
-{
-	g_fCvarDecayRate = GetConVarFloat(g_hDecayRate);
 }
 
 public _EF_OnCvarChange_ExpolitFixes(Handle:convar_hndl, const String:oldValue[], const String:newValue[])

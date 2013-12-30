@@ -89,7 +89,6 @@ static RegR2Lib()
 	CreateNative("R2comp_IsEndEntity", Native_R2comp_IsEndEntity);
 	CreateNative("R2comp_GetSafeRoomOrigin", Native_R2comp_GetSafeRoomOrigin);
 	CreateNative("R2comp_GetMatchName", Native_R2comp_GetMatchName);
-	CreateNative("R2comp_SetTankPassCount", Native_R2comp_SetTankPassCount);
 	CreateNative("R2comp_GetHighestSurvivorFlow", Native_R2comp_GetHighestSurvivorFlow);
 	CreateNative("R2comp_GetHighestSurvivorFlowEx", Native_R2comp_GetHighestSurvivorFlowEx);
 

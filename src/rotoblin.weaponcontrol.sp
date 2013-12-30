@@ -99,7 +99,7 @@ static bool:g_bSkip;
 _WeaponControl_OnPluginStart()
 {
 	g_hWeaponStyle_Cvar = CreateConVarEx("weapon_style", "0",
-		"Replaces weapons with its tier 1 analogue. (0 - Don't replace any weapons, 1 - Replace all weapons, 2 - Replace all rifles, 3 - Replace all autoshotguns)", _, true, 0.0, true, 3.0);
+		"Replaces tier 2 weapons with its tier 1 analogue. (0 - Don't replace any weapons, 1 - Replace all weapons, 2 - Replace all rifles, 3 - Replace all autoshotguns)", _, true, 0.0, true, 3.0);
 
 	if (g_hWeaponStyle_Cvar == INVALID_HANDLE) ThrowError("Unable to create weapon style cvar!");
 	AddConVarToReport(g_hWeaponStyle_Cvar); // Add to report status module

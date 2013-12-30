@@ -200,6 +200,24 @@ stock GetHammerID(entity)
 	return GetEntProp(entity, Prop_Data, "m_iHammerID");
 }
 
+stock SetTempHealth(client, Float:health)
+{
+	SetEntPropFloat(client, Prop_Send, "m_healthBufferTime", GetGameTime());
+	SetEntPropFloat(client, Prop_Send, "m_healthBuffer", health);
+}
+// Code by SilverShot aka Silvers (Healing Gnome plugin https://forums.alliedmods.net/showthread.php?p=1658852)
+stock Float:GetTempHealth(client)
+{
+	static Float:fCvarDecayRate = -1.0;
+
+	if (fCvarDecayRate == -1.0)
+		fCvarDecayRate = GetConVarFloat(FindConVar("pain_pills_decay_rate"));
+
+	new Float:fTempHealth = GetEntPropFloat(client, Prop_Send, "m_healthBuffer");
+	fTempHealth -= (GetGameTime() - GetEntPropFloat(client, Prop_Send, "m_healthBufferTime")) * fCvarDecayRate;
+	return fTempHealth < 0.0 ? 0.0 : fTempHealth;
+}
+
 stock bool:IsAnyOneConnected()
 {
 	for (new i = 1; i <= MaxClients; i++)

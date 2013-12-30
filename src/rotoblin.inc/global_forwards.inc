@@ -43,17 +43,6 @@ public Action:OnPlayerRunCmd(client, &buttons)
 	if (_GT_OnPlayerRunCmdTwo(client, buttons))
 		buttons &= ~IN_USE;
 
-	if (_EF_OnPlayerRunCmd(client) && (buttons & 8 || buttons & 16)){
-
-		if (buttons & 512)
-			 buttons &= ~IN_MOVELEFT;
-		if (buttons & 1024)
-			 buttons &= ~IN_MOVERIGHT;
-	}
-
-	if (_EF_OnPlayerRunCmdTwo(client, buttons))
-		buttons &= ~IN_USE;
-
 	if (_GW_OnPlayerRunCmd(client, buttons))
 		return Plugin_Handled;
 

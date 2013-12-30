@@ -45,7 +45,7 @@ _MapInfo_OnPluginStart()
 	if (!FileToKeyValues(g_hKv, g_sPatch))
 		SetFailState("Couldn't load Rotoblin MapInfo file! Patch <configs/R2/MapInfo.cfg>");
 
-	RegAdminCmd("sm_mapinfo", Command_MapInfo, ADMFLAG_ROOT, "Adds start/end saferoom position to a MapInfo");
+	RegAdminCmd("sm_mapinfo", Command_MapInfo, ADMFLAG_ROOT, "Adds start/end saferoom position to MapInfo");
 	RegAdminCmd("sm_getmapinfo", Command_GetMapInfo, ADMFLAG_ROOT, "Prints start/end saferoom position from MapInfo");
 
 	#if DEBUG_COMMANDS

@@ -85,7 +85,7 @@ _MeleeFatigue_OnPluginStart()
 	CreateIntConVar(
 		g_hNonFatiguedMeleePenalty_CVAR,
 		"melee_penalty",
-		"Shove penalty added for each non-fatigued melee swipe",
+		"Sets the Shove penalty for each non-fatigued melee swipe",
 		g_nonFatiguedMeleePenalty);
 
 	UpdateNonFatiguedMeleePenalty();
