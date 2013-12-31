@@ -386,7 +386,7 @@ static bool:HUD_DrawTankPanel()
 
 	for (new i; i < InfectedCount; i++){
 
-		if (!g_bShowTankHud[InfectedIndex[i]] || InfectedIndex[i] <= 0  || !IsClientInGame(InfectedIndex[i]) || IsFakeClient(InfectedIndex[i])) continue; // If client is the tank or is a bot, continue
+		if (!g_bShowTankHud[InfectedIndex[i]] || InfectedIndex[i] <= 0  || !IsClientInGame(InfectedIndex[i]) || IsFakeClient(InfectedIndex[i]) || GetClientMenu(InfectedIndex[i]) == MenuSource_Normal) continue; // If client is the tank or is a bot, continue
 
 		if (InfectedIndex[i] == iTanksIndex[0]){
 
@@ -403,7 +403,7 @@ static bool:HUD_DrawTankPanel()
 
 	for (new i; i < SpectateCount; i++){
 
-		if (!g_bShowTankHud[SpectateIndex[i]] || SpectateIndex[i] <= 0  || !IsClientInGame(SpectateIndex[i]) || IsFakeClient(SpectateIndex[i]) || GetClientMenu(i) == MenuSource_Normal) continue; // If client is the tank or is a bot, continue
+		if (!g_bShowTankHud[SpectateIndex[i]] || SpectateIndex[i] <= 0  || !IsClientInGame(SpectateIndex[i]) || IsFakeClient(SpectateIndex[i]) || GetClientMenu(SpectateIndex[i]) == MenuSource_Normal) continue; // If client is the tank or is a bot, continue
 
 		_HUD_ShowTankTip(SpectateIndex[i]);
 		SendPanelToClient(hHUD, SpectateIndex[i], HUD_HUD_Handler, 1);
@@ -680,7 +680,7 @@ public Action:HUD_t_SpecTimer(Handle:timer)
 
 		if (g_bBlackSpot) return Plugin_Continue;
 
-		if (!g_bShowSpecHud[SpectateIndex[i]] || IsFakeClient(SpectateIndex[i]) || GetClientMenu(i) == MenuSource_Normal) continue;
+		if (!g_bShowSpecHud[SpectateIndex[i]] || IsFakeClient(SpectateIndex[i]) || GetClientMenu(SpectateIndex[i]) == MenuSource_Normal) continue;
 
 		_HUD_ShowSpecTip(SpectateIndex[i]);
 		SendPanelToClient(hSpecHUD, SpectateIndex[i], HUD_HUD_Handler, 2);
