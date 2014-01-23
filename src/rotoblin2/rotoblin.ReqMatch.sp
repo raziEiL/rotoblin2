@@ -81,7 +81,7 @@ public Action:CmdForceMatch(client, args)
 	if (!args){
 
 		MatchList(client);
-		ReplyToCommand(client, "Usages: !forcematch <compmatch>");
+		ReplyToCommand(client, "%t", "R2CompMod #10");
 		return Plugin_Handled;
 	}
 
@@ -90,14 +90,14 @@ public Action:CmdForceMatch(client, args)
 
 	if (!IsMatchExists(sReqMatch)){
 
-		ReplyToCommand(client, "%s Required match is not found. Type !forcematch to see the available matches.", MAIN_TAG);
+		ReplyToCommand(client, "%s %t", MAIN_TAG, "R2CompMod #11");
 		return Plugin_Handled;
 	}
 
 	strcopy(sMatchName, 48, sReqMatch);
 
 	PreLoadMatch();
-	ReplyToCommand(client, "%s Match is loaded.", MAIN_TAG);
+	ReplyToCommand(client, "%s %t", MAIN_TAG, "R2CompMod #12");
 
 	return Plugin_Handled;
 }
@@ -106,7 +106,7 @@ public Action:CmdResetMatch(client, args)
 {
 	ExecuteScritp(sMatchCfg[DISABLE]);
 	ForceTurnOff();
-	ReplyToCommand(client, "%s Match mode forced to unload!", MAIN_TAG);
+	ReplyToCommand(client, "%s %t", MAIN_TAG, "R2CompMod #13");
 
 	return Plugin_Handled;
 }
@@ -116,7 +116,7 @@ public Action:CmdLoad(client, args)
 	if (/*privat*/GetFeatureStatus(FeatureType_Native, "L4D_IsInMatchVoteMenu") == FeatureStatus_Available)
 		return Plugin_Handled;
 
-	ReplyToCommand(client, "%s Command is deprecated, use !match command.", MAIN_TAG);
+	ReplyToCommand(client, "%s %t", MAIN_TAG, "R2CompMod #14");
 
 	return Plugin_Handled;
 }
@@ -131,14 +131,14 @@ public Action:CmdReqMatch(client, args)
 
 	if (!GetConVarBool(g_hAllowReq)){
 
-		ReplyToCommand(client, "%s Match request is disabled by administrator.", MAIN_TAG);
+		ReplyToCommand(client, "%s %t", MAIN_TAG, "R2CompMod #15");
 		return Plugin_Handled;
 	}
 
 	if (!args){
 
 		MatchList(client);
-		ReplyToCommand(client, "Usages: !match <compmatch>");
+		ReplyToCommand(client, "%t", "R2CompMod #16");
 		return Plugin_Handled;
 	}
 
@@ -147,7 +147,7 @@ public Action:CmdReqMatch(client, args)
 
 	if (!IsMatchExists(sReqMatch)){
 
-		ReplyToCommand(client, "%s Required match is not found. Type !match to see the available matches.", MAIN_TAG);
+		ReplyToCommand(client, "%s %t", MAIN_TAG, "R2CompMod #17");
 		return Plugin_Handled;
 	}
 
@@ -162,7 +162,7 @@ public Action:CmdReqMatch(client, args)
 
 	if (strlen(g_sReqMatch[0]) && StrEqual(g_sReqMatch[0], g_sReqMatch[1])){
 
-		PrintToChatAll("%s %s team has accepted to load the '%s' match.", MAIN_TAG, !iTeam ? "Survivors" : "Infected", sReqMatch);
+		PrintToChatAll("%s %t", MAIN_TAG, "R2CompMod #18", !iTeam ? "Survivors" : "Infected", sReqMatch);
 		DebugLog("%s %N confirmed match!", RQ_TAG, client);
 
 		ResetReqVars();
@@ -171,7 +171,7 @@ public Action:CmdReqMatch(client, args)
 		PreLoadMatch();
 	}
 	else
-		PrintToChatAll("%s %s team requested to load the '%s' match.", MAIN_TAG, !iTeam ? "Survivors" : "Infected", sReqMatch);
+		PrintToChatAll("%s %t", MAIN_TAG, "R2CompMod #19", !iTeam ? "Survivors" : "Infected", sReqMatch);
 
 	return Plugin_Handled;
 }
@@ -182,7 +182,7 @@ public Action:RM_t_RejectReq(Handle:timer, any:team)
 
 	ResetReqVars();
 
-	PrintToChatAll("%s %s team has not accepted to change the current match.", MAIN_TAG, !team ? "Infected" : "Survivors");
+	PrintToChatAll("%s %t", MAIN_TAG, "R2CompMod #20", !team ? "Infected" : "Survivors");
 }
 
 static MatchList(client)
@@ -203,9 +203,9 @@ static MatchList(client)
 		new iCount;
 
 		ReplyToCommand(client, " \n");
-		ReplyToCommand(client, "   * List of Matches *");
+		ReplyToCommand(client, "   * %t *", "R2CompMod #21");
 		ReplyToCommand(client, "------------------------------");
-		ReplyToCommand(client, "| No.   | Compmatch ");
+		ReplyToCommand(client, "| No.   | %t ", "R2CompMod #22");
 		ReplyToCommand(client, "------------------------------");
 
 		while (ReadDirEntry(hDir, sBuffer, 64, iFileType))

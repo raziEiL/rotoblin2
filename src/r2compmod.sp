@@ -91,6 +91,8 @@ static Handle:g_hR2Version, Handle:g_hR2Enable, bool:g_bIsZACKLoaded, bool:g_bIs
 
 public OnPluginStart()
 {
+	LoadTranslations("l4d_competitive.phrases");
+
 	DebugLog("%s			ON PL START", MAIN_TAG);
 	DebugPrintToAll(DEBUG_CHANNEL_GENERAL, "[Main] Setting up...");
 

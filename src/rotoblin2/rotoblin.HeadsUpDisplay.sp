@@ -23,9 +23,6 @@
  * ============================================================================
  */
 
-#define TIP			"Use !tankhud to toggle the tank HUD"
-#define SPEC_TIP		"Use !spechud to toggle the spectator HUD"
-
 static	Handle:g_hCvarAllowSpecHud, Handle:g_hCvarTwoTanks, Handle:g_hTankHealth, Handle:g_hVsBonusHealth, Handle:g_hLotteryTime, Handle:g_hCvarCompactHud, Handle:g_hBurnLifeTime, Float:g_fBurnDmg,
 		bool:g_bCvarAllowSpecHud, bool:g_bCvarTwoTanks, bool:g_bCvarCompactHud, Float:g_fTankHealth = 6000.0, bool:g_bShowTankHud[MAXPLAYERS+1], bool:g_bHudEnabled,
 		g_iStasis, Handle:g_hSpecHudTimer, bool:g_bShowSpecHud[MAXPLAYERS+1], g_iSISpawnTime[MAXPLAYERS+1][2], bool:g_bBlockSpecHUD, bool:g_bTips[MAXPLAYERS+1][2];
@@ -62,7 +59,7 @@ public Action:Command_ToogleTankHud(client, args)
 	if (!client) return Plugin_Handled;
 
 	g_bShowTankHud[client] = !g_bShowTankHud[client];
-	PrintToChat(client, "%s Tank HUD is now %s.", MAIN_TAG, g_bShowTankHud[client] ? "enabled" : "disabled");
+	PrintToChat(client, "%s %t", MAIN_TAG, "R2CompMod #3", g_bShowTankHud[client] ? "R2CompMod #5" : "R2CompMod #6");
 
 	return Plugin_Handled;
 }
@@ -72,7 +69,7 @@ public Action:Command_ToogleSpecHud(client, args)
 	if (!client || !g_bCvarAllowSpecHud) return Plugin_Handled;
 
 	g_bShowSpecHud[client] = !g_bShowSpecHud[client];
-	PrintToChat(client, "%s Spec HUD is now %s.", MAIN_TAG, g_bShowSpecHud[client] ? "enabled" : "disabled");
+	PrintToChat(client, "%s %t", MAIN_TAG, "R2CompMod #4", g_bShowSpecHud[client] ? "R2CompMod #5" : "R2CompMod #6");
 
 	return Plugin_Handled;
 }
@@ -130,7 +127,7 @@ static _HUD_ShowTankTip(client)
 {
 	if (g_bTips[client][0]) return;
 
-	PrintToChat(client, "%s %s", MAIN_TAG, TIP);
+	PrintToChat(client, "%s %t", MAIN_TAG, "R2CompMod #7");
 
 	g_bTips[client][0] = true;
 }
@@ -139,7 +136,7 @@ static _HUD_ShowSpecTip(client)
 {
 	if (g_bTips[client][1]) return;
 
-	PrintToChat(client, "%s %s", MAIN_TAG, SPEC_TIP);
+	PrintToChat(client, "%s %t", MAIN_TAG, "R2CompMod #8");
 
 	g_bTips[client][1] = true;
 }

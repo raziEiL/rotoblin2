@@ -469,7 +469,7 @@ static ForceToUnlockTeams()
 	if (!g_bTeamLock) return;
 
 	if (GetConVarBool(g_hCvarNotify))
-		PrintToChatAll("%s Unscramble completed.", MAIN_TAG);
+		PrintToChatAll("%s %t", MAIN_TAG, "R2CompMod #23");
 
 	Call_StartForward(g_fwdOnUnscrambleEnd);
 	Call_Finish();

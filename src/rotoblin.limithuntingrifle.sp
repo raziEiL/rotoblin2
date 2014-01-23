@@ -144,9 +144,9 @@ public Action:_LHR_SDKh_OnWeaponCanUse(client, weapon)
 			g_bHaveTipped[client] = true;
 
 			if (g_iCvarLimit[iWeap] > 0)
-				PrintToChat(client, "%s %s weapon group has reached its max of %d", MAIN_TAG, g_sWeapon_Names[iWeap][NAME], g_iCvarLimit[iWeap]);
+				PrintToChat(client, "%s %t", MAIN_TAG, "R2CompMod #1", g_sWeapon_Names[iWeap][NAME], g_iCvarLimit[iWeap]);
 			else
-				PrintToChat(client, "%s %s is not allowed.", MAIN_TAG, g_sWeapon_Names[iWeap][NAME]);
+				PrintToChat(client, "%s %t", MAIN_TAG, "R2CompMod #2", g_sWeapon_Names[iWeap][NAME]);
 
 			CreateTimer(TIP_TIMEOUT, _LHR_Tip_Timer, client);
 		}

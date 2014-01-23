@@ -436,7 +436,7 @@ public Action:IC_ev_SpawnerGiveItem(Handle:event, const String:name[], bool:dont
 	if (++g_iPickUp[iWeapIndex] == g_iLimit[iWeapIndex]){
 
 		DebugLog("%s %s picked up %d/%d", IC_TAG, g_sSpawnName[iWeapIndex], g_iPickUp[iWeapIndex], g_iLimit[iWeapIndex]);
-		PrintToChatAll("%s Survivor team has the reached %s limit", MAIN_TAG, g_sName[iWeapIndex]);
+		PrintToChatAll("%s %t", MAIN_TAG, "R2CompMod #9", g_sName[iWeapIndex]);
 
 		new iEnt = -1;
 		while ((iEnt = FindEntityByClassname(iEnt, g_sSpawnName[iWeapIndex])) != INVALID_ENT_REFERENCE)
