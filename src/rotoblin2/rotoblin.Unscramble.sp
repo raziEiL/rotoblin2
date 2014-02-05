@@ -107,7 +107,7 @@ public Action:AS_cmdh_Vote(client, const String:command[], argc)
 {
 	if (g_bTeamLock){
 
-		PrintToChat(client, "%s Voting is not enabled until unscramble is completed", MAIN_TAG);
+		PrintToChat(client, "%s %t", MAIN_TAG, "R2CompMod #24");
 		return Plugin_Handled;
 	}
 
