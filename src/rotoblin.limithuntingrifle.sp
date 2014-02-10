@@ -123,7 +123,7 @@ public Action:_LHR_SDKh_OnWeaponCanUse(client, weapon)
 	decl iWeap;
 	if ((iWeap = GetWeaponIndexByClassEx(weapon)) == NULL || g_iCvarLimit[iWeap] == NULL) return Plugin_Continue;
 
-	if ((iWeap == WEAPINDEX_SNIPER && IsFakeClient(client))) return Plugin_Handled;
+	if (iWeap == WEAPINDEX_SNIPER && IsFakeClient(client) && IsVersusMode()) return Plugin_Handled;
 
 	decl icurWeapon;
 	if ((icurWeapon = GetPlayerWeaponSlot(client, 0)) != NULL && IsValidEntity(icurWeapon)){
