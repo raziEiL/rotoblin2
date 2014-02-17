@@ -107,7 +107,8 @@ public Action:AS_cmdh_Vote(client, const String:command[], argc)
 {
 	if (g_bTeamLock){
 
-		PrintToChat(client, "%s Voting is not enabled until unscramble is completed", MAIN_TAG);
+		if (GetClientTeam(client) != 1)
+			PrintToChat(client, "%s Voting is not enabled until unscramble is completed", MAIN_TAG);
 		return Plugin_Handled;
 	}
 
