@@ -107,7 +107,8 @@ public Action:AS_cmdh_Vote(client, const String:command[], argc)
 {
 	if (g_bTeamLock){
 
-		PrintToChat(client, "%s %t", MAIN_TAG, "R2CompMod #24");
+		if (GetClientTeam(client) != 1)
+			PrintToChat(client, "%s %t", MAIN_TAG, "R2CompMod #24");
 		return Plugin_Handled;
 	}
 
@@ -491,3 +492,9 @@ static bool:IsUnscrabbleComplete()
 
 	return true;
 }
+
+public Native_R2comp_IsUnscrambled(Handle:plugin, numParams)
+{
+	return !g_bTeamLock;
+}
+

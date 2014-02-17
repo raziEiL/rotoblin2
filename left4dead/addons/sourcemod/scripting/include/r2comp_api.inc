@@ -39,6 +39,7 @@ enum CompNatives
 	GetScore,
 	GetHighestSurvivorFlow,
 	GetHighestSurvivorFlowEx,
+	IsUnscrambled,
 	IsGamePaused,
 	IsReadyMode,
 	GetCampaingScore
@@ -54,6 +55,7 @@ new stock const String:g_sR2API_NativeName[][] =
 	"R2comp_GetScore",
 	"R2comp_GetHighestSurvivorFlow",
 	"R2comp_GetHighestSurvivorFlowEx",
+	"R2comp_IsUnscrambled",
 	"L4DReady_IsGamePaused",
 	"L4DReady_IsReadyMode",
 	"L4DScores_GetCampaingScore"
@@ -157,6 +159,13 @@ native Float:R2comp_GetHighestSurvivorFlow();
 native Float:R2comp_GetHighestSurvivorFlowEx();
 
 /**
+ * Returns whether or not unscramble completed.
+ *
+ * @return			True if completed, false means unscramble is processing and team changes is locked.
+ */
+native bool:R2comp_IsUnscrambled();
+
+/**
  * Called when server becomes empty.
  *
  * @noreturn
@@ -233,8 +242,7 @@ stock MarkCompNatives()
 	MarkNativeAsOptional("R2comp_GetScore");
 	MarkNativeAsOptional("R2comp_GetHighestSurvivorFlow");
 	MarkNativeAsOptional("R2comp_GetHighestSurvivorFlowEx");
-	MarkNativeAsOptional("R2comp_GetMapInfoMapMaxFlow");
-	MarkNativeAsOptional("R2comp_SetMapInfoMapMaxFlow");
+	MarkNativeAsOptional("R2comp_IsUnscrambled");
 	MarkNativeAsOptional("L4DReady_IsGamePaused");
 	MarkNativeAsOptional("L4DReady_IsReadyMode");
 	MarkNativeAsOptional("L4DScores_GetCampaingScore");
