@@ -91,6 +91,7 @@ static RegR2Lib()
 	CreateNative("R2comp_GetMatchName", Native_R2comp_GetMatchName);
 	CreateNative("R2comp_GetHighestSurvivorFlow", Native_R2comp_GetHighestSurvivorFlow);
 	CreateNative("R2comp_GetHighestSurvivorFlowEx", Native_R2comp_GetHighestSurvivorFlowEx);
+	CreateNative("R2comp_IsUnscrambled", Native_R2comp_IsUnscrambled);
 
 	#if SCORES_COMMAND
 		CreateNative("R2comp_GetScore", Native_R2comp_GetCampaingScore);

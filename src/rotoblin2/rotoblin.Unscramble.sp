@@ -491,3 +491,9 @@ static bool:IsUnscrabbleComplete()
 
 	return true;
 }
+
+public Native_R2comp_IsUnscrambled(Handle:plugin, numParams)
+{
+	return !g_bTeamLock;
+}
+
