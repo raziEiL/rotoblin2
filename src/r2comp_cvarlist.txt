@@ -37,7 +37,7 @@ rotoblin_no_escape_tank                                            : Removes tan
 rotoblin_unscramble_novotes                                        : Prevents calling votes until unscramble completes.
 rotoblin_pause_allowed                                             : Sets whether the game can be paused by players
 rotoblin_pause_duration                                            : Sets the duration before the game can be unpaused by a either team
-rotoblin_pills_autogiver                                           : Sets whether the survivors will Automatically receive pills after they leave the saferoom
+rotoblin_pills_autogiver                                           : Sets whether the survivors will automatically receive pills after they leave the saferoom
 rotoblin_pills_limit                                               : Limits the number of pills on each map outside of the safe room. (-1: remove all, 0: director settings, > 0: limit to cvar value)
 rotoblin_pipebomb_limit                                            : Limits the number of pipe-bombs on each map outside of the safe room. (-1: remove all, 0: director settings, > 0: limit to cvar value)
 rotoblin_remove_cannisters                                         : Removes all cannisters (gascan, propane and oxygen)

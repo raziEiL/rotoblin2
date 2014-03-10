@@ -26,9 +26,7 @@
 #endif
 #define _match_
 
-#define MATCH		8
-
-enum _PATCH
+enum strPatch
 {
 	CFGDIR,
 	ROTODIR,
@@ -37,19 +35,21 @@ enum _PATCH
 	RATES,
 	MAIN,
 	MAP,
-	PLUGINS
+	PLUGINS,
+	CVARS
 };
 
-new const String:sMatchCfg[_PATCH][] =
+new const String:sMatchCfg[strPatch][] =
 {
 	"cfg/",
 	"cfgroto/",
 	"cfgroto/rotoblin_off.cfg",
 	"cfgroto/rotoblin_settings.cfg",
 	"cfgroto/rotoblin_rates.cfg",
-	"/rotoblin.cfg",
+	"/rotoblin_main.cfg",
 	"/rotoblin_map.cfg",
-	"/rotoblin_plugins.cfg"
+	"/rotoblin_plugins.cfg",
+	"/rotoblin_cvars.cfg"
 };
 
 new 		String:sMatchName[48];
