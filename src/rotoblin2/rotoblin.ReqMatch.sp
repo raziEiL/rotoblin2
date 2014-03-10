@@ -253,7 +253,7 @@ public Action:RM_t_ReadOptionalCvars(Handle:timer)
 
 	BuldMatchPatch(MAP);
 	ExecuteScritp(sMatchCfg[RATES]);
-	BuldMatchPatch(MATCH);
+	BuldMatchPatch(CVARS);
 	BuldMatchPatch(MAIN);
 
 	DebugLog("%s Successfully!", RQ_TAG);
@@ -274,23 +274,10 @@ _RM_OnConfigsExecuted()
 		BuldMatchPatch(MAP);
 }
 
-static BuldMatchPatch(iWhat)
+static BuldMatchPatch(strPatch:iFile)
 {
 	decl String:sFile[96];
-	FormatEx(sFile, 96, "%s%s", sMatchCfg[ROTODIR], sMatchName);
-
-	switch (iWhat){
-
-		case MATCH:
-			Format(sFile, 96, "%s/%s.cfg", sFile, sMatchName);
-		case MAIN:
-			Format(sFile, 96, "%s%s", sFile, sMatchCfg[MAIN]);
-		case MAP:
-			Format(sFile, 96, "%s%s", sFile, sMatchCfg[MAP]);
-		case PLUGINS:
-			Format(sFile, 96, "%s%s", sFile, sMatchCfg[PLUGINS]);
-	}
-
+	FormatEx(sFile, 96, "%s%s%s", sMatchCfg[ROTODIR], sMatchName, sMatchCfg[iFile]);
 	ExecuteScritp(sFile);
 }
 
