@@ -253,7 +253,7 @@ public Action:RM_t_ReadOptionalCvars(Handle:timer)
 
 	BuldMatchPatch(MAP);
 	ExecuteScritp(sMatchCfg[RATES]);
-	BuldMatchPatch(MATCH);
+	BuldMatchPatch(CVARS);
 	BuldMatchPatch(MAIN);
 
 	DebugLog("%s Successfully!", RQ_TAG);
