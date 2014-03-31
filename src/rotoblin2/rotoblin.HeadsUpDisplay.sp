@@ -87,10 +87,11 @@ _HUD_OnPluginEnabled()
 	HookConVarChange(g_hTankHealth,			HUD_OnCvarChange_TankHealth);
 	HookConVarChange(g_hVsBonusHealth,		HUD_OnCvarChange_TankHealth);
 	HookConVarChange(g_hBurnLifeTime,		HUD_OnCvarChange_TankHealth);
+	HookConVarChange(g_hCvarAllowSpecHud,		HUD_OnCvarChange_SpecHud);
 
 	HUD_GetCvars();
 
-	if ((g_bCvarAllowSpecHud = GetConVarBool(g_hCvarAllowSpecHud)))
+	if (g_bCvarAllowSpecHud)
 		g_hSpecHudTimer = CreateTimer(1.0, HUD_t_SpecTimer, _, TIMER_REPEAT);
 }
 
@@ -105,8 +106,15 @@ _HUD_OnPluginDisable()
 	UnhookConVarChange(g_hVsBonusHealth, 	HUD_OnCvarChange_TankHealth);
 	UnhookConVarChange(g_hBurnLifeTime, 	HUD_OnCvarChange_TankHealth);
 
-	if (g_bCvarAllowSpecHud)
+	CloseSpecHud();
+}
+
+static CloseSpecHud()
+{
+	if (g_hSpecHudTimer != INVALID_HANDLE){
 		KillTimer(g_hSpecHudTimer);
+		g_hSpecHudTimer = INVALID_HANDLE;
+	}
 }
 
 _HUD_OnClientPutInServer(client)
@@ -460,12 +468,25 @@ public HUD_OnCvarChange_CompactHud(Handle:hHandle, const String:sOldVal[], const
 		g_bCvarCompactHud = GetConVarBool(hHandle);
 }
 
+public HUD_OnCvarChange_SpecHud(Handle:hHandle, const String:sOldVal[], const String:sNewVal[])
+{
+	if (!StrEqual(sOldVal, sNewVal)){
+
+		CloseSpecHud();
+
+		if ((g_bCvarAllowSpecHud = GetConVarBool(hHandle)))
+			g_hSpecHudTimer = CreateTimer(1.0, HUD_t_SpecTimer, _, TIMER_REPEAT);
+	}
+}
+
+
 static HUD_GetCvars()
 {
 	g_bCvarTwoTanks = GetConVarBool(g_hCvarTwoTanks);
 	g_fTankHealth = GetConVarFloat(g_hTankHealth) * GetConVarFloat(g_hVsBonusHealth);
 	g_bCvarCompactHud = GetConVarBool(g_hCvarCompactHud);
 	g_fBurnDmg = g_fTankHealth / GetConVarFloat(g_hBurnLifeTime);
+	g_bCvarAllowSpecHud = GetConVarBool(g_hCvarAllowSpecHud);
 }
 
 /*--------------------------------------
