@@ -11,6 +11,7 @@ rotoblin_allow_match_req                                           : Sets whethe
 rotoblin_allow_match_resets                                        : Sets whether to reset to the default config when the server is empty ("rotoblin_autoloader_cfg" convar)
 rotoblin_allow_natural_hordes                                      : Sets whether natural hordes will spawn. (-1: director settings, 0: disable, > 0: spawn interval to cvar value)
 rotoblin_allow_spec_hud                                            : Enables Rotoblin spectator HUD
+rotoblin_allow_tank_hud                                            : Enables Rotoblin Tank HUD
 rotoblin_allow_unscramble                                          : Enables unscramble feature (Puts all players on the right team after map/campaign/match change)
 rotoblin_choosemenu_unlocker                                       : Allows spectator/infected players to join the survivor team even if the survivor bot is dead (through M button)
 rotoblin_compact_tankhud                                           : The style of the Tank HUD. (0: old style, 1: new style)
@@ -97,6 +98,7 @@ l4d_ready_disable_spawns                                           : Prevent SI 
 l4d_ready_pause_metod                                              : 0=default, 1=RUP turn on while game in pause
 l4d_ready_notify                                                   : Print or not notify about ready
 l4d_ready_panel_text                                               : Adds additional text to the ready up panel
+l4d_ready_respectate                                               : Allows spectators to use spectate command
 
 [l4dunreservelobby.sp]
 l4d_unreserve_full                                                 : Automatically unreserve server after a full lobby joins
@@ -133,7 +135,7 @@ prodmg_failed_crown                                                : If set, wit
 tankburn                                                           : Sets whether the plugin is enabled or not
 tankburn_duration                                                  : Sets for how long the tank will burn and take damage.
 
-[WallKicking.sp]
+[wallkicking_block.sp]
 stop_wallkicking_enable                                            : If set, stops hunters from wallkicking
 stop_wallkicking_mode                                              : How the plugin prevents wall kicking. 0: block trick, 1: slay player
 
