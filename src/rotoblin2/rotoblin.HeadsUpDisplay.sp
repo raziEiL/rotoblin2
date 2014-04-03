@@ -24,8 +24,8 @@
  */
 
 static	Handle:g_hCvarAllowSpecHud, Handle:g_hCvarTwoTanks, Handle:g_hTankHealth, Handle:g_hVsBonusHealth, Handle:g_hLotteryTime, Handle:g_hCvarCompactHud, Handle:g_hBurnLifeTime, Float:g_fBurnDmg,
-		bool:g_bCvarAllowSpecHud, bool:g_bCvarTwoTanks, bool:g_bCvarCompactHud, Float:g_fTankHealth = 6000.0, bool:g_bShowTankHud[MAXPLAYERS+1], bool:g_bHudEnabled,
-		g_iStasis, Handle:g_hSpecHudTimer, bool:g_bShowSpecHud[MAXPLAYERS+1], g_iSISpawnTime[MAXPLAYERS+1][2], bool:g_bBlockSpecHUD, bool:g_bTips[MAXPLAYERS+1][2];
+		bool:g_bCvarAllowSpecHud, bool:g_bCvarTwoTanks, bool:g_bCvarCompactHud, Float:g_fTankHealth = 6000.0, bool:g_bShowTankHud[MAXPLAYERS+1], bool:g_bHudEnabled, Handle:g_hDifficulty, Handle:g_hGameMode,
+		g_iStasis, Handle:g_hSpecHudTimer, bool:g_bShowSpecHud[MAXPLAYERS+1], g_iSISpawnTime[MAXPLAYERS+1][2], bool:g_bBlockSpecHUD, bool:g_bTips[MAXPLAYERS+1][2], Handle:g_hCvarAllowTankHud, bool:g_bCvarAllowTankHud;
 
 static stock bool:g_bTankKilled;
 
@@ -35,8 +35,11 @@ _HeadsUpDisplay_OnPluginStart()
 	g_hVsBonusHealth	= FindConVar("versus_tank_bonus_health");
 	g_hLotteryTime		= FindConVar("director_tank_lottery_selection_time");
 	g_hBurnLifeTime		= FindConVar("z_tank_burning_lifetime");
+	g_hDifficulty		= FindConVar("z_difficulty");
+	g_hGameMode			= FindConVar("mp_gamemode");
 
 	g_hCvarAllowSpecHud		= CreateConVarEx("allow_spec_hud", "0", "Enables Rotoblin spectator HUD");
+	g_hCvarAllowTankHud		= CreateConVarEx("allow_tank_hud", "0", "Enables Rotoblin Tank HUD");
 	g_hCvarTwoTanks				= CreateConVarEx("two_tanks", "0", "Enables support for double tank mods (The Tank Hud)");
 	g_hCvarCompactHud			= CreateConVarEx("compact_tankhud", "0", "The style of the Tank HUD. (0: old style, 1: new style)");
 
@@ -84,7 +87,10 @@ _HUD_OnPluginEnabled()
 	HookConVarChange(g_hTankHealth,			HUD_OnCvarChange_TankHealth);
 	HookConVarChange(g_hVsBonusHealth,		HUD_OnCvarChange_TankHealth);
 	HookConVarChange(g_hBurnLifeTime,		HUD_OnCvarChange_TankHealth);
-	HookConVarChange(g_hCvarAllowSpecHud,		HUD_OnCvarChange_SpecHud);
+	HookConVarChange(g_hDifficulty,			HUD_OnCvarChange_TankHealth);
+	HookConVarChange(g_hGameMode,			HUD_OnCvarChange_TankHealth);
+	HookConVarChange(g_hCvarAllowSpecHud,	HUD_OnCvarChange_SpecHud);
+	HookConVarChange(g_hCvarAllowTankHud,	HUD_OnCvarChange_TankHud);
 
 	HUD_GetCvars();
 
@@ -97,11 +103,15 @@ _HUD_OnPluginDisable()
 	UnhookEvent("round_start", HUD_ev_RoundStart, EventHookMode_PostNoCopy);
 	UnhookEvent("ghost_spawn_time", HUD_ev_GhostSpawnTime);
 
-	UnhookConVarChange(g_hCvarTwoTanks,	HUD_OnCvarChange_TwoTanks);
-	UnhookConVarChange(g_hCvarCompactHud,	HUD_OnCvarChange_CompactHud);
-	UnhookConVarChange(g_hTankHealth,		HUD_OnCvarChange_TankHealth);
-	UnhookConVarChange(g_hVsBonusHealth, 	HUD_OnCvarChange_TankHealth);
-	UnhookConVarChange(g_hBurnLifeTime, 	HUD_OnCvarChange_TankHealth);
+	UnhookConVarChange(g_hCvarTwoTanks,		HUD_OnCvarChange_TwoTanks);
+	UnhookConVarChange(g_hCvarCompactHud,		HUD_OnCvarChange_CompactHud);
+	UnhookConVarChange(g_hTankHealth,			HUD_OnCvarChange_TankHealth);
+	UnhookConVarChange(g_hVsBonusHealth, 		HUD_OnCvarChange_TankHealth);
+	UnhookConVarChange(g_hBurnLifeTime, 		HUD_OnCvarChange_TankHealth);
+	UnhookConVarChange(g_hDifficulty,			HUD_OnCvarChange_TankHealth);
+	UnhookConVarChange(g_hGameMode,				HUD_OnCvarChange_TankHealth);
+	UnhookConVarChange(g_hCvarAllowSpecHud,	HUD_OnCvarChange_SpecHud);
+	UnhookConVarChange(g_hCvarAllowTankHud,	HUD_OnCvarChange_TankHud);
 
 	CloseSpecHud();
 }
@@ -151,7 +161,7 @@ static _HUD_ShowSpecTip(client)
 
 _HUD_ev_OnTankSpawn()
 {
-	if (!g_bHudEnabled){
+	if (g_bCvarAllowTankHud && !g_bHudEnabled){
 
 		for (new i = 1; i < MaxClients; i++){
 
@@ -191,6 +201,7 @@ public Action:HUD_t_Timer(Handle:timer)
 
 static bool:HUD_DrawTankPanel()
 {
+	if (!g_bCvarAllowTankHud) return false;
 	if (g_bBlackSpot || (IsNativeAvailable(IsGamePaused) && L4DReady_IsGamePaused())) return true;
 
 	new bool:bTankInGame, iTanksIndex[2], iSurvTeamHealth;
@@ -228,7 +239,7 @@ static bool:HUD_DrawTankPanel()
 	if (iPassCount > 2) iPassCount = 2;
 	hHUD = CreatePanel();
 	hTankPersonalHud = CreatePanel();
-	
+
 	decl String:sBuffer[256];
 	if (g_bCvarTwoTanks || !g_bCvarCompactHud)
 		DrawPanelText(hHUD, "Rotoblin Tank Spec HUD\n\n------------------------------");
@@ -445,6 +456,19 @@ public HUD_HUD_Handler(Handle:menu, MenuAction:action, param1, param2)
 
 }
 
+static Float:GetCoopMultiplie()
+{
+	decl String:sDifficulty[24];
+	GetConVarString(g_hDifficulty, sDifficulty, 24);
+
+	if (StrEqual(sDifficulty, "Easy"))
+		return 0.75;
+	else if (StrEqual(sDifficulty, "Normal"))
+		return 1.0;
+
+	return 2.0;
+}
+
 public HUD_OnCvarChange_TwoTanks(Handle:hHandle, const String:sOldVal[], const String:sNewVal[])
 {
 	if (!StrEqual(sOldVal, sNewVal))
@@ -455,7 +479,7 @@ public HUD_OnCvarChange_TankHealth(Handle:hHandle, const String:sOldVal[], const
 {
 	if (StrEqual(sOldVal, sNewVal)) return;
 
-	g_fTankHealth = GetConVarFloat(g_hTankHealth) * GetConVarFloat(g_hVsBonusHealth);
+	g_fTankHealth = FloatMul(GetConVarFloat(g_hTankHealth), IsVersusMode() ? GetConVarFloat(g_hVsBonusHealth) : GetCoopMultiplie());
 	g_fBurnDmg = g_fTankHealth / GetConVarFloat(g_hBurnLifeTime);
 }
 
@@ -476,14 +500,20 @@ public HUD_OnCvarChange_SpecHud(Handle:hHandle, const String:sOldVal[], const St
 	}
 }
 
+public HUD_OnCvarChange_TankHud(Handle:hHandle, const String:sOldVal[], const String:sNewVal[])
+{
+	if (!StrEqual(sOldVal, sNewVal))
+		g_bCvarAllowTankHud = GetConVarBool(hHandle);
+}
 
 static HUD_GetCvars()
 {
 	g_bCvarTwoTanks = GetConVarBool(g_hCvarTwoTanks);
-	g_fTankHealth = GetConVarFloat(g_hTankHealth) * GetConVarFloat(g_hVsBonusHealth);
+	g_fTankHealth = FloatMul(GetConVarFloat(g_hTankHealth), IsVersusMode() ? GetConVarFloat(g_hVsBonusHealth) : GetCoopMultiplie());
 	g_bCvarCompactHud = GetConVarBool(g_hCvarCompactHud);
 	g_fBurnDmg = g_fTankHealth / GetConVarFloat(g_hBurnLifeTime);
 	g_bCvarAllowSpecHud = GetConVarBool(g_hCvarAllowSpecHud);
+	g_bCvarAllowTankHud = GetConVarBool(g_hCvarAllowTankHud);
 }
 
 /*--------------------------------------
