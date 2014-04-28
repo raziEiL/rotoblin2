@@ -76,7 +76,7 @@ _MC_OnMapEnd()
 	g_hMobTimer = INVALID_HANDLE;
 }
 
-public Action:_MC_ev_RoundStart(Handle:event, const String:name[], bool:dontBroadcast)
+public _MC_ev_RoundStart(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	g_bLeftStartArea = false;
 	_MC_TogggleBotBehavior(true);
@@ -91,7 +91,7 @@ public Action:_MC_ev_RoundStart(Handle:event, const String:name[], bool:dontBroa
 	}
 }
 
-public Action:_MC_ev_PlayerLeftStartArea(Handle:event, const String:name[], bool:dontBroadcast)
+public _MC_ev_PlayerLeftStartArea(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	g_bLeftStartArea = true;
 	_MC_TogggleBotBehavior(false);

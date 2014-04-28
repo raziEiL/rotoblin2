@@ -208,7 +208,7 @@ public Action:AS_cmdh_JoinTeam(client, const String:command[], argc)
 	return Plugin_Continue;
 }
 
-public Action:AS_ev_VotePassed(Handle:event, const String:sName[], bool:DontBroadCast)
+public AS_ev_VotePassed(Handle:event, const String:sName[], bool:DontBroadCast)
 {
 	decl String:sDetals[128];
 	GetEventString(event, "details", sDetals, 128);
@@ -285,7 +285,7 @@ public Action:AS_t_TeamsFlipped(Handle:timer)
 	g_isNewTeamFlipped = GameRules_GetProp("m_bAreTeamsFlipped");
 }
 
-public Action:AS_ev_RoundEnd(Handle:event, const String:name[], bool:dontBroadcast)
+public AS_ev_RoundEnd(Handle:event, const String:name[], bool:dontBroadcast)
 {
 #if SCORES_COMMAND
 	if (!g_bTempBlock){

@@ -55,7 +55,7 @@ _NET_OnPluginDisable()
 	UnhookConVarChange(g_hEnableNoEscTank, _NET_Enable_CvarChange);
 }
 
-public Action:NET_ev_FinaleEscStart(Handle:event, const String:name[], bool:dontBroadcast)
+public NET_ev_FinaleEscStart(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	if (!g_bEnableNoEscTank) return;
 
@@ -63,7 +63,7 @@ public Action:NET_ev_FinaleEscStart(Handle:event, const String:name[], bool:dont
 	DebugLog("%s Vehicle incoming but tank spawn is blocked", NET_TAG);
 }
 
-public Action:NET_ev_RoundStart(Handle:event, const String:name[], bool:dontBroadcast)
+public NET_ev_RoundStart(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	g_bVehicleIncoming = false;
 }

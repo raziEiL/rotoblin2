@@ -58,7 +58,7 @@ _WSD_OnMapStart()
 	g_bBarge = StrEqual(sMap, "l4d_river02_barge");
 }
 
-public Action:WS_ev_PlayerTeam(Handle:event, const String:name[], bool:dontBroadcast)
+public WS_ev_PlayerTeam(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	if (g_bBarge) return;
 

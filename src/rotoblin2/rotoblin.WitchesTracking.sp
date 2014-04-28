@@ -29,8 +29,8 @@
 
 #define WITCH_TO_CLOSE				300
 
-static	Handle:g_hWitchArray, Handle:g_hMaxWitches, Handle:g_hWitchDistance, Handle:g_hWitchSpawns, bool:g_bCvarWitchSpawns, g_iCvarMaxWithes, 
-		bool:g_bFirstRound, g_iWitchCount, g_iSpawnedWitches, bool:g_bWipeStage;
+static	Handle:g_hWitchArray, Handle:g_hMaxWitches, Handle:g_hWitchDistance, Handle:g_hWitchSpawns, bool:g_bCvarWitchSpawns, g_iCvarMaxWithes,
+		bool:g_bFirstRound, g_iWitchCount, g_iSpawnedWitches, bool:g_bWipeStage, Handle:g_hWitchFlowArray;
 
 public _WitchTracking_OnPluginStart()
 {
@@ -39,6 +39,7 @@ public _WitchTracking_OnPluginStart()
 	g_hWitchDistance = CreateConVarEx("witch_distance", "0", "Allows the director to spawn a witch close to another witch.", _, true, 0.0, true, 1.0);
 
 	g_hWitchArray = CreateArray(3);
+	g_hWitchFlowArray = CreateArray();
 }
 
 _WT_OnPluginEnabled()
@@ -48,6 +49,9 @@ _WT_OnPluginEnabled()
 
 	HookEvent("round_start", WT_ev_RoundStart, EventHookMode_PostNoCopy);
 	HookEvent("witch_spawn", WT_ev_WitchSpawn);
+
+	HookPublicEvent(EVENT_ONSURVIVORMOVES, WT_OnSurvivorMoves);
+
 	Update_WT_MaxWithesConVar();
 	Update_WT_WitchSpawnsConVar();
 }
@@ -59,6 +63,9 @@ _WT_OnPluginDisabled()
 
 	UnhookEvent("round_start", WT_ev_RoundStart, EventHookMode_PostNoCopy);
 	UnhookEvent("witch_spawn", WT_ev_WitchSpawn);
+
+	UnhookPublicEvent(EVENT_ONSURVIVORMOVES, WT_OnSurvivorMoves);
+
 	_WT_OnMapEnd();
 }
 
@@ -68,7 +75,7 @@ _WT_OnMapEnd()
 	_WT_ClearVars();
 }
 
-public Action:WT_ev_RoundStart(Handle:event, const String:name[], bool:dontBroadcast)
+public WT_ev_RoundStart(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	g_bFirstRound = !g_bFirstRound;
 	g_iWitchCount = 0;
@@ -77,10 +84,47 @@ public Action:WT_ev_RoundStart(Handle:event, const String:name[], bool:dontBroad
 
 	if (!g_bFirstRound){
 
-		if (g_bCvarWitchSpawns)
-			CreateTimer(3.0, WT_t_SpawnWitch);
+		if (g_bCvarWitchSpawns){
+
+			if (!IsDIModuleEnabled())
+				CreateTimer(3.0, WT_t_SpawnWitch);
+			else {
+				g_bWipeStage = true;
+				g_iSpawnedWitches = 0;
+			}
+		}
 		else if (g_iCvarMaxWithes)
 			_WT_ClearVars();
+	}
+}
+
+public WT_OnSurvivorMoves(Float:LowestFlow, Float:HighestFlow)
+{
+	if (g_bFirstRound || !g_bCvarWitchSpawns || !GetArraySize(g_hWitchFlowArray)) return;
+
+	if (RoundToNearest(HighestFlow) >= GetArrayCell(g_hWitchFlowArray, 0)){
+
+		decl Float:fWitchData[2][3];
+		GetArrayArray(g_hWitchArray, 0, fWitchData[0]);
+		GetArrayArray(g_hWitchArray, 1, fWitchData[1]);
+
+		UnhookEvent("witch_spawn", WT_ev_WitchSpawn);
+
+		new iEnt = CreateEntityByName("witch");
+		TeleportEntity(iEnt, fWitchData[0], fWitchData[1], NULL_VECTOR);
+		DispatchSpawn(iEnt);
+
+		HookEvent("witch_spawn", WT_ev_WitchSpawn);
+
+		g_iWitchCount++;
+		DebugLog("%s Restore Witch %d at %f %f %f ", WT_TAG, iEnt, fWitchData[0][0], fWitchData[0][1], fWitchData[0][2]);
+
+		RemoveFromArray(g_hWitchFlowArray, 0);
+		RemoveFromArray(g_hWitchArray, 0);
+		RemoveFromArray(g_hWitchArray, 0);
+
+		if (!GetArraySize(g_hWitchFlowArray))
+			g_bWipeStage = false;
 	}
 }
 
@@ -116,10 +160,17 @@ public Action:WT_t_SpawnWitch(Handle:timer)
 	HookEvent("witch_spawn", WT_ev_WitchSpawn);
 }
 
-public Action:WT_ev_WitchSpawn(Handle:event, const String:name[], bool:dontBroadcast)
+public WT_ev_WitchSpawn(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	if (!g_bCvarWitchSpawns && !g_iCvarMaxWithes) return;
 	new iEnt = GetEventInt(event, "witchid");
+
+	if (!g_bFirstRound && IsDIModuleEnabled() && g_bWipeStage && g_bCvarWitchSpawns){
+
+		DebugLog("%s Round 2 Valve Witch %d was removed", WT_TAG, iEnt);
+		AcceptEntityInput(iEnt, "Kill");
+		return;
+	}
 
 	decl Float:fWitchData[2][3];
 	GetEntPropVector(iEnt, Prop_Send, "m_vecOrigin", fWitchData[0]);
@@ -145,12 +196,15 @@ public Action:WT_ev_WitchSpawn(Handle:event, const String:name[], bool:dontBroad
 
 		DebugLog("%s Round 2 Dont remove this Witch %d (First team died before this witch was spawn in round1)", WT_TAG, iEnt);
 	}
+	else {
 
-	GetEntPropVector(iEnt, Prop_Send, "m_angRotation", fWitchData[1]);
-	PushArrayArray(g_hWitchArray, fWitchData[0]);
-	PushArrayArray(g_hWitchArray, fWitchData[1]);
+		GetEntPropVector(iEnt, Prop_Send, "m_angRotation", fWitchData[1]);
+		PushArrayArray(g_hWitchArray, fWitchData[0]);
+		PushArrayArray(g_hWitchArray, fWitchData[1]);
+		PushArrayCell(g_hWitchFlowArray, RoundToNearest(GetHighestSurvFlow(true)));
 
-	DebugLog("%s Round %s Push Witch %d in array %.2f %.2f %.2f (Total: %d)", WT_TAG, g_bFirstRound ? "1" : "2", iEnt, fWitchData[0][0], fWitchData[0][1], fWitchData[0][2], g_iWitchCount);
+		DebugLog("%s Round %s Push Witch %d in array %.2f %.2f %.2f (Total: %d)", WT_TAG, g_bFirstRound ? "1" : "2", iEnt, fWitchData[0][0], fWitchData[0][1], fWitchData[0][2], g_iWitchCount);
+	}
 }
 
 static bool:IsWitchesTooClose(Float:vOrg[3])
@@ -185,6 +239,7 @@ static _WT_ClearVars()
 	g_bWipeStage = false;
 	g_iSpawnedWitches = 0;
 	ClearArray(g_hWitchArray);
+	ClearArray(g_hWitchFlowArray);
 }
 
 public _WT_MaxWitches_CvarChange(Handle:convar, const String:oldValue[], const String:newValue[])

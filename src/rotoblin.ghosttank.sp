@@ -146,7 +146,7 @@ _GT_L4D_OnSpawnTank()
 	DebugPrintToAllEx("OnSpawnTank() -> fire immunity timer %f", fFireImmunityTime);
 }
 
-public Action:_GT_ev_SpawnedAsTank(Handle:event, const String:name[], bool:dontBroadcast)
+public _GT_ev_SpawnedAsTank(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	new client = GetClientOfUserId(GetEventInt(event, "userid"));
 	if (!client) return;

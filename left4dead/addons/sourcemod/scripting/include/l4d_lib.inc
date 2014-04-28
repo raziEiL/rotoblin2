@@ -33,6 +33,15 @@
 static const	TANK_INDEX_L4D	= 5,
 				TANK_INDEX_L4D2	= 8;
 
+enum _:ZombieClass
+{
+	ZC_SMOKER = 1,
+	ZC_BOOMER,
+	ZC_HUNTER,
+	ZC_UNKNOWN,
+	ZC_TANK
+}
+
 stock bool:IsClientAndInGame(index)
 {
 	return IsClient(index) && IsClientInGame(index);

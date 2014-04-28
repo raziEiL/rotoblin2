@@ -82,7 +82,7 @@ _EF_OnPluginDisabled()
 }
 
 // Fixed up the game mechanics bug when the ammo piles use didn't provide a full ammo refill for weapons.
-public Action:EF_ev_AmmoPickup(Handle:event, const String:name[], bool:dontBroadcast)
+public EF_ev_AmmoPickup(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	if (!(g_iCvarExpolitFixes & (1 << AmmoPickup))) return;
 
@@ -90,7 +90,7 @@ public Action:EF_ev_AmmoPickup(Handle:event, const String:name[], bool:dontBroad
 	_EF_DoAmmoPilesFix(client);
 }
 
-public Action:EF_ev_PlayerUse(Handle:event, const String:name[], bool:dontBroadcast)
+public EF_ev_PlayerUse(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	if (!(g_iCvarExpolitFixes & (1 << AmmoPickup))) return;
 
