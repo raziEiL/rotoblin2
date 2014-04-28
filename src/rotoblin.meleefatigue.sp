@@ -70,6 +70,8 @@ static	const	String:	DEBUG_CHANNEL_NAME[]	= "MeleeFatigue";
 
 #define			MELEE_SOUND							"Swish"
 
+static Handle:g_hCvarMeleeControlFlags, Handle:g_hCvarNoDeadStop, Handle:g_hPouncing[MAXPLAYERS+1], g_iCvarMeleeControlFlags, bool:g_bCvarNoDeadStop;
+
 // **********************************************
 //                   Forwards
 // **********************************************
@@ -81,35 +83,13 @@ static	const	String:	DEBUG_CHANNEL_NAME[]	= "MeleeFatigue";
  */
 _MeleeFatigue_OnPluginStart()
 {
-	// Create convar
-	CreateIntConVar(
-		g_hNonFatiguedMeleePenalty_CVAR,
-		"melee_penalty",
-		"Sets the Shove penalty for each non-fatigued melee swipe",
-		g_nonFatiguedMeleePenalty);
+	g_hNonFatiguedMeleePenalty_CVAR = CreateConVarEx("melee_penalty", "0", "Sets the Shove penalty for each non-fatigued melee swipe", _, true, 0.0, true, 4.0);
+	g_hCvarMeleeControlFlags = CreateConVarEx("melee_flags", "0", "Blocks melee effect on infected. Flag (add together): 0=Disable, 2=Smoker, 4=Boomer, 8=Hunter, 16=CI, 30=all", _, true, 0.0, true, 30.0);
+	g_hCvarNoDeadStop = CreateConVarEx("melee_deadstop", "0", "Blocks deadstop feature", _, true, 0.0, true, 1.0);
 
-	UpdateNonFatiguedMeleePenalty();
-
+	AddConVarToReport(g_hNonFatiguedMeleePenalty_CVAR); // Add to report status module
 	g_iDebugChannel = DebugAddChannel(DEBUG_CHANNEL_NAME);
 	DebugPrintToAllEx("Module is now setup.", g_iDebugChannel);
-}
-
-static CreateIntConVar(&Handle:conVar, const String:cvarName[], const String:cvarDescription[], initialValue)
-{
-	// Create convar
-	decl String:buffer[10];
-	IntToString(int:initialValue, buffer, sizeof(buffer)); // Get default value for replacement style
-
-	conVar = CreateConVarEx(cvarName, buffer,
-		cvarDescription,
-		_, true, 0.0, true, 4.0);
-
-	if (conVar == INVALID_HANDLE)
-	{
-		ThrowError("Unable to create enable cvar named %s!", cvarName);
-	}
-
-	AddConVarToReport(conVar); // Add to report status module
 }
 
 /**
@@ -119,10 +99,18 @@ static CreateIntConVar(&Handle:conVar, const String:cvarName[], const String:cva
  */
 _MF_OnPluginEnabled()
 {
-	UpdateNonFatiguedMeleePenalty();
+	HookEvent("ability_use", _MF_ev_AbilityUse);
 
 	AddNormalSoundHook(_MF_sh_OnSoundEmitted);
-	HookConVarChange(g_hNonFatiguedMeleePenalty_CVAR, _MF_MeleePenalty_CvarChange);
+
+	HookConVarChange(g_hNonFatiguedMeleePenalty_CVAR, _MF_OnCvarChange_MeleePenalty);
+	HookConVarChange(g_hCvarMeleeControlFlags, _MF_OnCvarChange_MeleeControl);
+	HookConVarChange(g_hCvarNoDeadStop, _MF_OnCvarChange_NoDeadStop);
+
+	UpdateNonFatiguedMeleePenalty();
+	UpdateMeleeControlFlags();
+	UpdateNoDeadStop();
+
 	DebugPrintToAllEx("Module is now loaded");
 }
 
@@ -133,8 +121,13 @@ _MF_OnPluginEnabled()
  */
 _MF_OnPluginDisabled()
 {
+	UnhookEvent("ability_use", _MF_ev_AbilityUse);
+
 	RemoveNormalSoundHook(_MF_sh_OnSoundEmitted);
-	UnhookConVarChange(g_hNonFatiguedMeleePenalty_CVAR, _MF_MeleePenalty_CvarChange);
+
+	UnhookConVarChange(g_hNonFatiguedMeleePenalty_CVAR, _MF_OnCvarChange_MeleePenalty);
+	UnhookConVarChange(g_hCvarMeleeControlFlags, _MF_OnCvarChange_MeleeControl);
+	UnhookConVarChange(g_hCvarNoDeadStop, _MF_OnCvarChange_NoDeadStop);
 
 	DebugPrintToAllEx("Module is now unloaded");
 }
@@ -147,10 +140,20 @@ _MF_OnPluginDisabled()
  * @param newValue		String containing the new value of the convar.
  * @noreturn
  */
- public _MF_MeleePenalty_CvarChange(Handle:convar, const String:oldValue[], const String:newValue[])
+ public _MF_OnCvarChange_MeleePenalty(Handle:convar, const String:oldValue[], const String:newValue[])
 {
 	DebugPrintToAllEx("melee penalty changed. Old value %s, new value %s", oldValue, newValue);
 	UpdateNonFatiguedMeleePenalty();
+}
+
+public _MF_OnCvarChange_MeleeControl(Handle:convar, const String:oldValue[], const String:newValue[])
+{
+	UpdateMeleeControlFlags();
+}
+
+public _MF_OnCvarChange_NoDeadStop(Handle:convar, const String:oldValue[], const String:newValue[])
+{
+	UpdateNoDeadStop();
 }
 
 /**
@@ -231,6 +234,71 @@ public Action:_MF_sh_OnSoundEmitted(clients[64], &numClients, String:sample[PLAT
 	return Plugin_Continue;
 }
 
+public _MF_ev_AbilityUse(Handle:event, const String:name[], bool:dontBroadcast)
+{
+	if (!g_bCvarNoDeadStop) return;
+	new client = GetClientOfUserId(GetEventInt(event, "userid"));
+
+	if (g_hPouncing[client] == INVALID_HANDLE){
+
+		decl String:sAbility[64];
+		GetEventString(event, "ability", sAbility, 64);
+
+		if (StrEqual(sAbility, "ability_lunge"))
+			g_hPouncing[client] = CreateTimer(0.3, _MF_t_GroundTouchCheck, client, TIMER_REPEAT);
+	}
+}
+
+public Action:_MF_t_GroundTouchCheck(Handle:timer, any:client)
+{
+	if (IsClientInGame(client)){
+
+		if (!(GetEntityFlags(client) & FL_ONGROUND || !IsInfectedAlive(client)))
+			return Plugin_Continue;
+	}
+
+	g_hPouncing[client] = INVALID_HANDLE;
+	return Plugin_Stop;
+}
+
+public Action:L4D_OnEntityShoved(client, entity, weapon, Float:vector[3])
+{
+	if ((g_iCvarMeleeControlFlags || g_bCvarNoDeadStop) && IsClient(client) && IsSurvivor(client)){
+
+		if (IsClient(entity) && IsInfected(entity)){
+
+			new iClass = GetPlayerClass(entity);
+
+			if (iClass == ZC_HUNTER && g_hPouncing[entity] != INVALID_HANDLE){
+
+				if (g_bCvarNoDeadStop){
+
+					KillTimer(g_hPouncing[entity]);
+					g_hPouncing[entity] = CreateTimer(0.2, _MF_t_GroundTouchCheck, entity, TIMER_REPEAT);
+
+					return Plugin_Handled;
+				}
+				return Plugin_Continue;
+			}
+
+			if (g_iCvarMeleeControlFlags & (1 << iClass))
+				return Plugin_Handled;
+		}
+		else if (g_iCvarMeleeControlFlags & (1 << ZC_UNKNOWN) && IsCommonInfected(entity))
+			return Plugin_Handled;
+	}
+
+	return Plugin_Continue;
+}
+
+public Action:L4D_OnShovedBySurvivor(client, victim, const Float:vector[3])
+{
+	if (g_bCvarNoDeadStop && g_hPouncing[victim] != INVALID_HANDLE && GetClientTeam(victim) == 3 && GetPlayerClass(victim) == ZC_HUNTER)
+		return Plugin_Handled;
+
+	return Plugin_Continue;
+}
+
 // **********************************************
 //                 Private API
 // **********************************************
@@ -260,6 +328,16 @@ static UpdateNonFatiguedMeleePenalty()
 	g_nonFatiguedMeleePenalty = GetConVarInt(g_hNonFatiguedMeleePenalty_CVAR);
 
 	DebugPrintToAllEx("Updated non fatigued melee penalty global var; %d", g_nonFatiguedMeleePenalty);
+}
+
+static UpdateMeleeControlFlags()
+{
+	g_iCvarMeleeControlFlags = GetConVarInt(g_hCvarMeleeControlFlags);
+}
+
+static UpdateNoDeadStop()
+{
+	g_bCvarNoDeadStop = GetConVarBool(g_hCvarNoDeadStop);
 }
 
 stock _MF_CvarDump()

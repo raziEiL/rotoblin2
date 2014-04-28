@@ -25,7 +25,7 @@
  *
  * ============================================================================
  */
- 
+
 static 	Handle:g_hWarpEnable, bool:g_bWarpEnable, bool:g_bDelay[MAXPLAYERS+1], g_iLastTarget[MAXPLAYERS+1];
 
 _GhostWarp_OnPluginStart()
@@ -55,7 +55,7 @@ public GW_ev_PlayeDeath(Handle:event, const String:name[], bool:dontBroadcast)
 
 public _GW_OnPlayerRunCmd(client, &buttons)
 {
-	if (g_bBlackSpot || !(buttons & IN_ATTACK2) || !g_bWarpEnable || !SurvivorCount || g_bDelay[client] || 
+	if (g_bBlackSpot || !(buttons & IN_ATTACK2) || !g_bWarpEnable || !SurvivorCount || g_bDelay[client] ||
 		!IsPlayerAlive(client) || IsFakeClient(client) || GetClientTeam(client) != 3 || !IsPlayerGhost(client)) return false;
 
 	g_bDelay[client] = true;
@@ -78,7 +78,7 @@ GW_WarpToSurvivor(client)
 		return;
 	}
 	if (!IsClientInGame(target)) return;
-	
+
 	// Prevent people from spawning and then warp to survivor
 	SetEntProp(client, Prop_Send, "m_ghostSpawnState", 256);
 

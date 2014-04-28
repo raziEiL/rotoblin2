@@ -198,6 +198,11 @@ public Action:_DI_Check_Timer(Handle:timer)
 	g_fLastLowestSurvivorFlow = lastSurvivorFlow;
 	g_fLastHighestFlow = firstSurvivorFlow;
 
+	Call_StartForward(g_hEventForwards[0]);
+	Call_PushFloat(g_fLastLowestSurvivorFlow);
+	Call_PushFloat(g_fLastHighestFlow);
+	Call_Finish();
+
 	return Plugin_Continue;
 }
 
@@ -460,7 +465,7 @@ Float:GetHighestSurvFlow(bool:bDown = false)
 			if (IsSurvivor(i) && IsPlayerAlive(i)){
 
 				if (bDown && (IsIncapacitated(i) || IsHandingFromLedge(i))) continue;
-				
+
 				if ((iLastFlow = L4DDirect_GetFlowDistance(i)) > fFlow)
 					fFlow = iLastFlow;
 			}
@@ -514,6 +519,11 @@ public DI_OnCvarChange_Enabled(Handle:hHandle, const String:sOldVal[], const Str
 static Get_DI_Cvars()
 {
 	g_bCvarDIEnabled = GetConVarBool(g_hDIEnable);
+}
+
+bool:IsDIModuleEnabled()
+{
+	return g_bCvarDIEnabled;
 }
 
 stock _DI_CvarDump()

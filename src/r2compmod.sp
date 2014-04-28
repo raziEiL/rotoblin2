@@ -108,6 +108,7 @@ public OnPluginStart()
 	HookConVarChange(g_hR2Enable, _Main_Enable_CvarChange);
 	DebugPrintToAll(DEBUG_CHANNEL_GENERAL, "[Main] Done setting up!");
 
+	_H_EventManager_OnPluginStart();
 	_H_TankManager_OnPluginStart();
 	_H_ClientIndexes_OnPluginStart();
 	_H_CommandManager_OnPluginStart();
