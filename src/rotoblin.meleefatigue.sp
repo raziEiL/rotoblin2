@@ -214,7 +214,7 @@ public Action:_MF_sh_OnSoundEmitted(clients[64], &numClients, String:sample[PLAT
 					g_bKeepPenalty[entity] = true;
 					shovePenalty--;
 				}
-				else{
+				else {
 
 					g_bKeepPenalty[entity] = false;
 					shovePenalty = 4;
@@ -261,7 +261,7 @@ public Action:_MF_t_GroundTouchCheck(Handle:timer, any:client)
 	return Plugin_Stop;
 }
 
-public Action:L4D_OnEntityShoved(client, entity, weapon, Float:vector[3])
+public Action:L4D_OnEntityShoved(client, entity, weapon, const Float:vector[3])
 {
 	if ((g_iCvarMeleeControlFlags || g_bCvarNoDeadStop) && IsClient(client) && IsSurvivor(client)){
 
