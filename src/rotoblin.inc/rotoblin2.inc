@@ -6,7 +6,7 @@
  *  File:			rotoblin2.inc
  *  Type:			include
  *
- *  Copyright (C) 2012-2013 raziEiL <war4291@mail.ru>
+ *  Copyright (C) 2012-2014 raziEiL <war4291@mail.ru>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -75,3 +75,4 @@
 #include "rotoblin2/rotoblin.HeadsUpDisplay.sp"
 #include "rotoblin2/rotoblin.ClientSettings.sp"
 #include "rotoblin2/rotoblin.TankSpawns.sp"
+#include "rotoblin2/rotoblin.UnprohibitBosses.sp"

@@ -10,7 +10,7 @@
  *	Credits:		Greyscale & rhelgeby for their template "project base"
  *					(http://forums.alliedmods.net/showthread.php?t=117191).
  *
- *  Copyright (C) 2012-2013  raziEiL <war4291@mail.ru>
+ *  Copyright (C) 2012-2014  raziEiL <war4291@mail.ru>
  *  Copyright (C) 2010  Mr. Zero <mrzerodk@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -145,6 +145,7 @@ public OnPluginStart()
 	_ClientSettings_OnPluginStart();
 	_Unscramble_OnPluginStart();
 	_TankSpawns_OnPluginStart();
+	_UnprohibitBosses_OnPluginStart();
 
 	SetPluginState(bEnable);
 }
@@ -181,6 +182,7 @@ public OnMapStart()
 	_CI_OnMapStart();
 	_WSD_OnMapStart();
 	_AS_OnMapStart();
+	_UB_OnMapStart();
 }
 
 
@@ -337,6 +339,7 @@ SetPluginState(bool:enabled)
 		_TC_OnPluginStart();
 		_UM_OnPluginEnabled();
 		_TS_OnPluginEnabled();
+		_UB_OnPluginEnabled();
 
 		DebugLog("%s All MODULES SETUPED!", MAIN_TAG);
 	}
@@ -364,6 +367,7 @@ SetPluginState(bool:enabled)
 		_WSD_OnPluginDisabled();
 		_WT_OnPluginDisabled();
 		_TS_OnPluginDisabled();
+		_UB_OnPluginDisabled();
 
 		_DN_OnPluginDisabled();
 		_PM_OnPluginDisabled();

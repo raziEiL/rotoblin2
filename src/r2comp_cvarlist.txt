@@ -13,6 +13,7 @@ rotoblin_allow_natural_hordes                                      : Sets whethe
 rotoblin_allow_spec_hud                                            : Enables Rotoblin spectator HUD
 rotoblin_allow_tank_hud                                            : Enables Rotoblin Tank HUD
 rotoblin_allow_unscramble                                          : Enables unscramble feature (Puts all players on the right team after map/campaign/match change)
+rotoblin_boss_unprohibit                                           : Enable bosses spawning on all maps, even through they normally aren't allowed.
 rotoblin_choosemenu_unlocker                                       : Allows spectator/infected players to join the survivor team even if the survivor bot is dead (through M button)
 rotoblin_compact_tankhud                                           : The style of the Tank HUD. (0: old style, 1: new style)
 rotoblin_cvar_silent_style                                         : If set, clients will be not notified that a tracked convar has been changed
