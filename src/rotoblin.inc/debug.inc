@@ -7,7 +7,7 @@
  *  Type:			Helper
  *  Description:	Provides debug functions for modules
  *
- *  Copyright (C) 2012-2013  raziEiL <war4291@mail.ru>
+ *  Copyright (C) 2012-2014  raziEiL <war4291@mail.ru>
  *  Copyright (C) 2010  Mr. Zero <mrzerodk@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -279,6 +279,7 @@ public Action:Command_DumpCvars(client, args)
 	_IC_CvarDump();
 	_GW_CvarDump();
 	_TS_CvarDump();
+	_UB_CvarDump();
 
 	return Plugin_Handled;
 }

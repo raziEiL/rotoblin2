@@ -5,7 +5,7 @@
  *  Type:			Module
  *  Description:	...
  *
- *  Copyright (C) 2012-2013 raziEiL <war4291@mail.ru>
+ *  Copyright (C) 2012-2014 raziEiL <war4291@mail.ru>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -163,7 +163,7 @@ _HUD_ev_OnTankSpawn()
 {
 	if (g_bCvarAllowTankHud && !g_bHudEnabled){
 
-		for (new i = 1; i < MaxClients; i++){
+		for (new i = 1; i <= MaxClients; i++){
 
 			g_bShowTankHud[i] = true;
 
@@ -204,41 +204,26 @@ static bool:HUD_DrawTankPanel()
 	if (!g_bCvarAllowTankHud) return false;
 	if (g_bBlackSpot || (IsNativeAvailable(IsGamePaused) && L4DReady_IsGamePaused())) return true;
 
-	new bool:bTankInGame, iTanksIndex[2], iSurvTeamHealth;
+	new bool:bTankInGame, iTanksIndex[2];
 
 	for (new i = 1; i <= MaxClients; i++){
 
-		if (!IsClientInGame(i) || !IsPlayerAlive(i)) continue;
+		if (!IsClientInGame(i) || !IsPlayerAlive(i) || GetClientTeam(i) != TEAM_INFECTED || !IsPlayerTank(i)) continue;
 
-		switch (GetClientTeam(i)){
-
-			case TEAM_SURVIVOR:{
-
-				if (!IsIncapacitated(i) && !IsHandingFromLedge(i))
-					iSurvTeamHealth += GetClientHealth(i) + RoundToFloor(GetTempHealth(i));
-			}
-			case TEAM_INFECTED:{
-
-				if (IsPlayerTank(i)){
-
-					if (!bTankInGame)
-						iTanksIndex[0] = i;
-					else
-						iTanksIndex[1] = i;
-					bTankInGame = true;
-				}
-			}
-		}
+		if (!bTankInGame)
+			iTanksIndex[0] = i;
+		else
+			iTanksIndex[1] = i;
+		bTankInGame = true;
 	}
 	if (!bTankInGame) return false;
 
 
-	static Handle:hHUD, Handle:hTankPersonalHud, String:sNameA[32], String:sNameB[32], iPassCount;
+	static Handle:hHUD, String:sNameA[32], String:sNameB[32], iPassCount;
 
 	iPassCount = L4DDirect_GetTankPassedCount();
 	if (iPassCount > 2) iPassCount = 2;
 	hHUD = CreatePanel();
-	hTankPersonalHud = CreatePanel();
 
 	decl String:sBuffer[256];
 	if (g_bCvarTwoTanks || !g_bCvarCompactHud)
@@ -326,6 +311,8 @@ static bool:HUD_DrawTankPanel()
 			else {
 				iHealth = GetClientHealth(iTanksIndex[0]);
 				iPercent = RoundToFloor(FloatMul(FloatDiv(float(iHealth), g_fTankHealth), 100.0));
+				if (iPercent != 100 && iHealth == RoundToFloor(g_fTankHealth))
+					iPercent = 100;
 				FormatEx(sBuffer, 256, "     %d (%d%%)", iHealth, iPercent ? iPercent : 1);
 			}
 			DrawPanelText(hHUD, sBuffer);
@@ -368,6 +355,8 @@ static bool:HUD_DrawTankPanel()
 			else {
 				iHealth = GetClientHealth(iTanksIndex[0]);
 				iPercent = RoundToFloor(FloatMul(FloatDiv(float(iHealth), g_fTankHealth), 100.0));
+				if (iPercent != 100 && iHealth == RoundToFloor(g_fTankHealth))
+					iPercent = 100;
 				FormatEx(sBuffer, 256, " Health         : %d (%d%%)", iHealth, iPercent ? iPercent : 1);
 			}
 			DrawPanelText(hHUD, sBuffer);
@@ -390,30 +379,20 @@ static bool:HUD_DrawTankPanel()
 		}
 	}
 
-	FormatEx(sBuffer, 256, " \n\n Survivors Health : %d", iSurvTeamHealth);
-	DrawPanelText(hHUD, sBuffer);
-
-	// personal tank hud
-	if (!g_bCvarTwoTanks){
-
-		FormatEx(sBuffer, 256, " Survivors Health : %d", iSurvTeamHealth);
-		DrawPanelText(hTankPersonalHud, sBuffer);
-	}
-
 	for (new i; i < InfectedCount; i++){
 
 		if (!g_bShowTankHud[InfectedIndex[i]] || InfectedIndex[i] <= 0  || !IsClientInGame(InfectedIndex[i]) || IsFakeClient(InfectedIndex[i]) || GetClientMenu(InfectedIndex[i]) == MenuSource_Normal) continue; // If client is the tank or is a bot, continue
 
-		if (InfectedIndex[i] == iTanksIndex[0]){
+		if (g_bCvarTwoTanks){
 
-			if (!g_bCvarTwoTanks)
-				SendPanelToClient(hTankPersonalHud, InfectedIndex[i], HUD_HUD_Handler, 1);
+			if (InfectedIndex[i] == iTanksIndex[0])
+				ExtraTankMod(InfectedIndex[i], iTanksIndex[1], sNameB);
+			else if (InfectedIndex[i] == iTanksIndex[1])
+				ExtraTankMod(InfectedIndex[i], iTanksIndex[0], sNameA);
 			else
-				ExtraTankMod(InfectedIndex[i], iTanksIndex[1], sNameB, iSurvTeamHealth);
+				SendPanelToClient(hHUD, InfectedIndex[i], HUD_HUD_Handler, 1);
 		}
-		else if (InfectedIndex[i] == iTanksIndex[1])
-			ExtraTankMod(InfectedIndex[i], iTanksIndex[0], sNameA, iSurvTeamHealth);
-		else
+		else if (InfectedIndex[i] != iTanksIndex[0])
 			SendPanelToClient(hHUD, InfectedIndex[i], HUD_HUD_Handler, 1);
 	}
 
@@ -426,12 +405,10 @@ static bool:HUD_DrawTankPanel()
 	}
 
 	CloseHandle(hHUD);
-	CloseHandle(hTankPersonalHud);
-
 	return true;
 }
 
-static ExtraTankMod(client, tank, String:sNameA[], iSurvTeamHealth)
+static ExtraTankMod(client, tank, String:sNameA[])
 {
 	new Handle:hDTTankHud = CreatePanel();
 	decl String:sBuffer[256];
@@ -443,9 +420,6 @@ static ExtraTankMod(client, tank, String:sNameA[], iSurvTeamHealth)
 			FormatEx(sBuffer, 256, " Tank: Dead (%s)", sNameA);
 		DrawPanelText(hDTTankHud, sBuffer);
 	}
-
-	FormatEx(sBuffer, 256, " Survivors Health : %d", iSurvTeamHealth);
-	DrawPanelText(hDTTankHud, sBuffer);
 
 	SendPanelToClient(hDTTankHud, client, HUD_HUD_Handler, 1);
 	CloseHandle(hDTTankHud);
