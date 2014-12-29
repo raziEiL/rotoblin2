@@ -72,14 +72,20 @@ stock bool:IsOnLadder(entity)
 	return GetEntityMoveType(entity) == MOVETYPE_LADDER;
 }
 
+stock bool:IsPlayerBussy(client, team)
+{
+	return team == 2 && (!IsPlayerAlive(client) || IsSurvivorBussy(client) || IsIncapacitated(client) || IsHandingFromLedge(client)) ||
+		(!IsInfectedAlive(client) || IsInfectedBussy(client));
+}
+
 stock bool:IsSurvivorBussy(client)
 {
-	return GetEntProp(client, Prop_Send, "m_tongueOwner") > 0 || GetEntProp(client, Prop_Send, "m_pounceAttacker") > 0;
+	return GetEntProp(client, Prop_Send, "m_tongueOwner") > 0 || GetEntProp(client, Prop_Send, "m_pounceAttacker") > 0 || !IsL4DGameEx() && (GetEntProp(client, Prop_Send, "m_pummelAttacker") > 0 || GetEntProp(client, Prop_Send, "m_jockeyAttacker") > 0);
 }
 
 stock bool:IsInfectedBussy(client)
 {
-	return GetEntProp(client, Prop_Send, "m_tongueVictim") > 0 || GetEntProp(client, Prop_Send, "m_pounceVictim") > 0;
+	return GetEntProp(client, Prop_Send, "m_tongueVictim") > 0 || GetEntProp(client, Prop_Send, "m_pounceVictim") > 0 || !IsL4DGameEx() && (GetEntProp(client, Prop_Send, "m_pummelVictim") > 0 || GetEntProp(client, Prop_Send, "m_jockeyVictim") > 0);
 }
 
 stock IsIncapacitated(client)
@@ -255,9 +261,9 @@ stock IsVectorsMatch(Float:vVectorA[3], Float:vVectorB[3])
 	return vVectorA[0] == vVectorB[0] && vVectorA[1] == vVectorB[1] && vVectorA[2] == vVectorB[2];
 }
 
-stock PrintToTeam(team, bool:hint, const String:text[], any:...)
+stock PrintToTeam(team, hint, const String:text[], any:...)
 {
-	decl String:sText[256];
+	decl String:sText[1024];
 	new bool:bTrans = StrContains(text, "%t") != -1;
 
 	for (new i = 1; i <= MaxClients; i++){
@@ -267,12 +273,17 @@ stock PrintToTeam(team, bool:hint, const String:text[], any:...)
 			if (bTrans)
 				SetGlobalTransTarget(i);
 
-			VFormat(sText, 256, text, 4);
+			VFormat(sText, 1024, text, 4);
 
-			if (hint)
-				PrintHintText(i, sText);
-			else
-				PrintToChat(i, sText);
+			switch (hint){
+
+				case 0:
+					PrintToChat(i, sText);
+				case 1:
+					PrintHintText(i, sText);
+				case 2:
+					PrintCenterText(i, sText);
+			}
 		}
 	}
 }
