@@ -27,7 +27,7 @@
 
 #define		MC_TAG	 "[MobsControl]"
 
-static		Handle:g_hMobTimer, Handle:g_hAllowHordes, Handle:g_hTankHordes, Handle:g_hCvarNoStartsCI, 
+static		Handle:g_hMobTimer, Handle:g_hAllowHordes, Handle:g_hTankHordes, Handle:g_hCvarNoStartsCI,
 			g_iCvarMobTime, bool:g_bCvarTankHordes, bool:g_bCvarNoStartsCI, bool:g_bEvents, bool:g_bLeftStartArea, g_iTick;
 
 _MobsControl_OnPluginStart()
@@ -228,8 +228,14 @@ static Update_MC_EnableConVar()
 
 	if (g_iCvarMobTime == -1) return;
 
+	AddConVarToTrack("z_mob_spawn_min_interval_easy", "8");
+	AddConVarToTrack("z_mob_spawn_max_interval_easy", "8");
 	AddConVarToTrack("z_mob_spawn_min_interval_normal", "8");
 	AddConVarToTrack("z_mob_spawn_max_interval_normal", "8");
+	AddConVarToTrack("z_mob_spawn_max_interval_hard", "8");
+	AddConVarToTrack("z_mob_spawn_min_interval_hard", "8");
+	AddConVarToTrack("z_mob_spawn_min_interval_expert", "8");
+	AddConVarToTrack("z_mob_spawn_max_interval_expert", "8");
 
 	_MC_ToggleEvents(bool:(g_iCvarMobTime));
 	_MC_ToggleHordes(true);
