@@ -21,6 +21,7 @@ rotoblin_debug_channel                                             : The Sum of 
 rotoblin_debug_output                                              : The Sum of the debug output. Flags: 0 - No logging, 1 - Print to server, 2 - Print to chat, 4 - Log to SM logs
 rotoblin_despawn_infected                                          : If set, common infected will despawn if they are too far behind the survivors
 rotoblin_disable_tank_hordes                                       : If set, natural hordes will not spawn while tank is in play. (0: enable, 1: disable).
+rotoblin_disable_final_hordes                                      : If set, natural hordes will not spawn while final starts (radio button pressed). (0: enable, 1: disable).
 rotoblin_enable                                                    : Enables Rotoblin 2 Competitive Mod (R2compMod)
 rotoblin_expolit_fixes_flag                                        : Enables what kind of exploit should be fixed/blocked. Flag (add together): 0=Disable, 2=No ladder block, 4=Survivor duck block, 8=Ghost duck block, 16=E spawn expolit block, 32=Ammo pickup fix, 64=Incapacitated survivor ff block, 126=all
 rotoblin_finalspawn_range                                          : Reduces the SI spawning range on finales to normal spawning range
@@ -50,8 +51,12 @@ rotoblin_remove_huntingrifle                                       : Removes all
 rotoblin_remove_pistols                                            : Removes all pistols on each map, prevents the use of double pistols. (0: disable, 1: enable)
 rotoblin_remove_start_commons                                      : Removes all common infected near the saferoom and respawns them when one of survivors leaves the saferoom.
 rotoblin_replace_finalekits                                        : How medkits will be replaced on finales. (-1: remove medkits, 0: director settings, 1: replace with pain pills)
+rotoblin_replace_finaleweapons                                     : How weapons will be replaced on finales. (-1: remove weapons, 0: director settings, 1: replace with their tier 1 analogue, 2: replace only rifles, 3: replace only shotgun)
 rotoblin_replace_outsidekits                                       : How medkits will be replaced out of saferooms. (-1: remove medkits, 0: director settings, 1: replace with pain pills. Extra option 2: remove all healing items except of finals)
+rotoblin_replace_outsideweapons                                    : How weapons will be replaced out of saferooms. (-1: remove weapons, 0: director settings, 1: replace with their tier 1 analogue, 2: replace only rifles, 3: replace only shotguns)
 rotoblin_replace_startkits                                         : How medkits will be replaced in the saferoom. (-1: remove medkits, 0: director settings, 1: replace with pain pills)
+rotoblin_replace_startweapons                                      : How weapons will be replaced in the saferoom. (-1: remove weapons, 0: director settings, 1: replace with their tier 1 analogue, 2: replace only rifles, 3: replace only shotgun)
+rotoblin_reset_natural_hordes                                      : If the survivors were vomited/panic event starts, natural hordes timer will be reseted to begin counting down again.
 rotoblin_spawning_logic                                            : Enables alternative spawning logic for items. More items on a map, but only a limited number of them can be picked up
 rotoblin_tank_boss                                                 : Tank can't be prelight, punch fix
 rotoblin_tank_noprop_dmg                                           : All hittable props won't deal any damage to the Tank
@@ -59,7 +64,6 @@ rotoblin_tank_spawns                                               : Forces Tank
 rotoblin_two_tanks                                                 : Enables support for double tank mods (The Tank Hud)
 rotoblin_unscramble_notify                                         : Prints a notification to chat when unscramble is completed (lets spectators know when they can join a team)
 rotoblin_water_slowdown                                            : If set, survivors will walk slower in water.
-rotoblin_weapon_style                                              : Replaces tier 2 weapons with its tier 1 analogue. (0 - Don't replace any weapons, 1 - Replace all weapons, 2 - Replace all rifles, 3 - Replace all autoshotguns)
 rotoblin_witch_distance                                            : Allows the director to spawn a witch close to another witch.
 rotoblin_witch_spawns                                              : Forces the Witch to spawn consistently for both teams.
 

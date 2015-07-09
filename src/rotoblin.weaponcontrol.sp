@@ -7,7 +7,7 @@
  *  Type:			Module
  *  Description:	Replaces tier 2 weapons with tier 1
  *
- *  Copyright (C) 2012-2014  raziEiL <war4291@mail.ru>
+ *  Copyright (C) 2012-2015  raziEiL <war4291@mail.ru>
  *  Copyright (C) 2010  Mr. Zero <mrzerodk@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -29,9 +29,11 @@
 // --------------------
 //       Public
 // --------------------
+#define WC_TAG "[WeapControl]"
 
 enum WEAPON_STYLE
 {
+	REPLACE_REMOVE = -1,
 	REPLACE_NO_WEAPONS, // Don't replace any tier 2 weapons
 	REPLACE_ALL_WEAPONS, // Replace all tier 2 weapons
 	REPLACE_ALL_RIFLE,
@@ -75,9 +77,6 @@ static	const			DEFAULT_WEAPON_COUNT			= 5;
 static	const	Float:	REPLACE_DELAY					= 0.1; /* This is for OnEntityCreated, it needs a small delay before being
 															    * able to replace the tier 2 weapon. */
 
-static	WEAPON_STYLE:	g_iWeaponStyle					= REPLACE_ALL_WEAPONS;
-static			Handle:	g_hWeaponStyle_Cvar				= INVALID_HANDLE;
-
 static			Handle:	g_hWeaponsArray					= INVALID_HANDLE;
 static	const			ARRAY_WEAPON_CELL_SIZE			= 128;
 static	const			ARRAY_WEAPON_BLOCK				= 4; /* How many indexes a single weapon takes. Example a weapon takes 4 slots
@@ -87,6 +86,8 @@ static	const			ARRAY_WEAPON_BLOCK				= 4; /* How many indexes a single weapon ta
 static					g_iDebugChannel					= 0;
 static	const	String:	DEBUG_CHANNEL_NAME[]			= "WeaponControl";
 static bool:g_bSkip;
+static Handle:g_hDebugArray;
+static Handle:g_hOSF_Style, Handle:g_hSSR_Style, Handle:g_hFSR_Style, g_iCvarOSF_Style, g_iCvarSSR_Style, g_iCvarFSR_Style;
 // **********************************************
 //                   Forwards
 // **********************************************
@@ -98,12 +99,9 @@ static bool:g_bSkip;
  */
 _WeaponControl_OnPluginStart()
 {
-	g_hWeaponStyle_Cvar = CreateConVarEx("weapon_style", "0",
-		"Replaces tier 2 weapons with its tier 1 analogue. (0 - Don't replace any weapons, 1 - Replace all weapons, 2 - Replace all rifles, 3 - Replace all autoshotguns)", _, true, 0.0, true, 3.0);
-
-	if (g_hWeaponStyle_Cvar == INVALID_HANDLE) ThrowError("Unable to create weapon style cvar!");
-	AddConVarToReport(g_hWeaponStyle_Cvar); // Add to report status module
-	UpdateWeaponStyle();
+	g_hSSR_Style = CreateConVarEx("replace_startweapons", "0", "How weapons will be replaced in the saferoom. (-1: remove weapons, 0: director settings, 1: replace with their tier 1 analogue, 2: replace only rifles, 3: replace only shotgun)", _, true, -1.0, true, 3.0);
+	g_hOSF_Style = CreateConVarEx("replace_outsideweapons", "0", "How weapons will be replaced out of saferooms. (-1: remove weapons, 0: director settings, 1: replace with their tier 1 analogue, 2: replace only rifles, 3: replace only shotguns)", _, true, -1.0, true, 3.0);
+	g_hFSR_Style = CreateConVarEx("replace_finaleweapons", "0", "How weapons will be replaced on finales. (-1: remove weapons, 0: director settings, 1: replace with their tier 1 analogue, 2: replace only rifles, 3: replace only shotgun)", _, true, -1.0, true, 3.0);
 
 	g_iDebugChannel = DebugAddChannel(DEBUG_CHANNEL_NAME);
 	DebugPrintToAllEx("Module is now setup");
@@ -117,6 +115,7 @@ _WeaponControl_OnPluginStart()
 _WC_OnPluginEnabled()
 {
 	g_hWeaponsArray = CreateArray(ARRAY_WEAPON_CELL_SIZE);
+	g_hDebugArray = CreateArray(ARRAY_WEAPON_CELL_SIZE);
 	if (g_hWeaponsArray == INVALID_HANDLE)
 	{
 		ThrowError("Failed to create weapons array");
@@ -125,8 +124,11 @@ _WC_OnPluginEnabled()
 	HookEvent("round_start", _WC_RoundStart_Event, EventHookMode_PostNoCopy);
 	HookEvent("round_end", _WC_RoundEnd_Event, EventHookMode_PostNoCopy);
 
-	UpdateWeaponStyle();
-	HookConVarChange(g_hWeaponStyle_Cvar, _WC_WeaponStyle_CvarChange);
+	HookConVarChange(g_hOSF_Style, _WC_WeaponStyleOSF_CvarChange);
+	HookConVarChange(g_hSSR_Style, _WC_WeaponStyleSSR_CvarChange);
+	HookConVarChange(g_hFSR_Style, _WC_WeaponStyleFSR_CvarChange);
+	Update_WC_ConVars();
+
 	DebugPrintToAllEx("Module is now loaded");
 }
 
@@ -140,10 +142,13 @@ _WC_OnPluginDisabled()
 	UnhookEvent("round_start", _WC_RoundStart_Event, EventHookMode_PostNoCopy);
 	UnhookEvent("round_end", _WC_RoundEnd_Event, EventHookMode_PostNoCopy);
 
-	UnhookConVarChange(g_hWeaponStyle_Cvar, _WC_WeaponStyle_CvarChange);
+	UnhookConVarChange(g_hOSF_Style, _WC_WeaponStyleOSF_CvarChange);
+	UnhookConVarChange(g_hSSR_Style, _WC_WeaponStyleSSR_CvarChange);
+	UnhookConVarChange(g_hFSR_Style, _WC_WeaponStyleFSR_CvarChange);
 
 	CloseHandle(g_hWeaponsArray);
 	g_hWeaponsArray = INVALID_HANDLE;
+	CloseHandle(g_hDebugArray);
 	DebugPrintToAllEx("Module is now unloaded");
 }
 
@@ -159,20 +164,6 @@ _WC_OnMapEnd()
 }
 
 /**
- * Weapon style cvar changed.
- *
- * @param convar		Handle to the convar that was changed.
- * @param oldValue		String containing the value of the convar before it was changed.
- * @param newValue		String containing the new value of the convar.
- * @noreturn
- */
-public _WC_WeaponStyle_CvarChange(Handle:convar, const String:oldValue[], const String:newValue[])
-{
-	DebugPrintToAllEx("Weapon style cvar was changed. Old value %s, new value %s", oldValue, newValue);
-	UpdateWeaponStyle();
-}
-
-/**
  * Called when round start event is fired.
  *
  * @param event			INVALID_HANDLE (post no copy data hook).
@@ -182,11 +173,6 @@ public _WC_WeaponStyle_CvarChange(Handle:convar, const String:oldValue[], const 
  */
 public _WC_RoundStart_Event(Handle:event, const String:name[], bool:dontBroadcast)
 {
-	if (g_iWeaponStyle == REPLACE_NO_WEAPONS)
-	{
-		DebugPrintToAll(g_iDebugChannel, "Round start - Will not replace weapons");
-		return; // Don't wish to replace any weapons, return
-	}
 	DebugPrintToAllEx("Round start - Will replace weapons");
 
 	ClearArray(g_hWeaponsArray); // Clear weapons array from last round
@@ -197,19 +183,44 @@ public Action:_WC_t_RoundStartDelay(Handle:timer)
 {
 	if (g_hWeaponsArray == INVALID_HANDLE) return;
 
+	ClearArray(g_hDebugArray);
+
 	// Replace all tier 2 weapons that are already spawned
 	for (new i = 0; i < WEAPON_REPLACEMENT_TOTAL; i++)
 	{
-		if (i != 0 && g_iWeaponStyle == REPLACE_ALL_RIFLE) break;
-		if (i == 0 && g_iWeaponStyle == REPLACE_ALL_AUTOSHOTGUN) continue;
-
-		ReplaceAllTier2(WEAPON_REPLACEMENT_ARRAY[i][WEAPON_CLASSNAME],
+		ReplaceAll(WEAPON_REPLACEMENT_ARRAY[i][WEAPON_CLASSNAME],
+			WEAPON_REPLACEMENT_ARRAY[i][WEAPON_MODEL],
+			WEAPON_REPLACEMENT_ARRAY[i][WEAPON_REPLACECLASSNAME],
+			WEAPON_REPLACEMENT_ARRAY[i][WEAPON_REPLACEMODEL],
+			DEFAULT_WEAPON_COUNT);
+		// I'm lazy, so do it here. (Loop t1 weapons if we needs to remove it)
+		ReplaceAll(WEAPON_REPLACEMENT_ARRAY[i][WEAPON_REPLACECLASSNAME],
 			WEAPON_REPLACEMENT_ARRAY[i][WEAPON_MODEL],
 			WEAPON_REPLACEMENT_ARRAY[i][WEAPON_REPLACECLASSNAME],
 			WEAPON_REPLACEMENT_ARRAY[i][WEAPON_REPLACEMODEL],
 			DEFAULT_WEAPON_COUNT);
 	}
 	g_bSkip = true;
+
+	//R2COMP_LOG
+	decl Float:temp[3], String:tempStr[64], String:tempStr2[64];
+	new len = GetArraySize(g_hDebugArray);
+	for (new saferoom = 1; saferoom <= 3; saferoom++){
+
+		DebugLog("%s %s", WC_TAG, saferoom == 1 ? "Start saferoom" : saferoom == 2 ? "Outside saferoom" : "End saferoom");
+		DebugLog("%s {", WC_TAG);
+		for (new i = 0; i < len; i += 4){
+
+			if (GetArrayCell(g_hDebugArray, i + 2) == saferoom){
+
+				GetArrayArray(g_hDebugArray, i + 1, temp, 3);
+				GetArrayString(g_hDebugArray, i + 3, tempStr, 64);
+				GetArrayString(g_hDebugArray, i, tempStr2, 64);
+				DebugLog("%s %s (%.1f %.1f %.1f) [Action: %s]", WC_TAG, tempStr2, temp[0], temp[1], temp[2], tempStr);
+			}
+		}
+		DebugLog("%s }", WC_TAG);
+	}
 }
 
 /**
@@ -246,9 +257,6 @@ _WC_OnEntityCreated(entity, const String:classname[])
 	for (new i = 0; i < WEAPON_REPLACEMENT_TOTAL; i++)
 	{
 		if (!StrEqual(classname, WEAPON_REPLACEMENT_ARRAY[i][WEAPON_CLASSNAME])) continue;
-		if (i != 0 && g_iWeaponStyle == REPLACE_ALL_RIFLE) break;
-		if (i == 0 && g_iWeaponStyle == REPLACE_ALL_AUTOSHOTGUN) continue;
-
 		new ref = EntIndexToEntRef(entity);
 
 		DebugPrintToAllEx("OnEntityCreated - Late spawned tier 2. Entity %i (ref %i), classname \"%s\", new classname \"%s\"",
@@ -309,29 +317,16 @@ public Action:_WC_ReplaceTier2_Delayed_Timer(Handle:timer, Handle:pack)
 	if (entInvalid) // Oh no, we lost a tier 2
 	{
 		DebugPrintToAllEx("ERROR: Replaced delayed tier 2 weapon; Lost a tier 2 weapon! Time to panic, search for all tier 2 weapons of that classname!");
-		ReplaceAllTier2(classname, model, newClassname, newModel, count); // Time to panic
+		ReplaceAll(classname, model, newClassname, newModel, count); // Time to panic
 		return;
 	}
 
-	StoreTier2(entity, model); // Store the tier 2 in the array
-	ReplaceEntity(entity, newClassname, newModel, count); // Replace with tier 1
-	DebugPrintToAllEx("Replaced delayed tier 2 weapon; entity %i, classname \"%s\", new classname \"%s\", count %i", entity, classname, newClassname, count);
+	Replace(entity, classname, model, newClassname, newModel, count); // Replace with tier 1
 }
 
 // **********************************************
 //                 Private API
 // **********************************************
-
-/**
- * Updates the global weapon style var with the cvar.
- *
- * @noreturn
- */
-static UpdateWeaponStyle()
-{
-	g_iWeaponStyle = WEAPON_STYLE:GetConVarInt(g_hWeaponStyle_Cvar);
-	DebugPrintToAllEx("Updated weapon style global var; %i", int:g_iWeaponStyle);
-}
 
 /**
  * Replaces entity index with provided entity classname, with same origin and
@@ -391,20 +386,99 @@ static StoreTier2(entity, const String:model[])
  * @param count			Item count.
  * @noreturn
  */
-static ReplaceAllTier2(const String:classname[], const String:model[], const String:newClassname[], const String:newModel[], count)
+static ReplaceAll(const String:classname[], const String:model[], const String:newClassname[], const String:newModel[], count)
 {
 	DebugPrintToAllEx("Replacing all tier 2 weapons; classname \"%s\", new classname \"%s\", count %i", classname, newClassname, count);
-	new entity = -1, result;
+	new entity = -1;
 	while ((entity = FindEntityByClassnameEx(entity, classname)) != -1)
 	{
-		StoreTier2(entity, model); // Store tier 2 info in array
-		if (!(result = ReplaceEntity(entity, newClassname, newModel, count))) // If failed to replace
-		{
-			DebugPrintToAllEx("ERROR: Failed to replace tier 2 weapon! Entity %i, classname \"%s\", new classname \"%s\", model \"%s\"", entity, classname, newClassname, newModel);
-			ThrowError("Failed to replace tier 2 weapon! Entity %i, classname \"%s\", new classname \"%s\", model \"%s\"", entity, classname, newClassname, newModel);
-		}
-		DebugPrintToAllEx("Replaced tier 2 weapon; entity %i, classname \"%s\", new entity %i, new classname \"%s\", count %i", entity, classname, result, newClassname, count);
+		Replace(entity, classname, model, newClassname, newModel, count);
 	}
+}
+
+static Replace(entity, const String:classname[], const String:model[], const String:newClassname[], const String:newModel[], count)
+{
+	decl Float:vOrg[3];
+	GetEntityOrg(entity, vOrg);
+	if (IsVectorNull(vOrg)) return;
+
+	decl result, String:temp[64];
+	PushArrayString(g_hDebugArray, classname);
+	PushArrayArray(g_hDebugArray, vOrg, 3);
+
+	switch (CaseWeaponStyle(GetWeaponStyleByLocation(vOrg), classname))
+	{
+		case 0:
+		{
+			for (new i = 1; i <= 3; i++)
+				RemoveFromArray(g_hDebugArray, GetArraySize(g_hDebugArray) - i);
+		}
+		case -1:
+		{
+			SafelyRemoveEdict(entity);
+			PushArrayString(g_hDebugArray, "remove");
+		}
+		case 1:
+		{
+			StoreTier2(entity, model);
+			PushArrayString(g_hDebugArray, "skip");
+		}
+		case 2:
+		{
+			FormatEx(temp, 64, "replace to %s", newClassname);
+			PushArrayString(g_hDebugArray, temp);
+
+			StoreTier2(entity, model); // Store tier 2 info in array
+			if (!(result = ReplaceEntity(entity, newClassname, newModel, count))) // If failed to replace
+			{
+				DebugPrintToAllEx("ERROR: Failed to replace tier 2 weapon! Entity %i, classname \"%s\", new classname \"%s\", model \"%s\"", entity, classname, newClassname, newModel);
+				ThrowError("Failed to replace tier 2 weapon! Entity %i, classname \"%s\", new classname \"%s\", model \"%s\"", entity, classname, newClassname, newModel);
+			}
+			DebugPrintToAllEx("Replaced tier 2 weapon; entity %i, classname \"%s\", new entity %i, new classname \"%s\", count %i", entity, classname, result, newClassname, count);
+		}
+	}
+}
+
+static CaseWeaponStyle(WEAPON_STYLE:style, const String:classname[])
+{
+	if (style != REPLACE_REMOVE && (StrEqual(classname, WEAPON_REPLACEMENT_ARRAY[0][WEAPON_REPLACECLASSNAME]) || StrEqual(classname, WEAPON_REPLACEMENT_ARRAY[1][WEAPON_REPLACECLASSNAME])))
+		return 0;
+	switch (style)
+	{
+		case REPLACE_REMOVE:
+			return -1;
+		case REPLACE_NO_WEAPONS:
+			return 1;
+		case REPLACE_ALL_WEAPONS:
+			return 2;
+		case REPLACE_ALL_RIFLE:
+		{
+			if (StrEqual(classname, WEAPON_REPLACEMENT_ARRAY[0][WEAPON_CLASSNAME]))
+				return 2;
+			return 1;
+		}
+		case REPLACE_ALL_AUTOSHOTGUN:
+		{
+			if (StrEqual(classname, WEAPON_REPLACEMENT_ARRAY[1][WEAPON_CLASSNAME]))
+				return 2;
+			return 1;
+		}
+	}
+	return 0;
+}
+
+static WEAPON_STYLE:GetWeaponStyleByLocation(const Float:vOrg[3])
+{
+	if (IsEntInStartSafeRoom(vOrg)){
+		PushArrayCell(g_hDebugArray, 1);
+		return WEAPON_STYLE:g_iCvarSSR_Style;
+	}
+	else if (IsEntInEndSafeRoom(vOrg)){
+		PushArrayCell(g_hDebugArray, 3);
+		return WEAPON_STYLE:g_iCvarFSR_Style;
+	}
+	PushArrayCell(g_hDebugArray, 2);
+	return WEAPON_STYLE:g_iCvarOSF_Style;
 }
 
 /**
@@ -435,11 +509,55 @@ static RestoreAllTier2()
 	DebugPrintToAllEx("Done restoring tier 2 weapons!");
 }
 
+
+public _WC_WeaponStyleOSF_CvarChange(Handle:convar, const String:oldValue[], const String:newValue[])
+{
+	if (StrEqual(oldValue, newValue)) return;
+
+	UpdateOutSideStyleConVars();
+}
+
+public _WC_WeaponStyleSSR_CvarChange(Handle:convar, const String:oldValue[], const String:newValue[])
+{
+	if (StrEqual(oldValue, newValue)) return;
+
+	UpdateStartStyleConVars();
+}
+
+public _WC_WeaponStyleFSR_CvarChange(Handle:convar, const String:oldValue[], const String:newValue[])
+{
+	if (StrEqual(oldValue, newValue)) return;
+
+	UpdateFinalStyleConVars();
+}
+
+static UpdateOutSideStyleConVars()
+{
+	g_iCvarOSF_Style = GetConVarInt(g_hOSF_Style);
+}
+
+static UpdateStartStyleConVars()
+{
+	g_iCvarSSR_Style = GetConVarInt(g_hSSR_Style);
+}
+
+static UpdateFinalStyleConVars()
+{
+	g_iCvarFSR_Style = GetConVarInt(g_hFSR_Style);
+}
+
+static Update_WC_ConVars()
+{
+	UpdateOutSideStyleConVars();
+	UpdateStartStyleConVars();
+	UpdateFinalStyleConVars();
+}
+
 stock _WC_CvarDump()
 {
-	decl iVal;
-	if (WEAPON_STYLE:(iVal = GetConVarInt(g_hWeaponStyle_Cvar)) != g_iWeaponStyle)
-		DebugLog("%d		|	%d		|	rotoblin_weapon_style", iVal, g_iWeaponStyle);
+	//decl iVal;
+	//if (WEAPON_STYLE:(iVal = GetConVarInt(g_hWeaponStyle_Cvar)) != g_iWeaponStyle)
+	//	DebugLog("%d		|	%d		|	rotoblin_weapon_style", iVal, g_iWeaponStyle);
 }
 
 /**

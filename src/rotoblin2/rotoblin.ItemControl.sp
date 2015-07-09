@@ -7,7 +7,7 @@
  *  Type:			Module
  *  Description:	...
  *
- *  Copyright (C) 2012-2014  raziEiL <war4291@mail.ru>
+ *  Copyright (C) 2012-2015  raziEiL <war4291@mail.ru>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -440,7 +440,7 @@ public Action:IC_ev_SpawnerGiveItem(Handle:event, const String:name[], bool:dont
 
 		new iEnt = -1;
 		while ((iEnt = FindEntityByClassname(iEnt, g_sSpawnName[iWeapIndex])) != INVALID_ENT_REFERENCE)
-			if (/* удаляем все бомбы или моловы */iWeapIndex < 2 || /* не трогаем таблетки в убежищах */IsEntOutSideSafeRoomEx(iEnt))
+			if (/* удаляем все бомбы или молотовы */iWeapIndex < 2 || /* не трогаем таблетки в убежищах */IsEntOutSideSafeRoomEx(iEnt))
 				SafelyRemoveEdict(iEnt);
 	}
 }
