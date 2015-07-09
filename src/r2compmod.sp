@@ -10,7 +10,7 @@
  *	Credits:		Greyscale & rhelgeby for their template "project base"
  *					(http://forums.alliedmods.net/showthread.php?t=117191).
  *
- *  Copyright (C) 2012-2014  raziEiL <war4291@mail.ru>
+ *  Copyright (C) 2012-2015  raziEiL <war4291@mail.ru>
  *  Copyright (C) 2010  Mr. Zero <mrzerodk@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -33,10 +33,10 @@
 //        Compiling options (Preprocessor)
 // **********************************************
 #pragma semicolon						1
-#define R2COMP_LOG					0
+#define R2COMP_LOG						0
 #define DEBUG_COMMANDS				0	// r2comp_dump_cvar_status, r2comp_tp, r2comp_dis, r2comp_entdis.
 #define UNSCRABBLE_LOG				0
-#define UNSCRABBLE_MAX_FAILURE	3
+#define UNSCRABBLE_MAX_FAILURE		3
 #define SCORES_COMMAND				1
 
 // **********************************************

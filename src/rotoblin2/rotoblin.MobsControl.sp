@@ -7,7 +7,7 @@
  *  Type:			Module
  *  Description:	Remove natural hordes while tank in game...
  *
- *  Copyright (C) 2012-2014 raziEiL <war4291@mail.ru>
+ *  Copyright (C) 2012-2015 raziEiL <war4291@mail.ru>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,14 +27,17 @@
 
 #define		MC_TAG	 "[MobsControl]"
 
-static		Handle:g_hMobTimer, Handle:g_hAllowHordes, Handle:g_hTankHordes, Handle:g_hCvarNoStartsCI,
-			g_iCvarMobTime, bool:g_bCvarTankHordes, bool:g_bCvarNoStartsCI, bool:g_bEvents, bool:g_bLeftStartArea, g_iTick;
+static		Handle:g_hMobTimer, Handle:g_hAllowHordes, Handle:g_hTankHordes, Handle:g_hCvarNoStartsCI, Handle:g_hCvarResetVomit, Handle:g_hCvarHordeSize, Handle:g_hCvarDisableOnFinal, bool:g_bIsFinalStage,
+			g_iCvarMobTime, bool:g_bCvarTankHordes, bool:g_bCvarDisableOnFinal, bool:g_bCvarNoStartsCI, bool:g_bCvarResetVomit, g_iCvarHordeSize, bool:g_bEvents, bool:g_bLeftStartArea, g_iTick;
 
 _MobsControl_OnPluginStart()
 {
-	g_hAllowHordes		= CreateConVarEx("allow_natural_hordes",		"-1", "Sets whether natural hordes will spawn. (-1: director settings, 0: disable, > 0: spawn interval to cvar value)", _, true, -1.0);
-	g_hTankHordes		= CreateConVarEx("disable_tank_hordes",			"0", "If set, natural hordes will not spawn while tank is in play. (0: enable, 1: disable).", _, true, 0.0, true, 1.0);
-	g_hCvarNoStartsCI	= CreateConVarEx("remove_start_commons",		"0", "Removes all common infected near the saferoom and respawns them when one of survivors leaves the saferoom.", _, true, 0.0, true, 1.0);
+	g_hCvarHordeSize = FindConVar("z_mob_spawn_max_size");
+	g_hAllowHordes			= CreateConVarEx("allow_natural_hordes",		"-1", "Sets whether natural hordes will spawn. (-1: director settings, 0: disable, > 0: spawn interval to cvar value)", _, true, -1.0);
+	g_hTankHordes				= CreateConVarEx("disable_tank_hordes",		"0", "If set, natural hordes will not spawn while tank is in play. (0: enable, 1: disable).", _, true, 0.0, true, 1.0);
+	g_hCvarNoStartsCI			= CreateConVarEx("remove_start_commons",		"0", "Removes all common infected near the saferoom and respawns them when one of survivors leaves the saferoom.", _, true, 0.0, true, 1.0);
+	g_hCvarResetVomit			= CreateConVarEx("reset_natural_hordes",		"0", "If the survivors were vomited/panic event starts, natural hordes timer will be reseted to begin counting down again.", _, true, 0.0, true, 1.0);
+	g_hCvarDisableOnFinal	= CreateConVarEx("disable_final_hordes",		"0", "If set, natural hordes will not spawn while final starts (radio button pressed). (0: enable, 1: disable).", _, true, 0.0, true, 1.0);
 
 	#if DEBUG_COMMANDS
 		RegAdminCmd("sm_mobtimer", Command_GetMobTimer, ADMFLAG_ROOT);
@@ -47,14 +50,23 @@ _MC_OnPluginEnabled()
 
 	HookEvent("round_start",					_MC_ev_RoundStart, EventHookMode_PostNoCopy);
 	HookEvent("player_left_start_area",		_MC_ev_PlayerLeftStartArea, EventHookMode_PostNoCopy);
+	HookEvent("create_panic_event",			_MC_ev_CreatePanicEvent, EventHookMode_PostNoCopy);
+	HookEvent("player_now_it",					_MC_ev_CreatePanicEvent, EventHookMode_PostNoCopy);
+	HookEvent("finale_radio_start", 			_MC_ev_RadioStart, EventHookMode_PostNoCopy);
 
-	HookConVarChange(g_hAllowHordes,		_MC_Enable_CvarChange);
-	HookConVarChange(g_hTankHordes,		_MC_TankHordes_CvarChange);
-	HookConVarChange(g_hCvarNoStartsCI,	_MC_NoStartsCI_CvarChange);
+	HookConVarChange(g_hAllowHordes,			_MC_Enable_CvarChange);
+	HookConVarChange(g_hTankHordes,				_MC_TankHordes_CvarChange);
+	HookConVarChange(g_hCvarNoStartsCI,		_MC_NoStartsCI_CvarChange);
+	HookConVarChange(g_hCvarResetVomit,		_MC_ResetVomit_CvarChange);
+	HookConVarChange(g_hCvarHordeSize,			_MC_HordeSize_CvarChange);
+	HookConVarChange(g_hCvarDisableOnFinal,	_MC_DisableOnFinal_CvarChange);
 
 	Update_MC_EnableConVar();
 	Update_MC_TankHordesConVar();
 	Update_MC_NoStartsCIConVar();
+	Update_MC_ResetVomitConVar();
+	Update_MC_HordeSizeConVar();
+	Update_MC_DisableOnFinalConVar();
 }
 
 _MC_OnPluginDisabled()
@@ -63,10 +75,16 @@ _MC_OnPluginDisabled()
 
 	UnhookEvent("round_start",				_MC_ev_RoundStart, EventHookMode_PostNoCopy);
 	UnhookEvent("player_left_start_area",	_MC_ev_PlayerLeftStartArea, EventHookMode_PostNoCopy);
+	UnhookEvent("create_panic_event",		_MC_ev_CreatePanicEvent, EventHookMode_PostNoCopy);
+	UnhookEvent("player_now_it",			_MC_ev_CreatePanicEvent, EventHookMode_PostNoCopy);
+	UnhookEvent("finale_radio_start", 		_MC_ev_RadioStart, EventHookMode_PostNoCopy);
 
-	UnhookConVarChange(g_hAllowHordes,		_MC_Enable_CvarChange);
-	UnhookConVarChange(g_hTankHordes,		_MC_TankHordes_CvarChange);
-	UnhookConVarChange(g_hCvarNoStartsCI,	_MC_NoStartsCI_CvarChange);
+	UnhookConVarChange(g_hAllowHordes,			_MC_Enable_CvarChange);
+	UnhookConVarChange(g_hTankHordes,			_MC_TankHordes_CvarChange);
+	UnhookConVarChange(g_hCvarNoStartsCI,		_MC_NoStartsCI_CvarChange);
+	UnhookConVarChange(g_hCvarResetVomit,		_MC_ResetVomit_CvarChange);
+	UnhookConVarChange(g_hCvarHordeSize,		_MC_HordeSize_CvarChange);
+	UnhookConVarChange(g_hCvarDisableOnFinal,	_MC_DisableOnFinal_CvarChange);
 
 	_MC_ToggleEvents(false);
 }
@@ -79,16 +97,14 @@ _MC_OnMapEnd()
 public _MC_ev_RoundStart(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	g_bLeftStartArea = false;
+	g_bIsFinalStage = false;
 	_MC_TogggleBotBehavior(true);
 
 	if (g_bCvarNoStartsCI)
 		CreateTimer(0.5, _MC_t_SlayCI, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 
-	if (g_iCvarMobTime > 0){
-
-		_MC_ToggleHordes(true);
+	if (g_iCvarMobTime > 0)
 		_MC_KillMobTimer();
-	}
 }
 
 public _MC_ev_PlayerLeftStartArea(Handle:event, const String:name[], bool:dontBroadcast)
@@ -101,7 +117,25 @@ public _MC_ev_PlayerLeftStartArea(Handle:event, const String:name[], bool:dontBr
 	if (g_iCvarMobTime > 0){
 
 		DebugLog("%s Mobs every %d sec", MC_TAG, g_iCvarMobTime);
+		_MC_StartMobTimer();
+	}
+}
+
+public _MC_ev_CreatePanicEvent(Handle:event, const String:name[], bool:dontBroadcast)
+{
+	if (g_bCvarResetVomit && !g_bIsFinalStage){
+
 		_MC_ResetMobTimer();
+		DebugLog("%s Reset hordes timer (survivors were vomited/panic event starts).", MC_TAG);
+	}
+}
+
+public _MC_ev_RadioStart(Handle:event, const String:name[], bool:dontBroadcast)
+{
+	if (g_bCvarDisableOnFinal && IsFinalMap()){
+
+		g_bIsFinalStage = true;
+		_MC_KillMobTimer();
 	}
 }
 
@@ -134,9 +168,9 @@ _MC_L4D_OnSpawnTank()
 	}
 }
 
-public Action:_MC_ev_EntityKilled(Handle:event, const String:name[], bool:dontBroadcast)
+public _MC_ev_EntityKilled(Handle:event, const String:name[], bool:dontBroadcast)
 {
-	if (g_bCvarTankHordes && IsPlayerTank(GetEventInt(event, "entindex_killed")))
+	if (g_bCvarTankHordes && !g_bIsFinalStage && IsPlayerTank(GetEventInt(event, "entindex_killed")))
 		CreateTimer(1.0, _MC_t_FindAnyTank, _, TIMER_FLAG_NO_MAPCHANGE);
 }
 
@@ -144,34 +178,35 @@ public Action:_MC_t_FindAnyTank(Handle:timer)
 {
 	if (FindTankClient()) return;
 
-	_MC_ResetMobTimer();
+	_MC_StartMobTimer();
 	DebugLog("%s Tank killed. Hordes are turned ON!", MC_TAG);
 }
 
 static _MC_ResetMobTimer()
 {
-	g_hMobTimer = CreateTimer(1.0, _MC_t_SpawnMob, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+	_MC_KillMobTimer();
+	_MC_StartMobTimer();
+}
+
+static _MC_StartMobTimer()
+{
+	SetStartTime();
+	g_hMobTimer = CreateTimer(float(g_iCvarMobTime), _MC_t_SpawnMob, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 }
 
 public Action:_MC_t_SpawnMob(Handle:timer)
 {
-	if (++g_iTick != g_iCvarMobTime) return;
-
-	g_iTick = 0;
-
-	_MC_ToggleHordes(false);
-	CreateTimer(3.0, _MC_t_DisableSapwn);
+	SetStartTime();
+	L4DDirect_SetPendingMobCount(L4DDirect_GetPendingMobCount() + g_iCvarHordeSize);
 }
 
-public Action:_MC_t_DisableSapwn(Handle:timer)
+static SetStartTime()
 {
-	_MC_ToggleHordes(true);
+	g_iTick = RoundToNearest(GetEngineTime());
 }
 
 static bool:_MC_KillMobTimer()
 {
-	g_iTick = 0;
-
 	if (g_hMobTimer != INVALID_HANDLE){
 
 		KillTimer(g_hMobTimer);
@@ -212,7 +247,7 @@ public Native_R2comp_GetMobTimer(Handle:plugin, numParams)
 
 MC_GetMobTimer()
 {
-	return g_iCvarMobTime < 1 ? -1 : g_iCvarMobTime - g_iTick;
+	return g_iCvarMobTime < 1 ? -1 : g_hMobTimer == INVALID_HANDLE ? -1 : RoundToNearest(GetEngineTime()) - g_iTick;
 }
 
 public _MC_Enable_CvarChange(Handle:convar, const String:oldValue[], const String:newValue[])
@@ -226,19 +261,8 @@ static Update_MC_EnableConVar()
 {
 	g_iCvarMobTime = GetConVarInt(g_hAllowHordes);
 
-	if (g_iCvarMobTime == -1) return;
-
-	AddConVarToTrack("z_mob_spawn_min_interval_easy", "8");
-	AddConVarToTrack("z_mob_spawn_max_interval_easy", "8");
-	AddConVarToTrack("z_mob_spawn_min_interval_normal", "8");
-	AddConVarToTrack("z_mob_spawn_max_interval_normal", "8");
-	AddConVarToTrack("z_mob_spawn_max_interval_hard", "8");
-	AddConVarToTrack("z_mob_spawn_min_interval_hard", "8");
-	AddConVarToTrack("z_mob_spawn_min_interval_expert", "8");
-	AddConVarToTrack("z_mob_spawn_max_interval_expert", "8");
-
-	_MC_ToggleEvents(bool:(g_iCvarMobTime));
-	_MC_ToggleHordes(true);
+	_MC_ToggleEvents(bool:(g_iCvarMobTime > 0));
+	_MC_ToggleHordes(bool:(g_iCvarMobTime >= 0));
 }
 
 public _MC_TankHordes_CvarChange(Handle:convar, const String:oldValue[], const String:newValue[])
@@ -279,6 +303,42 @@ public _MC_NoStartsCI_CvarChange(Handle:convar, const String:oldValue[], const S
 Update_MC_NoStartsCIConVar()
 {
 	g_bCvarNoStartsCI = GetConVarBool(g_hCvarNoStartsCI);
+}
+
+public _MC_ResetVomit_CvarChange(Handle:convar, const String:oldValue[], const String:newValue[])
+{
+	if (StrEqual(oldValue, newValue)) return;
+
+	Update_MC_ResetVomitConVar();
+}
+
+Update_MC_ResetVomitConVar()
+{
+	g_bCvarResetVomit = GetConVarBool(g_hCvarResetVomit);
+}
+
+public _MC_HordeSize_CvarChange(Handle:convar, const String:oldValue[], const String:newValue[])
+{
+	if (StrEqual(oldValue, newValue)) return;
+
+	Update_MC_HordeSizeConVar();
+}
+
+Update_MC_HordeSizeConVar()
+{
+	g_iCvarHordeSize = GetConVarInt(g_hCvarHordeSize);
+}
+
+public _MC_DisableOnFinal_CvarChange(Handle:convar, const String:oldValue[], const String:newValue[])
+{
+	if (StrEqual(oldValue, newValue)) return;
+
+	Update_MC_DisableOnFinalConVar();
+}
+
+Update_MC_DisableOnFinalConVar()
+{
+	g_bCvarDisableOnFinal = GetConVarBool(g_hCvarDisableOnFinal);
 }
 
 #if DEBUG_COMMANDS

@@ -3,9 +3,9 @@
  *
  * This file is a part of the Rotoblin 2 project.
  *
- *  Required Plugins: r2compmod v1.2, l4dscores v1.1.3, l4dready v1.0.
+ *  Required Plugins: r2compmod v1.2+, optional: l4dscores v1.1.3, l4dready v1.0.
  *
- *  Copyright (C) 2012-2013 raziEiL <war4291@mail.ru>
+ *  Copyright (C) 2012-2015 raziEiL <war4291@mail.ru>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by

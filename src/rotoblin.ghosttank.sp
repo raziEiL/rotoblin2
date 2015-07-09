@@ -8,7 +8,7 @@
  *  Description:	Handles the tank. Prevents prelights with more.
  *	Credits:		DrThunder on AlliedModders.com, for punch fix. Stabby for hittable control.
  *
- *  Copyright (C) 2012-2014  raziEiL <war4291@mail.ru>
+ *  Copyright (C) 2012-2015  raziEiL <war4291@mail.ru>
  *  Copyright (C) 2010  Mr. Zero <mrzerodk@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -64,7 +64,7 @@ _GhostTank_OnPluginStart()
 {
 	g_hTankBoss		=	CreateConVarEx("tank_boss", "0", "Tank can't be prelight, punch fix", _, true, 0.0, true, 1.0);
 	g_hNoPropDmg		=	CreateConVarEx("tank_noprop_dmg", "0", "All hittable props won't deal any damage to the Tank", _, true, 0.0, true, 1.0);
-	g_hHittableDmg	=	CreateConVarEx("tank_hittable_control", "0", "All hittable props deal static damage to surviors (100 damage hittable with glow, 25 other)", _, true, 0.0, true, 1.0);
+	g_hHittableDmg	=	CreateConVarEx("tank_hittable_control", "0", "All hittable props deal static damage to surviors (100 damage hittable with glow, 25 other). [CODE HAS NOT BEEN COMPLETED. DON'T USE IT!]", _, true, 0.0, true, 1.0);
 
 	g_iDebugChannel = DebugAddChannel(DEBUG_CHANNEL_NAME);
 	DebugPrintToAllEx("Module is now setup");

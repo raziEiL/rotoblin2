@@ -7,7 +7,7 @@
  *  Type:			Stocks
  *  Description:	My useful stock for l4d/l4d2 engine.
  *
- *  Copyright (C) 2012-2013 raziEiL <war4291@mail.ru>
+ *  Copyright (C) 2012-2015 raziEiL <war4291@mail.ru>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -261,7 +261,7 @@ stock IsVectorsMatch(Float:vVectorA[3], Float:vVectorB[3])
 	return vVectorA[0] == vVectorB[0] && vVectorA[1] == vVectorB[1] && vVectorA[2] == vVectorB[2];
 }
 
-stock PrintToTeam(team, hint, const String:text[], any:...)
+stock PrintToTeam(team, type, const String:text[], any:...)
 {
 	decl String:sText[1024];
 	new bool:bTrans = StrContains(text, "%t") != -1;
@@ -275,7 +275,7 @@ stock PrintToTeam(team, hint, const String:text[], any:...)
 
 			VFormat(sText, 1024, text, 4);
 
-			switch (hint){
+			switch (type){
 
 				case 0:
 					PrintToChat(i, sText);
@@ -329,7 +329,7 @@ stock bool:IsNewMission()
 {
 	decl String:sMap[64];
 	GetCurrentMap(sMap, 64);
-	return StrContains(sMap, "01_") != -1;
+	return StrContains(sMap, IsL4DGameEx() ? "01_" : "m1_") != -1;
 }
 
 stock bool:IsVersusMode()
