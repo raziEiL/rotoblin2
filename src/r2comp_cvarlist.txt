@@ -27,6 +27,7 @@ rotoblin_expolit_fixes_flag                                        : Enables wha
 rotoblin_finalspawn_range                                          : Reduces the SI spawning range on finales to normal spawning range
 rotoblin_ghost_warp                                                : Sets whether infected ghosts can warp to survivors (mouse 2)
 rotoblin_item_spawns                                               : Forces items to spawn consistently for both teams. Flag (add together): 0=disable, 2=molotov, 4=pipe-bomb, 8=pills, 14=all
+rotoblin_item_translations                                         : Keep items to translations in co-op gamemode
 rotoblin_limit_assaultrifle                                        : Maximum number of Assault Rifles that can be equipped by the Survivor team. (-1: unlimited, 0: not allowed, > 0: limits in according with cvar value).
 rotoblin_limit_autoshotgun                                         : Maximum number of Auto Shotguns that can be equipped by the Survivor team. (-1: unlimited, 0: not allowed, > 0: limits in according with cvar value).
 rotoblin_limit_huntingrifle                                        : Maximum number of Hunting Rifles that can be equipped by the Survivor team. (-1: unlimited, 0: not allowed, > 0: limits in according with cvar value).
@@ -56,6 +57,8 @@ rotoblin_replace_outsidekits                                       : How medkits
 rotoblin_replace_outsideweapons                                    : How weapons will be replaced out of saferooms. (-1: remove weapons, 0: director settings, 1: replace with their tier 1 analogue, 2: replace only rifles, 3: replace only shotguns)
 rotoblin_replace_startkits                                         : How medkits will be replaced in the saferoom. (-1: remove medkits, 0: director settings, 1: replace with pain pills)
 rotoblin_replace_startweapons                                      : How weapons will be replaced in the saferoom. (-1: remove weapons, 0: director settings, 1: replace with their tier 1 analogue, 2: replace only rifles, 3: replace only shotgun)
+rotoblin_replace_endkits                                           : How medkits will be replaced in the end saferoom. (-1: remove medkits, 0: director settings, 1: replace with pain pills)
+rotoblin_replace_endweapons                                        : How weapons will be replaced in the end saferoom. (-1: remove weapons, 0: director settings, 1: replace with their tier 1 analogue, 2: replace only rifles, 3: replace only shotgun)
 rotoblin_reset_natural_hordes                                      : If the survivors were vomited/panic event starts, natural hordes timer will be reseted to begin counting down again.
 rotoblin_spawning_logic                                            : Enables alternative spawning logic for items. More items on a map, but only a limited number of them can be picked up
 rotoblin_tank_boss                                                 : Tank can't be prelight, punch fix

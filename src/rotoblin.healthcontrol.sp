@@ -54,9 +54,10 @@ static	const	String:	DEBUG_CHANNEL_NAME[]			= "HealthControl";
 
 
 
-static 		Handle:g_hOSF_Style, Handle:g_hSSR_Style, Handle:g_hFSR_Style, Handle:g_hPills_Style, Handle:g_h1v1WipePills, Handle:g_hConvert[2],
-			g_iCvarOSF_Style, g_iCvarSSR_Style, g_iCvarFSR_Style, bool:g_bCvarPills_Style, g_iCvarWipePills;
+static 		Handle:g_hOSF_Style, Handle:g_hSSR_Style, Handle:g_hFSR_Style, Handle:g_hPills_Style, Handle:g_hESR_Style, Handle:g_h1v1WipePills, Handle:g_hItemTranslations, Handle:g_hConvert[2],
+			g_iCvarOSF_Style, g_iCvarSSR_Style, g_iCvarFSR_Style, g_iCvarESR_Style, bool:g_bCvarPills_Style, g_iCvarWipePills, bool:g_bIsItemTranslations;
 
+new 	bool:g_Public_bIsFinalMap;
 // **********************************************
 //                   Forwards
 // **********************************************
@@ -71,13 +72,13 @@ _HealthControl_OnPluginStart()
 	g_hConvert[PILLS]		=	FindConVar("director_convert_pills");
 	g_hConvert[PILLS_VS]	=	FindConVar("director_vs_convert_pills");
 
-	g_hOSF_Style				=	CreateConVarEx("replace_outsidekits",	"0", "How medkits will be replaced out of saferooms. (-1: remove medkits, 0: director settings, 1: replace with pain pills. Extra option 2: remove all healing items except of finals)", _, true, -1.0, true, 2.0);
-	g_hSSR_Style				=	CreateConVarEx("replace_startkits",		"0", "How medkits will be replaced in the saferoom. (-1: remove medkits, 0: director settings, 1: replace with pain pills)", _, true, -1.0, true, 1.0);
-	g_hFSR_Style				=	CreateConVarEx("replace_finalekits",	"0", "How medkits will be replaced on finales. (-1: remove medkits, 0: director settings, 1: replace with pain pills)", _, true, -1.0, true, 1.0);
-	g_hPills_Style			=	CreateConVarEx("pills_autogiver",		"0", "Sets whether the survivors will Automatically receive pills after they leave the saferoom", _, true, 0.0, true, 1.0);
-
-	// 1v1 match
-	g_h1v1WipePills =	CreateConVarEx("1v1_wipe_pills",		"0", "The number of pills that will be removed during the final (0: disable 1v1 features)", _, true, 0.0, true, 4.0);
+	g_hOSF_Style				=	CreateConVarEx("replace_outsidekits", "0", "How medkits will be replaced out of saferooms. (-1: remove medkits, 0: director settings, 1: replace with pain pills. Extra option 2: remove all healing items except of finals)", _, true, -1.0, true, 2.0);
+	g_hSSR_Style				=	CreateConVarEx("replace_startkits", "0", "How medkits will be replaced in the saferoom. (-1: remove medkits, 0: director settings, 1: replace with pain pills)", _, true, -1.0, true, 1.0);
+	g_hESR_Style				=	CreateConVarEx("replace_endkits", "0", "How medkits will be replaced in the end saferoom. (-1: remove medkits, 0: director settings, 1: replace with pain pills)", _, true, -1.0, true, 1.0);
+	g_hFSR_Style				=	CreateConVarEx("replace_finalekits", "0", "How medkits will be replaced on finales. (-1: remove medkits, 0: director settings, 1: replace with pain pills)", _, true, -1.0, true, 1.0);
+	g_hPills_Style			=	CreateConVarEx("pills_autogiver", "0", "Sets whether the survivors will Automatically receive pills after they leave the saferoom", _, true, 0.0, true, 1.0);
+	g_h1v1WipePills			=	CreateConVarEx("1v1_wipe_pills", "0", "The number of pills that will be removed during the final (0: disable 1v1 features)", _, true, 0.0, true, 4.0);
+	g_hItemTranslations		=	CreateConVarEx("item_translations", "0", "Keep items to translations in co-op gamemode", _, true, 0.0, true, 1.0);
 
 	AddConVarToReport(g_hOSF_Style); // Add to report status module
 
@@ -98,9 +99,11 @@ _HC_OnPluginEnabled()
 
 	HookConVarChange(g_hOSF_Style, 		_HC_HealthStyle_CvarChange);
 	HookConVarChange(g_hSSR_Style, 		_HC_StartKitsStyle_CvarChange);
-	HookConVarChange(g_hFSR_Style, 		_HC_FinalKitsStyle_CvarChange);
+	HookConVarChange(g_hFSR_Style, 		_HC_FinaleKitsStyle_CvarChange);
+	HookConVarChange(g_hESR_Style, 		_HC_EndKitsStyle_CvarChange);
 	HookConVarChange(g_hPills_Style, 	_HC_GivePillsToSurv_CvarChange);
 	HookConVarChange(g_h1v1WipePills, 	_HC_1v1WipePills_CvarChange);
+	HookConVarChange(g_hItemTranslations, 	_HC_ItemTranslations_CvarChange);
 	Update_HC_ConVars();
 
 	DebugLog("%s Module is now loaded", HC_TAG);
@@ -118,10 +121,12 @@ _HC_OnPluginDisabled()
 
 	UnhookConVarChange(g_hOSF_Style, 		_HC_HealthStyle_CvarChange);
 	UnhookConVarChange(g_hSSR_Style, 		_HC_StartKitsStyle_CvarChange);
-	UnhookConVarChange(g_hFSR_Style, 		_HC_FinalKitsStyle_CvarChange);
-	UnhookConVarChange(g_hPills_Style, 	_HC_GivePillsToSurv_CvarChange);
+	UnhookConVarChange(g_hFSR_Style, 		_HC_FinaleKitsStyle_CvarChange);
+	UnhookConVarChange(g_hESR_Style, 		_HC_EndKitsStyle_CvarChange);
+	UnhookConVarChange(g_hPills_Style, 		_HC_GivePillsToSurv_CvarChange);
 	UnhookConVarChange(g_h1v1WipePills, 	_HC_1v1WipePills_CvarChange);
-
+	UnhookConVarChange(g_hItemTranslations, 	_HC_ItemTranslations_CvarChange);
+	
 	SetDirectorSettings(g_hConvert[PILLS], 0);
 	SetDirectorSettings(g_hConvert[PILLS_VS], 0);
 
@@ -146,13 +151,11 @@ public Action:_HC_t_RoundStartDelay(Handle:timer)
 	UpdateStartingHealthItems();
 }
 
-new 	bool:g_bIsFinalMap;
-
-CheckIsFinalMap()
+static CheckIsFinalMap()
 {
-	g_bIsFinalMap = IsFinalMap();
+	g_Public_bIsFinalMap = IsFinalMap();
 
-	DebugLog("%s Final map? (%s)", HC_TAG, g_bIsFinalMap ? "YES" : "NO");
+	DebugLog("%s Final map? (%s)", HC_TAG, g_Public_bIsFinalMap ? "YES" : "NO");
 }
 
 /**
@@ -176,7 +179,7 @@ static UpdateStartingHealthItems()
 
 		if (IsEntOutSideSafeRoom(vOrg)){
 
-			if (!g_bIsFinalMap && g_iCvarOSF_Style == KEEP_IN_FINAL){
+			if (!g_Public_bIsFinalMap && g_iCvarOSF_Style == KEEP_IN_FINAL){
 
 				_HC_LOG(3, true, g_iCvarOSF_Style, iEnt, vOrg);
 				SafelyRemoveEdict(iEnt);
@@ -189,9 +192,8 @@ static UpdateStartingHealthItems()
 	}
 
 	// keep translations items in co-op gamemode
-	new bool:bSkipStartKits = BetaStartKitsCoopFeature();
-	new bool:bSkipEndKits = BetaFinalKitsCoopFeature();
-
+	new bool:bTranslation = IsItemTranslationFeature();
+	
 	iEnt = -1;
 	while ((iEnt = FindEntityByClassname(iEnt , FIRST_AID_KIT_CLASSNAME)) != INVALID_ENT_REFERENCE){
 
@@ -201,7 +203,7 @@ static UpdateStartingHealthItems()
 
 		if (IsEntInStartSafeRoom(vOrg)){
 
-			if (bSkipStartKits) continue;
+			if (bTranslation) continue;
 
 			_HC_LOG(1, false, g_iCvarSSR_Style, iEnt, vOrg);
 			CaseHealthStyle(iEnt, g_iCvarSSR_Style);
@@ -209,7 +211,7 @@ static UpdateStartingHealthItems()
 		else if (IsEntInEndSafeRoom(vOrg)){
 
 			// 1v1
-			if (g_bIsFinalMap && i1v1Wipe < g_iCvarWipePills > 0){
+			if (g_Public_bIsFinalMap && i1v1Wipe < g_iCvarWipePills > 0){
 
 				i1v1Wipe++;
 				_HC_LOG(2, false, 2, iEnt, vOrg);
@@ -217,17 +219,15 @@ static UpdateStartingHealthItems()
 				continue;
 			}
 
-			if (bSkipEndKits) continue;
-
-			_HC_LOG(2, false, g_iCvarFSR_Style, iEnt, vOrg);
-			CaseHealthStyle(iEnt, g_iCvarFSR_Style);
+			_HC_LOG(g_Public_bIsFinalMap ? 4 : 3, false, g_Public_bIsFinalMap ? g_iCvarFSR_Style : g_iCvarESR_Style, iEnt, vOrg);
+			CaseHealthStyle(iEnt, g_Public_bIsFinalMap ? g_iCvarFSR_Style : g_iCvarESR_Style);
 		}
 		else {
 
 			_HC_LOG(3, false, g_iCvarOSF_Style, iEnt, vOrg);
 
 			// если не финальная карта и нам нужно удалить аптечки
-			if (!g_bIsFinalMap && g_iCvarOSF_Style == KEEP_IN_FINAL)
+			if (!g_Public_bIsFinalMap && g_iCvarOSF_Style == KEEP_IN_FINAL)
 				SafelyRemoveEdict(iEnt);
 			else
 				CaseHealthStyle(iEnt, g_iCvarOSF_Style);
@@ -235,19 +235,15 @@ static UpdateStartingHealthItems()
 	}
 }
 
-static bool:BetaStartKitsCoopFeature()
+// Global
+bool:IsItemTranslationFeature()
 {
-	return !IsVersusMode() && !IsNewMission();
-}
-
-static bool:BetaFinalKitsCoopFeature()
-{
-	return !IsVersusMode() && !g_bIsFinalMap;
+	return !IsVersusMode() && !IsNewMission() && g_bIsItemTranslations;
 }
 
 static _HC_LOG(iType, bool:bPills, iCvar, iEnt, Float:vOrg[3])
 {
-	DebugLog("%s [%s] [Item:%s] [Action:%s] %.1f %.1f %.1f (index %d)", HC_TAG, iType == -1 ? "No Matter" : iType == 1 ? "SSF" : iType == 2 ? "ESR" : "OSR", !bPills ? "Medkit" : "Pills", !iCvar ? "Skipp Me" : iCvar == 1 ? "To Pills" : iCvar == -1 ? "Remove" : "Remove but keep in final", vOrg[0], vOrg[1], vOrg[2], iEnt);
+	DebugLog("%s [%s] [Item:%s] [Action:%s] %.1f %.1f %.1f (index %d)", HC_TAG, iType == -1 ? "No Matter" : iType == 1 ? "SSF" : iType == 2 ? "ESR" : iType == 4 ? "ESR" : "OSR", !bPills ? "Medkit" : "Pills", !iCvar ? "Skipp Me" : iCvar == 1 ? "To Pills" : iCvar == -1 ? "Remove" : "Remove but keep in final", vOrg[0], vOrg[1], vOrg[2], iEnt);
 }
 
 static CaseHealthStyle(entity, style)
@@ -326,11 +322,18 @@ public _HC_StartKitsStyle_CvarChange(Handle:convar, const String:oldValue[], con
 	UpdateStartKitsStyleConVars();
 }
 
-public _HC_FinalKitsStyle_CvarChange(Handle:convar, const String:oldValue[], const String:newValue[])
+public _HC_FinaleKitsStyle_CvarChange(Handle:convar, const String:oldValue[], const String:newValue[])
 {
 	if (StrEqual(oldValue, newValue)) return;
 
-	UpdateFinalKitsStyleConVars();
+	UpdateFinaleKitsStyleConVars();
+}
+
+public _HC_EndKitsStyle_CvarChange(Handle:convar, const String:oldValue[], const String:newValue[])
+{
+	if (StrEqual(oldValue, newValue)) return;
+
+	UpdateEndKitsStyleConVars();
 }
 
 public _HC_GivePillsToSurv_CvarChange(Handle:convar, const String:oldValue[], const String:newValue[])
@@ -347,13 +350,23 @@ public _HC_1v1WipePills_CvarChange(Handle:convar, const String:oldValue[], const
 	Update1v1WipePillsConVars();
 }
 
+public _HC_ItemTranslations_CvarChange(Handle:convar, const String:oldValue[], const String:newValue[])
+{
+	if (StrEqual(oldValue, newValue)) return;
+
+	UpdateItemTranslationConVars();
+}
+
+
 static Update_HC_ConVars()
 {
 	UpdateOutSideStyleConVars();
 	UpdateStartKitsStyleConVars();
-	UpdateFinalKitsStyleConVars();
+	UpdateFinaleKitsStyleConVars();
+	UpdateEndKitsStyleConVars();
 	UpdateGivePillsToSurvConVars();
 	Update1v1WipePillsConVars();
+	UpdateItemTranslationConVars();
 }
 
 static UpdateOutSideStyleConVars()
@@ -374,9 +387,14 @@ static UpdateStartKitsStyleConVars()
 	g_iCvarSSR_Style = GetConVarInt(g_hSSR_Style);
 }
 
-static UpdateFinalKitsStyleConVars()
+static UpdateFinaleKitsStyleConVars()
 {
 	g_iCvarFSR_Style = GetConVarInt(g_hFSR_Style);
+}
+
+static UpdateEndKitsStyleConVars()
+{
+	g_iCvarESR_Style = GetConVarInt(g_hESR_Style);
 }
 
 static UpdateGivePillsToSurvConVars()
@@ -387,6 +405,11 @@ static UpdateGivePillsToSurvConVars()
 static Update1v1WipePillsConVars()
 {
 	g_iCvarWipePills = GetConVarInt(g_h1v1WipePills);
+}
+
+static UpdateItemTranslationConVars()
+{
+	g_bIsItemTranslations = GetConVarBool(g_hItemTranslations);
 }
 
 stock _HC_CvarDump()

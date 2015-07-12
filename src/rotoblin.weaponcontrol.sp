@@ -87,7 +87,7 @@ static					g_iDebugChannel					= 0;
 static	const	String:	DEBUG_CHANNEL_NAME[]			= "WeaponControl";
 static bool:g_bSkip;
 static Handle:g_hDebugArray;
-static Handle:g_hOSF_Style, Handle:g_hSSR_Style, Handle:g_hFSR_Style, g_iCvarOSF_Style, g_iCvarSSR_Style, g_iCvarFSR_Style;
+static Handle:g_hOSF_Style, Handle:g_hSSR_Style, Handle:g_hESR_Style, Handle:g_hFSR_Style, g_iCvarOSF_Style, g_iCvarSSR_Style, g_iCvarESR_Style, g_iCvarFSR_Style;
 // **********************************************
 //                   Forwards
 // **********************************************
@@ -101,7 +101,8 @@ _WeaponControl_OnPluginStart()
 {
 	g_hSSR_Style = CreateConVarEx("replace_startweapons", "0", "How weapons will be replaced in the saferoom. (-1: remove weapons, 0: director settings, 1: replace with their tier 1 analogue, 2: replace only rifles, 3: replace only shotgun)", _, true, -1.0, true, 3.0);
 	g_hOSF_Style = CreateConVarEx("replace_outsideweapons", "0", "How weapons will be replaced out of saferooms. (-1: remove weapons, 0: director settings, 1: replace with their tier 1 analogue, 2: replace only rifles, 3: replace only shotguns)", _, true, -1.0, true, 3.0);
-	g_hFSR_Style = CreateConVarEx("replace_finaleweapons", "0", "How weapons will be replaced on finales. (-1: remove weapons, 0: director settings, 1: replace with their tier 1 analogue, 2: replace only rifles, 3: replace only shotgun)", _, true, -1.0, true, 3.0);
+	g_hESR_Style = CreateConVarEx("replace_endweapons", "0", "How weapons will be replaced in the end saferoom. (-1: remove weapons, 0: director settings, 1: replace with their tier 1 analogue, 2: replace only rifles, 3: replace only shotgun)", _, true, -1.0, true, 3.0);
+	g_hFSR_Style = CreateConVarEx("replace_finaleweapons", "0", "How weapons will be replaced on finals. (-1: remove weapons, 0: director settings, 1: replace with their tier 1 analogue, 2: replace only rifles, 3: replace only shotgun)", _, true, -1.0, true, 3.0);
 
 	g_iDebugChannel = DebugAddChannel(DEBUG_CHANNEL_NAME);
 	DebugPrintToAllEx("Module is now setup");
@@ -126,6 +127,7 @@ _WC_OnPluginEnabled()
 
 	HookConVarChange(g_hOSF_Style, _WC_WeaponStyleOSF_CvarChange);
 	HookConVarChange(g_hSSR_Style, _WC_WeaponStyleSSR_CvarChange);
+	HookConVarChange(g_hESR_Style, _WC_WeaponStyleESR_CvarChange);
 	HookConVarChange(g_hFSR_Style, _WC_WeaponStyleFSR_CvarChange);
 	Update_WC_ConVars();
 
@@ -144,6 +146,7 @@ _WC_OnPluginDisabled()
 
 	UnhookConVarChange(g_hOSF_Style, _WC_WeaponStyleOSF_CvarChange);
 	UnhookConVarChange(g_hSSR_Style, _WC_WeaponStyleSSR_CvarChange);
+	UnhookConVarChange(g_hESR_Style, _WC_WeaponStyleESR_CvarChange);
 	UnhookConVarChange(g_hFSR_Style, _WC_WeaponStyleFSR_CvarChange);
 
 	CloseHandle(g_hWeaponsArray);
@@ -193,21 +196,20 @@ public Action:_WC_t_RoundStartDelay(Handle:timer)
 			WEAPON_REPLACEMENT_ARRAY[i][WEAPON_REPLACECLASSNAME],
 			WEAPON_REPLACEMENT_ARRAY[i][WEAPON_REPLACEMODEL],
 			DEFAULT_WEAPON_COUNT);
-		// I'm lazy, so do it here. (Loop t1 weapons if we needs to remove it)
-		ReplaceAll(WEAPON_REPLACEMENT_ARRAY[i][WEAPON_REPLACECLASSNAME],
-			WEAPON_REPLACEMENT_ARRAY[i][WEAPON_MODEL],
-			WEAPON_REPLACEMENT_ARRAY[i][WEAPON_REPLACECLASSNAME],
-			WEAPON_REPLACEMENT_ARRAY[i][WEAPON_REPLACEMODEL],
-			DEFAULT_WEAPON_COUNT);
 	}
+	for (new i = 0; i < WEAPONS_LIMIT; i++){
+		if (i == WEAPINDEX_AUTO || i == WEAPINDEX_RIFLE) continue;
+		ReplaceAll(g_sWeapon_Names[i][CLASS], "", "", "", 0);
+	}
+
 	g_bSkip = true;
 
 	//R2COMP_LOG
 	decl Float:temp[3], String:tempStr[64], String:tempStr2[64];
 	new len = GetArraySize(g_hDebugArray);
-	for (new saferoom = 1; saferoom <= 3; saferoom++){
+	for (new saferoom = 1; saferoom <= 4; saferoom++){
 
-		DebugLog("%s %s", WC_TAG, saferoom == 1 ? "Start saferoom" : saferoom == 2 ? "Outside saferoom" : "End saferoom");
+		DebugLog("%s %s", WC_TAG, saferoom == 1 ? "Start saferoom" : saferoom == 2 ? "Outside saferoom"  : saferoom == 4 ? "Finale saferoom" : "End saferoom");
 		DebugLog("%s {", WC_TAG);
 		for (new i = 0; i < len; i += 4){
 
@@ -272,6 +274,11 @@ _WC_OnEntityCreated(entity, const String:classname[])
 			WEAPON_REPLACEMENT_ARRAY[i][WEAPON_REPLACEMODEL],
 			DEFAULT_WEAPON_COUNT,
 			REPLACE_DELAY);
+	}
+	for (new i = 0; i < WEAPONS_LIMIT; i++){
+		if (i == WEAPINDEX_AUTO || i == WEAPINDEX_RIFLE || !StrEqual(classname, g_sWeapon_Names[i][CLASS])) continue;
+		new ref = EntIndexToEntRef(entity);
+		ReplaceTier2_Delayed(ref, g_sWeapon_Names[i][CLASS], "", "", "", 0, REPLACE_DELAY);
 	}
 }
 
@@ -410,8 +417,8 @@ static Replace(entity, const String:classname[], const String:model[], const Str
 	{
 		case 0:
 		{
-			for (new i = 0; i < 3; i++)
-				RemoveFromArray(g_hDebugArray, GetArraySize(g_hDebugArray) - 1);
+			for (new i = 1; i <= 3; i++)
+				RemoveFromArray(g_hDebugArray, GetArraySize(g_hDebugArray) - i);
 		}
 		case -1:
 		{
@@ -441,7 +448,8 @@ static Replace(entity, const String:classname[], const String:model[], const Str
 
 static CaseWeaponStyle(WEAPON_STYLE:style, const String:classname[])
 {
-	if (style != REPLACE_REMOVE && (StrEqual(classname, WEAPON_REPLACEMENT_ARRAY[0][WEAPON_REPLACECLASSNAME]) || StrEqual(classname, WEAPON_REPLACEMENT_ARRAY[1][WEAPON_REPLACECLASSNAME])))
+	if (style != REPLACE_REMOVE && (StrEqual(classname, g_sWeapon_Names[WEAPINDEX_SMG][CLASS]) || StrEqual(classname, g_sWeapon_Names[WEAPINDEX_PUMP][CLASS]) ||
+		StrEqual(classname, g_sWeapon_Names[WEAPINDEX_SNIPER][CLASS])))
 		return 0;
 	switch (style)
 	{
@@ -470,12 +478,25 @@ static CaseWeaponStyle(WEAPON_STYLE:style, const String:classname[])
 static WEAPON_STYLE:GetWeaponStyleByLocation(const Float:vOrg[3])
 {
 	if (IsEntInStartSafeRoom(vOrg)){
-		PushArrayCell(g_hDebugArray, 1);
-		return WEAPON_STYLE:g_iCvarSSR_Style;
+
+		if (IsItemTranslationFeature()){
+			return WEAPON_STYLE:REPLACE_NO_WEAPONS;
+		}
+		else {
+			PushArrayCell(g_hDebugArray, 1);
+			return WEAPON_STYLE:g_iCvarSSR_Style;
+		}
 	}
 	else if (IsEntInEndSafeRoom(vOrg)){
-		PushArrayCell(g_hDebugArray, 3);
-		return WEAPON_STYLE:g_iCvarFSR_Style;
+
+		if (g_Public_bIsFinalMap){
+			PushArrayCell(g_hDebugArray, 4);
+			return WEAPON_STYLE:g_iCvarFSR_Style;
+		}
+		else {
+			PushArrayCell(g_hDebugArray, 3);
+			return WEAPON_STYLE:g_iCvarESR_Style;
+		}
 	}
 	PushArrayCell(g_hDebugArray, 2);
 	return WEAPON_STYLE:g_iCvarOSF_Style;
@@ -524,11 +545,18 @@ public _WC_WeaponStyleSSR_CvarChange(Handle:convar, const String:oldValue[], con
 	UpdateStartStyleConVars();
 }
 
+public _WC_WeaponStyleESR_CvarChange(Handle:convar, const String:oldValue[], const String:newValue[])
+{
+	if (StrEqual(oldValue, newValue)) return;
+
+	UpdateEndStyleConVars();
+}
+
 public _WC_WeaponStyleFSR_CvarChange(Handle:convar, const String:oldValue[], const String:newValue[])
 {
 	if (StrEqual(oldValue, newValue)) return;
 
-	UpdateFinalStyleConVars();
+	UpdateFinaleStyleConVars();
 }
 
 static UpdateOutSideStyleConVars()
@@ -541,7 +569,12 @@ static UpdateStartStyleConVars()
 	g_iCvarSSR_Style = GetConVarInt(g_hSSR_Style);
 }
 
-static UpdateFinalStyleConVars()
+static UpdateEndStyleConVars()
+{
+	g_iCvarESR_Style = GetConVarInt(g_hESR_Style);
+}
+
+static UpdateFinaleStyleConVars()
 {
 	g_iCvarFSR_Style = GetConVarInt(g_hFSR_Style);
 }
@@ -550,7 +583,8 @@ static Update_WC_ConVars()
 {
 	UpdateOutSideStyleConVars();
 	UpdateStartStyleConVars();
-	UpdateFinalStyleConVars();
+	UpdateEndStyleConVars();
+	UpdateFinaleStyleConVars();
 }
 
 stock _WC_CvarDump()
