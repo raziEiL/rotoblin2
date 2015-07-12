@@ -485,7 +485,7 @@ static bool:IsHuntingRiffle(iEnt)
 	if (g_iCvarHuntingRiffle == -1)
 		return IsEntInStartSafeRoomEx(iEnt);
 	else
-		return g_bIsFinalMap && IsEntInStartSafeRoomEx(iEnt);
+		return g_Public_bIsFinalMap && IsEntInStartSafeRoomEx(iEnt);
 }
 
 SetDirectorSettings(Handle:hCvar, iVal)
