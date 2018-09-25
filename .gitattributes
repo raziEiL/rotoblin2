@@ -1,0 +1,5 @@
+$ cat .gitattributes
+*.inc linguist-language=SourcePawn
+
+# Auto detect text files and perform LF normalization
+* text=auto
