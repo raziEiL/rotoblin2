@@ -4,10 +4,12 @@
  * This file is part of the Rotoblin 2 project.
  *
  *  File:			l4d_lib.inc
- *  Type:			Stocks
- *  Description:	My useful stock for l4d/l4d2 engine.
+ *  Language:       SourcePawn
+ *  Description:	Stock of l4d & l4d2 functions.
+ *  Version:        2.0
+ *  Credits:        SilverShot for GetTempHealth func (https://forums.alliedmods.net/showthread.php?p=1658852)
  *
- *  Copyright (C) 2012-2015 raziEiL <war4291@mail.ru>
+ *  Copyright (C) 2012-2020 raziEiL [disawar1] <mr.raz4291@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -30,10 +32,22 @@
 #endif
 #define _l4d_lib_
 
-static const	TANK_INDEX_L4D	= 5,
-				TANK_INDEX_L4D2	= 8;
-
-enum _:ZombieClass
+static char g_sTemp[1024];
+/*
+|--------------------------------------------------------------------------
+| MACROS
+|--------------------------------------------------------------------------
+*/
+#define SZF(%0) 	%0, sizeof(%0)
+#define MPS 33 // l4d max players + 1
+#define CID(%0) 	GetClientOfUserId(%0)
+#define UID(%0) 	GetClientUserId(%0)
+/*
+|--------------------------------------------------------------------------
+| ZOMBIE CLASSES
+|--------------------------------------------------------------------------
+*/
+enum
 {
 	ZC_SMOKER = 1,
 	ZC_BOOMER,
@@ -42,131 +56,324 @@ enum _:ZombieClass
 	ZC_TANK
 }
 
-stock bool:IsClientAndInGame(index)
+enum
 {
-	return IsClient(index) && IsClientInGame(index);
+	ZC2_SMOKER = 1,
+	ZC2_BOOMER,
+	ZC2_HUNTER,
+	ZC2_SPITTER,
+	ZC2_JOCKEY,
+	ZC2_CHARGER,
+	ZC2_WITCH,
+	ZC2_TANK
+}
+/*
+|--------------------------------------------------------------------------
+| CLIENT
+|--------------------------------------------------------------------------
+*/
+stock bool IsClientAndInGame(int client)
+{
+	return IsClient(client) && IsClientInGame(client);
 }
 
-stock bool:IsClient(index)
+stock bool IsClient(int client)
 {
-	return index > 0 && index <= MaxClients;
+	return client > 0 && client <= MaxClients;
 }
 
-stock bool:IsInfected(index)
+stock bool IsInfected(int client)
 {
-	return IsClientInGame(index) && GetClientTeam(index) == 3;
+	return IsClientInGame(client) && GetClientTeam(client) == 3;
 }
 
-stock bool:IsSurvivor(index)
+stock bool IsSurvivor(int client)
 {
-	return IsClientInGame(index) && GetClientTeam(index) == 2;
+	return IsClientInGame(client) && GetClientTeam(client) == 2;
 }
 
-stock bool:IsSpectator(index)
+stock bool IsSpectator(int client)
 {
-	return IsClientInGame(index) && GetClientTeam(index) == 1;
+	return IsClientInGame(client) && GetClientTeam(client) == 1;
 }
 
-stock bool:IsOnLadder(entity)
-{
-	return GetEntityMoveType(entity) == MOVETYPE_LADDER;
-}
-
-stock bool:IsPlayerBussy(client, team)
+stock bool IsPlayerBussy(int client, int team)
 {
 	return team == 2 && (!IsPlayerAlive(client) || IsSurvivorBussy(client) || IsIncapacitated(client) || IsHandingFromLedge(client)) ||
 		(!IsInfectedAlive(client) || IsInfectedBussy(client));
 }
 
-stock bool:IsSurvivorBussy(client)
+stock bool IsSurvivorBussy(int client)
 {
 	return GetEntProp(client, Prop_Send, "m_tongueOwner") > 0 || GetEntProp(client, Prop_Send, "m_pounceAttacker") > 0 || !IsL4DGameEx() && (GetEntProp(client, Prop_Send, "m_pummelAttacker") > 0 || GetEntProp(client, Prop_Send, "m_jockeyAttacker") > 0);
 }
 
-stock bool:IsInfectedBussy(client)
+stock bool IsInfectedBussy(int client)
 {
 	return GetEntProp(client, Prop_Send, "m_tongueVictim") > 0 || GetEntProp(client, Prop_Send, "m_pounceVictim") > 0 || !IsL4DGameEx() && (GetEntProp(client, Prop_Send, "m_pummelVictim") > 0 || GetEntProp(client, Prop_Send, "m_jockeyVictim") > 0);
 }
 
-stock IsIncapacitated(client)
+stock int IsIncapacitated(int client)
 {
 	return GetEntProp(client, Prop_Send, "m_isIncapacitated");
 }
 
-stock bool:IsHandingFromLedge(client)
+stock bool IsHandingFromLedge(int client)
 {
 	return GetEntProp(client, Prop_Send, "m_isHangingFromLedge") || GetEntProp(client, Prop_Send, "m_isFallingFromLedge");
 }
 
-stock bool:IsInfectedAlive(client)
+stock bool IsInfectedAlive(int client)
 {
 	return GetEntProp(client, Prop_Send, "m_iHealth") > 1;
 }
 
-stock bool:IsPlayerTank(tank_index)
+stock bool IsPlayerTank(int client)
 {
-	return GetEntProp(tank_index, Prop_Send, "m_zombieClass") == (IsL4DGameEx() ? TANK_INDEX_L4D : TANK_INDEX_L4D2);
+	return GetEntProp(client, Prop_Send, "m_zombieClass") == (IsL4DGameEx() ? ZC_TANK : ZC2_TANK);
 }
 
-stock bool:IsWitch(entity)
+stock int IsPlayerGhost(int client)
 {
-	decl String:sClassName[64];
-	GetEntityClassname(entity, sClassName, 64);
-	return !strcmp(sClassName, "witch");
+	return GetEntProp(client, Prop_Send, "m_isGhost");
 }
 
-stock bool:IsCommonInfected(entity)
+stock int GetPlayerClass(int client)
 {
-	decl String:sClassName[64];
-	GetEntityClassname(entity, sClassName, 64);
-	return !strcmp(sClassName, "infected");
+	return GetEntProp(client, Prop_Send, "m_zombieClass");
 }
 
-stock bool:IsWeaponClass(const String:sClassName[])
+stock int GetFrustration(int client)
+{
+	return GetEntProp(client, Prop_Send, "m_frustration");
+}
+
+stock void SetTankFrustration(int client, int iFrustration)
+{
+	SetEntProp(client, Prop_Send, "m_frustration", 100 - iFrustration);
+}
+
+stock int GetGhostSpawnState(int client)
+{
+	return GetEntProp(client, Prop_Send, "m_ghostSpawnState");
+}
+
+stock void SetTempHealth(int client, float health)
+{
+	SetEntPropFloat(client, Prop_Send, "m_healthBufferTime", GetGameTime());
+	SetEntPropFloat(client, Prop_Send, "m_healthBuffer", health);
+}
+
+stock float GetTempHealth(int client)
+{
+	static float fCvarDecayRate = -1.0;
+
+	if (fCvarDecayRate == -1.0)
+		fCvarDecayRate = FindConVar("pain_pills_decay_rate").FloatValue;
+
+	float fTempHealth = GetEntPropFloat(client, Prop_Send, "m_healthBuffer");
+	fTempHealth -= (GetGameTime() - GetEntPropFloat(client, Prop_Send, "m_healthBufferTime")) * fCvarDecayRate;
+	return fTempHealth < 0.0 ? 0.0 : fTempHealth;
+}
+/*
+|--------------------------------------------------------------------------
+| ENTITY
+|--------------------------------------------------------------------------
+*/
+stock bool IsOnLadder(int entity)
+{
+	return GetEntityMoveType(entity) == MOVETYPE_LADDER;
+}
+
+stock bool IsOnFire(int entity)
+{
+	return (GetEntityFlags(entity) & FL_ONFIRE) == FL_ONFIRE;
+}
+
+stock bool IsWitch(int entity)
+{
+	GetEntityClassname(entity, SZF(g_sTemp));
+	return StrEqual(g_sTemp, "witch");
+}
+
+stock bool IsCommonInfected(int entity)
+{
+	GetEntityClassname(entity, SZF(g_sTemp));
+	return StrEqual(g_sTemp, "infected");
+}
+
+stock int GetHammerID(int entity)
+{
+	return GetEntProp(entity, Prop_Data, "m_iHammerID");
+}
+/*
+|--------------------------------------------------------------------------
+| WEAPONS
+|  For more weapon functions see: https://github.com/raziEiL/l4d2_weapons
+|--------------------------------------------------------------------------
+*/
+stock bool IsWeaponClass(const char[] sClassName)
 {
 	return StrContains(sClassName, "weapon_") != -1 || StrContains(sClassName, "upgrade_") != -1;
 }
 
-stock bool:IsWeaponClassEx(entity)
+stock bool IsWeaponClassEx(int entity)
 {
-	decl String:sClassName[64];
-	GetEntityClassname(entity, sClassName, 64);
-	return IsWeaponClass(sClassName);
+	GetEntityClassname(entity, SZF(g_sTemp));
+	return IsWeaponClass(g_sTemp);
 }
 
-stock bool:IsWeaponSpawn(const String:sClassName[])
+stock bool IsWeaponSpawn(const char[] sClassName)
 {
 	return IsWeaponClass(sClassName) && StrContains(sClassName, "_spawn") != -1;
 }
 
-stock bool:IsWeaponSpawnEx(entity)
+stock bool IsWeaponSpawnEx(int entity)
 {
-	decl String:sClassName[64];
-	GetEntityClassname(entity, sClassName, 64);
-	return IsWeaponSpawn(sClassName);
+	GetEntityClassname(entity, SZF(g_sTemp));
+	return IsWeaponSpawn(g_sTemp);
 }
 
-stock GetWeaponClipSize(weapon)
+stock int GetWeaponClipSize(int entity)
 {
-	return GetEntProp(weapon, Prop_Send, "m_iClip1");
+	return GetEntProp(entity, Prop_Send, "m_iClip1");
 }
 
-stock GetWeaponClipSizeEx(client)
+stock int GetWeaponClipSizeEx(int client)
 {
-	new iWeap = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+	int iWeap = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
 
 	if (IsValidEntity(iWeap))
 		return GetWeaponClipSize(iWeap);
 
 	return -1;
 }
-
-stock GetPlayerClass(client)
+/*
+|--------------------------------------------------------------------------
+| VECTORS
+|--------------------------------------------------------------------------
+*/
+stock void GetEntityOrg(int entity, float vOrg[3])
 {
-	return GetEntProp(client, Prop_Send, "m_zombieClass");
+	GetEntPropVector(entity, Prop_Send, "m_vecOrigin", vOrg);
 }
 
-stock bool:GetCharacterName(client, String:sSurvivor[], len)
+stock bool IsVectorNull(float vOrg[3])
+{
+	return !vOrg[0] && !vOrg[1] && !vOrg[2];
+}
+
+stock bool IsVectorsMatch(float vVectorA[3], float vVectorB[3])
+{
+	return vVectorA[0] == vVectorB[0] && vVectorA[1] == vVectorB[1] && vVectorA[2] == vVectorB[2];
+}
+
+stock void CopyVectorVector(float dest[3], const float src[3])
+{
+	dest[0] = src[0];
+	dest[1] = src[1];
+	dest[2] = src[2];
+}
+
+stock void ScaleVectorVector(float vec[3], const float scale[3])
+{
+	vec[0] *= scale[0];
+	vec[1] *= scale[1];
+	vec[2] *= scale[2];
+}
+
+stock void AddVectorInt(float vec[3], int value)
+{
+	vec[0] += value;
+	vec[1] += value;
+	vec[2] += value;
+}
+
+stock void SubVectorInt(float vec[3], int value)
+{
+	vec[0] -= value;
+	vec[1] -= value;
+	vec[2] -= value;
+}
+/*
+|--------------------------------------------------------------------------
+| GLOW/COLOR
+|--------------------------------------------------------------------------
+*/
+stock void SetEntGlowInt(int entity, const int rgb[3], int type = 3, int min = 1, int max = 450, bool flashing = false)
+{
+	SetEntProp(entity, Prop_Send, "m_iGlowType", type);
+	SetEntProp(entity, Prop_Send, "m_glowColorOverride", ((rgb[2] & 0xFF) << 16) | ((rgb[1] & 0xFF) << 8) | (rgb[0] & 0xFF)); // little-endian byte order
+	SetEntProp(entity, Prop_Send, "m_nGlowRangeMin", min);
+	SetEntProp(entity, Prop_Send, "m_nGlowRange", max);
+	SetEntProp(entity, Prop_Send, "m_bFlashing", flashing);
+}
+
+stock void DisableEntGlow(int entity)
+{
+	SetEntProp(entity, Prop_Send, "m_iGlowType", 0);
+	SetEntProp(entity, Prop_Send, "m_glowColorOverride", 0);
+	SetEntProp(entity, Prop_Send, "m_nGlowRange", 0);
+	SetEntProp(entity, Prop_Send, "m_nGlowRangeMin", 0);
+}
+
+stock void SetEntGlowStr(int entity, char[] color, int type = 3, int min = 1, int max = 450, bool flashing = false)
+{
+	SetEntGlowInt(entity, ColorStrToInt(color), type, min, max, flashing);
+}
+
+stock void GetRandomRGBColor(char[] dest, int len)
+{
+	FormatEx(dest, len, "%d %d %d", GetRandomInt(0, 255), GetRandomInt(0, 255), GetRandomInt(0, 255));
+}
+
+stock int[] ColorStrToInt(const char[] color)
+{
+	int iRGB[3];
+	ParseColorStr(color, iRGB);
+	return iRGB;
+}
+
+stock void ParseColorStr(const char[] color, int dest[3])
+{
+	char sRGB[3][6];
+	int iParts = ExplodeString(color, " ", sRGB, sizeof(sRGB), sizeof(sRGB[]));
+
+	if (iParts == 3){ // RGB format
+		for (int i; i < iParts; i++)
+			dest[i] = StringToInt(sRGB[i]);
+	}
+	else { // HEX format
+		int iHEX = StringToInt(color, 16);
+		dest[0] = (iHEX >> 16) & 0xFF;
+		dest[1] = (iHEX >> 8) & 0xFF;
+		dest[2] = iHEX & 0xFF;
+	}
+}
+/*
+|--------------------------------------------------------------------------
+| MISC
+|--------------------------------------------------------------------------
+*/
+stock bool IsAnyOneConnected()
+{
+	for (int i = 1; i <= MaxClients; i++)
+		if (IsClientConnected(i) && !IsClientInGame(i) && !IsFakeClient(i))
+			return true;
+
+	return false;
+}
+
+stock bool IsServerEmpty()
+{
+	for (int i = 1; i <= MaxClients; i++)
+		if (IsClientConnected(i) && !IsFakeClient(i))
+			return false;
+
+	return true;
+}
+
+stock bool GetCharacterName(int client, char[] sSurvivor, int len)
 {
 	switch (GetEntProp(client, Prop_Send, "m_survivorCharacter"))
 	{
@@ -185,174 +392,103 @@ stock bool:GetCharacterName(client, String:sSurvivor[], len)
 	return true;
 }
 
-stock GetFrustration(tank_index)
+stock void PrintToTeam(int team, int msgType, const char[] text, any ...)
 {
-	return GetEntProp(tank_index, Prop_Send, "m_frustration");
-}
+	bool bTrans = StrContains(text, "%t") != -1;
 
-stock SetTankFrustration(tank_index, iFrustration)
-{
-	SetEntProp(tank_index, Prop_Send, "m_frustration", 100 - iFrustration);
-}
-
-stock IsPlayerGhost(client)
-{
-	return GetEntProp(client, Prop_Send, "m_isGhost");
-}
-
-stock GetGhostSpawnState(client)
-{
-	return GetEntProp(client, Prop_Send, "m_ghostSpawnState");
-}
-
-stock GetEntityOrg(entity, Float:vOrg[3])
-{
-	GetEntPropVector(entity, Prop_Send, "m_vecOrigin", vOrg);
-}
-
-stock GetHammerID(entity)
-{
-	return GetEntProp(entity, Prop_Data, "m_iHammerID");
-}
-
-stock SetTempHealth(client, Float:health)
-{
-	SetEntPropFloat(client, Prop_Send, "m_healthBufferTime", GetGameTime());
-	SetEntPropFloat(client, Prop_Send, "m_healthBuffer", health);
-}
-// Code by SilverShot aka Silvers (Healing Gnome plugin https://forums.alliedmods.net/showthread.php?p=1658852)
-stock Float:GetTempHealth(client)
-{
-	static Float:fCvarDecayRate = -1.0;
-
-	if (fCvarDecayRate == -1.0)
-		fCvarDecayRate = GetConVarFloat(FindConVar("pain_pills_decay_rate"));
-
-	new Float:fTempHealth = GetEntPropFloat(client, Prop_Send, "m_healthBuffer");
-	fTempHealth -= (GetGameTime() - GetEntPropFloat(client, Prop_Send, "m_healthBufferTime")) * fCvarDecayRate;
-	return fTempHealth < 0.0 ? 0.0 : fTempHealth;
-}
-
-stock bool:IsAnyOneConnected()
-{
-	for (new i = 1; i <= MaxClients; i++)
-		if (IsClientConnected(i) && !IsClientInGame(i) && !IsFakeClient(i))
-			return true;
-
-	return false;
-}
-
-stock bool:IsServerEmpty()
-{
-	for (new i = 1; i <= MaxClients; i++)
-		if (IsClientConnected(i) && !IsFakeClient(i))
-			return false;
-
-	return true;
-}
-
-stock IsVectorNull(Float:vOrg[3])
-{
-	return !vOrg[0] && !vOrg[1] && !vOrg[2];
-}
-
-stock IsVectorsMatch(Float:vVectorA[3], Float:vVectorB[3])
-{
-	return vVectorA[0] == vVectorB[0] && vVectorA[1] == vVectorB[1] && vVectorA[2] == vVectorB[2];
-}
-
-stock PrintToTeam(team, type, const String:text[], any:...)
-{
-	decl String:sText[1024];
-	new bool:bTrans = StrContains(text, "%t") != -1;
-
-	for (new i = 1; i <= MaxClients; i++){
+	for (int i = 1; i <= MaxClients; i++){
 
 		if (IsClientInGame(i) && GetClientTeam(i) == team && !IsFakeClient(i)){
 
 			if (bTrans)
 				SetGlobalTransTarget(i);
 
-			VFormat(sText, 1024, text, 4);
+			VFormat(SZF(g_sTemp), text, 4);
 
-			switch (type){
+			switch (msgType){
 
 				case 0:
-					PrintToChat(i, sText);
+					PrintToChat(i, g_sTemp);
 				case 1:
-					PrintHintText(i, sText);
+					PrintHintText(i, g_sTemp);
 				case 2:
-					PrintCenterText(i, sText);
+					PrintCenterText(i, g_sTemp);
 			}
 		}
 	}
 }
 
-stock bool:IsL4DGame(bool:bL4D2 = false)
-{
-	decl String:sGameFolder[32];
-	GetGameFolderName(sGameFolder, 32);
-	return StrEqual(sGameFolder, bL4D2 ? "left4dead2" : "left4dead");
-}
-
-stock bool:IsL4DEngine(bool:bL4D2 = false)
-{
-	return GetEngineVersion() == (bL4D2 ? Engine_Left4Dead2 : Engine_Left4Dead);
-}
-
-stock IsL4DGameEx()
-{
-	static iGame = -1;
-
-	if (iGame == -1)
-		iGame = IsL4DGame();
-
-	return iGame;
-}
-
-stock IsL4DEngineEx()
-{
-	static iEngine = -1;
-
-	if (iEngine == -1)
-		iEngine = IsL4DEngine();
-
-	return iEngine;
-}
-
-stock bool:IsFinalMap()
+stock bool IsFinalMap()
 {
 	return FindEntityByClassname(-1, "info_changelevel") == INVALID_ENT_REFERENCE;
 }
 
-stock bool:IsNewMission()
+stock bool IsNewMission()
 {
-	decl String:sMap[64];
-	GetCurrentMap(sMap, 64);
+	char sMap[64];
+	GetCurrentMap(SZF(sMap));
 	return StrContains(sMap, IsL4DGameEx() ? "01_" : "m1_") != -1;
 }
 
-stock bool:IsVersusMode()
+stock bool IsVersusMode()
 {
-	static Handle:hCvarGameMode;
+	static ConVar hCvarGameMode;
 
-	if (hCvarGameMode == INVALID_HANDLE)
+	if (hCvarGameMode == null)
 		hCvarGameMode = FindConVar("mp_gamemode");
 
-	decl String:sGameMode[12];
-	GetConVarString(hCvarGameMode, sGameMode, 12);
-	return strcmp(sGameMode, "versus") == 0;
+	hCvarGameMode.GetString(SZF(g_sTemp));
+	return StrEqual(g_sTemp, "versus");
+}
+/*
+|--------------------------------------------------------------------------
+| GAME DETECTION
+|--------------------------------------------------------------------------
+*/
+stock bool IsL4DGame(bool bL4D2 = false)
+{
+	GetGameFolderName(SZF(g_sTemp));
+	return StrEqual(g_sTemp, bL4D2 ? "left4dead2" : "left4dead");
 }
 
+stock bool IsL4DEngine(bool bL4D2 = false)
+{
+	return GetEngineVersion() == (bL4D2 ? Engine_Left4Dead2 : Engine_Left4Dead);
+}
+
+stock bool IsL4DGameEx(bool bL4D2 = false)
+{
+	static int iGame = -1;
+
+	if (iGame == -1)
+		iGame = IsL4DGame(bL4D2);
+
+	return view_as<bool>(iGame);
+}
+
+stock bool IsL4DEngineEx(bool bL4D2 = false)
+{
+	static int iEngine = -1;
+
+	if (iEngine == -1)
+		iEngine = IsL4DEngine(bL4D2);
+
+	return view_as<bool>(iEngine);
+}
+/*
+|--------------------------------------------------------------------------
+| ROTOBLIN
+|--------------------------------------------------------------------------
+*/
 #define LIB			"r2compmod"
 
 #if defined REQUIRE_PLUGIN
 
 #include <r2comp_api>
 
-new stock bool:g_bLoadLater;
+int stock bool g_bLoadLater;
 
-public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
 	MarkCompNatives();
 	g_bLoadLater = late;
@@ -361,7 +497,7 @@ public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 }
 #endif
 
-public SharedPlugin:__pl_r2compmod =
+public SharedPlugin __pl_r2compmod =
 {
 	name = LIB,
 	file = "r2compmod.smx",
