@@ -32,6 +32,9 @@
 #endif
 #define _l4d_lib_
 
+#include <sourcemod>
+#include <sdktools>
+
 static char g_sTemp[1024];
 /*
 |--------------------------------------------------------------------------
