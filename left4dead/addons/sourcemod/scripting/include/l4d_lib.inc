@@ -6,7 +6,7 @@
  *  File:			l4d_lib.inc
  *  Language:       SourcePawn
  *  Description:	Stock of l4d & l4d2 functions.
- *  Version:        2.0
+ *  Version:        2.2
  *  Credits:        SilverShot for GetTempHealth func (https://forums.alliedmods.net/showthread.php?p=1658852)
  *
  *  Copyright (C) 2012-2020 raziEiL [disawar1] <mr.raz4291@gmail.com>
@@ -30,12 +30,13 @@
 #if defined _l4d_lib_
   #endinput
 #endif
-#define _l4d_lib_
+#define _l4d_lib_ "2.2"
 
 #include <sourcemod>
 #include <sdktools>
 
 static char g_sTemp[1024];
+static int g_iTemp;
 /*
 |--------------------------------------------------------------------------
 | MACROS
@@ -45,6 +46,7 @@ static char g_sTemp[1024];
 #define MPS 33 // l4d max players + 1
 #define CID(%0) 	GetClientOfUserId(%0)
 #define UID(%0) 	GetClientUserId(%0)
+#define IsIncaped(%1) IsIncapacitated(%1)
 /*
 |--------------------------------------------------------------------------
 | ZOMBIE CLASSES
@@ -56,7 +58,8 @@ enum
 	ZC_BOOMER,
 	ZC_HUNTER,
 	ZC_UNKNOWN,
-	ZC_TANK
+	ZC_TANK,
+	ZC_SIZE
 }
 
 enum
@@ -68,8 +71,62 @@ enum
 	ZC2_JOCKEY,
 	ZC2_CHARGER,
 	ZC2_WITCH,
-	ZC2_TANK
+	ZC2_TANK,
+	ZC2_SIZE
 }
+/*
+|--------------------------------------------------------------------------
+| PUBLIC VARIABLES
+|--------------------------------------------------------------------------
+*/
+stock const int L4D_SURVIVOR_CHARACTER_OFFSET = 4;
+
+stock const char L4D2_LIB_SURVIVOR_CHARACTER[][] =
+{
+	"gambler",
+	"producer",
+	"coach",
+	"mechanic",
+	"namvet", // L4D_SURVIVOR_CHARACTER_OFFSET
+	"teengirl",
+	"biker",
+	"manager"
+};
+
+stock const char L4D2_LIB_SURVIVOR_CHARACTER_NAME[][] =
+{
+	"Nick",
+	"Rochelle",
+	"Coach",
+	"Ellis",
+	"Bill", // L4D_SURVIVOR_CHARACTER_OFFSET
+	"Zoey",
+	"Francis",
+	"Louis"
+};
+
+stock const char L4D_LIB_INFECTED_CHARACTER_NAME[ZC_SIZE][] =
+{
+	"",
+    "Smoker",
+    "Boomer",
+    "Hunter",
+    "Unknown",
+    "Tank"
+};
+
+stock const char L4D2_LIB_INFECTED_CHARACTER_NAME[ZC2_SIZE][] =
+{
+	"",
+    "Smoker",
+    "Boomer",
+    "Hunter",
+    "Spitter",
+    "Jockey",
+    "Charger",
+    "Witch",
+    "Tank"
+};
 /*
 |--------------------------------------------------------------------------
 | CLIENT
@@ -100,10 +157,25 @@ stock bool IsSpectator(int client)
 	return IsClientInGame(client) && GetClientTeam(client) == 1;
 }
 
+stock bool IsInfectedAndInGame(int client)
+{
+	return IsClient(client) && IsInfected(client);
+}
+
+stock bool IsSurvivorAndInGame(int client)
+{
+	return IsClient(client) && IsSurvivor(client);
+}
+
+stock bool IsSpectatorAndInGame(int client)
+{
+	return IsClient(client) && IsSpectator(client);
+}
+
 stock bool IsPlayerBussy(int client, int team)
 {
-	return team == 2 && (!IsPlayerAlive(client) || IsSurvivorBussy(client) || IsIncapacitated(client) || IsHandingFromLedge(client)) ||
-		(!IsInfectedAlive(client) || IsInfectedBussy(client));
+	return !IsPlayerAlive(client) || (team == 2 ? (IsSurvivorBussy(client) || IsIncapacitated(client) || IsHandingFromLedge(client)) :
+		IsInfectedBussy(client));
 }
 
 stock bool IsSurvivorBussy(int client)
@@ -116,9 +188,9 @@ stock bool IsInfectedBussy(int client)
 	return GetEntProp(client, Prop_Send, "m_tongueVictim") > 0 || GetEntProp(client, Prop_Send, "m_pounceVictim") > 0 || !IsL4DGameEx() && (GetEntProp(client, Prop_Send, "m_pummelVictim") > 0 || GetEntProp(client, Prop_Send, "m_jockeyVictim") > 0);
 }
 
-stock int IsIncapacitated(int client)
+stock bool IsIncapacitated(int client)
 {
-	return GetEntProp(client, Prop_Send, "m_isIncapacitated");
+	return !!GetEntProp(client, Prop_Send, "m_isIncapacitated");
 }
 
 stock bool IsHandingFromLedge(int client)
@@ -126,6 +198,7 @@ stock bool IsHandingFromLedge(int client)
 	return GetEntProp(client, Prop_Send, "m_isHangingFromLedge") || GetEntProp(client, Prop_Send, "m_isFallingFromLedge");
 }
 
+#pragma deprecated Use IsPlayerAlive(int client) instead.
 stock bool IsInfectedAlive(int client)
 {
 	return GetEntProp(client, Prop_Send, "m_iHealth") > 1;
@@ -136,9 +209,9 @@ stock bool IsPlayerTank(int client)
 	return GetEntProp(client, Prop_Send, "m_zombieClass") == (IsL4DGameEx() ? ZC_TANK : ZC2_TANK);
 }
 
-stock int IsPlayerGhost(int client)
+stock bool IsPlayerGhost(int client)
 {
-	return GetEntProp(client, Prop_Send, "m_isGhost");
+	return !!GetEntProp(client, Prop_Send, "m_isGhost");
 }
 
 stock int GetPlayerClass(int client)
@@ -376,23 +449,33 @@ stock bool IsServerEmpty()
 	return true;
 }
 
-stock bool GetCharacterName(int client, char[] sSurvivor, int len)
+stock bool GetCharacterName(int client, char[] dest, int len)
 {
-	switch (GetEntProp(client, Prop_Send, "m_survivorCharacter"))
-	{
-		case 0:
-			strcopy(sSurvivor, len, "Bill");
-		case 1:
-			strcopy(sSurvivor, len, "Zoey");
-		case 2:
-			strcopy(sSurvivor, len, "Francis");
-		case 3:
-			strcopy(sSurvivor, len, "Louis");
-		default:
-			return false;
-	}
+	g_iTemp = GetCharStrIndex(client);
+	return g_iTemp < 0 ? false : !!strcopy(dest, len, L4D2_LIB_SURVIVOR_CHARACTER_NAME[g_iTemp]);
+}
 
-	return true;
+stock bool GetCharacter(int client, char[] dest, int len)
+{
+	g_iTemp = GetCharStrIndex(client);
+	return g_iTemp < 0 ? false : !!strcopy(dest, len, L4D2_LIB_SURVIVOR_CHARACTER[g_iTemp]);
+}
+
+stock bool GetInfectedName(int client, char[] dest, int len)
+{
+	g_iTemp = GetEntProp(client, Prop_Send, "m_zombieClass");
+	return !!strcopy(dest, len, IsL4DGameEx() ? L4D_LIB_INFECTED_CHARACTER_NAME[g_iTemp] : L4D2_LIB_INFECTED_CHARACTER_NAME[g_iTemp]);
+}
+// @return L4D_LIB_SURVIVOR_CHARACTER string index
+stock int GetCharStrIndex(int client)
+{
+	static int strIndex;
+	strIndex = GetEntProp(client, Prop_Send, "m_survivorCharacter");
+	if (strIndex < 0)
+		return -1;
+	if (IsL4DGameEx())
+		strIndex += L4D_SURVIVOR_CHARACTER_OFFSET;
+	return strIndex;
 }
 
 stock void PrintToTeam(int team, int msgType, const char[] text, any ...)
