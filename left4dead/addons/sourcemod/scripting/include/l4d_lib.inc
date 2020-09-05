@@ -6,7 +6,7 @@
  *  File:			l4d_lib.inc
  *  Language:       SourcePawn
  *  Description:	Stock of l4d & l4d2 functions.
- *  Version:        2.2
+ *  Version:        2.3
  *  Credits:        SilverShot for GetTempHealth func (https://forums.alliedmods.net/showthread.php?p=1658852)
  *
  *  Copyright (C) 2012-2020 raziEiL [disawar1] <mr.raz4291@gmail.com>
@@ -30,7 +30,7 @@
 #if defined _l4d_lib_
   #endinput
 #endif
-#define _l4d_lib_ "2.2"
+#define _l4d_lib_ "2.3"
 
 #include <sourcemod>
 #include <sdktools>
@@ -180,12 +180,12 @@ stock bool IsPlayerBussy(int client, int team)
 
 stock bool IsSurvivorBussy(int client)
 {
-	return GetEntProp(client, Prop_Send, "m_tongueOwner") > 0 || GetEntProp(client, Prop_Send, "m_pounceAttacker") > 0 || !IsL4DGameEx() && (GetEntProp(client, Prop_Send, "m_pummelAttacker") > 0 || GetEntProp(client, Prop_Send, "m_jockeyAttacker") > 0);
+	return GetEntProp(client, Prop_Send, "m_tongueOwner") > 0 || GetEntProp(client, Prop_Send, "m_pounceAttacker") > 0 || (IsL4DGameEx() ? false : GetEntProp(client, Prop_Send, "m_pummelAttacker") > 0 || GetEntProp(client, Prop_Send, "m_jockeyAttacker") > 0);
 }
 
 stock bool IsInfectedBussy(int client)
 {
-	return GetEntProp(client, Prop_Send, "m_tongueVictim") > 0 || GetEntProp(client, Prop_Send, "m_pounceVictim") > 0 || !IsL4DGameEx() && (GetEntProp(client, Prop_Send, "m_pummelVictim") > 0 || GetEntProp(client, Prop_Send, "m_jockeyVictim") > 0);
+	return GetEntProp(client, Prop_Send, "m_tongueVictim") > 0 || GetEntProp(client, Prop_Send, "m_pounceVictim") > 0 || (IsL4DGameEx() ? false : GetEntProp(client, Prop_Send, "m_pummelVictim") > 0 || GetEntProp(client, Prop_Send, "m_jockeyVictim") > 0);
 }
 
 stock bool IsIncapacitated(int client)
