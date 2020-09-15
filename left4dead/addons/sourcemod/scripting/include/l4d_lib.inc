@@ -6,7 +6,7 @@
  *  File:			l4d_lib.inc
  *  Language:       SourcePawn
  *  Description:	Stock of l4d & l4d2 functions.
- *  Version:        2.3
+ *  Version:        2.4
  *  Credits:        SilverShot for GetTempHealth func (https://forums.alliedmods.net/showthread.php?p=1658852)
  *
  *  Copyright (C) 2012-2020 raziEiL [disawar1] <mr.raz4291@gmail.com>
@@ -30,11 +30,15 @@
 #if defined _l4d_lib_
   #endinput
 #endif
-#define _l4d_lib_ "2.3"
+#define _l4d_lib_ "2.4"
 
 #include <sourcemod>
 #include <sdktools>
-
+/*
+|--------------------------------------------------------------------------
+| LOCAL TEMP VARIABLES
+|--------------------------------------------------------------------------
+*/
 static char g_sTemp[1024];
 static int g_iTemp;
 /*
@@ -49,22 +53,26 @@ static int g_iTemp;
 #define IsIncaped(%1) IsIncapacitated(%1)
 /*
 |--------------------------------------------------------------------------
-| ZOMBIE CLASSES
+| ZOMBIE STRUCTURE
 |--------------------------------------------------------------------------
 */
 enum
 {
-	ZC_SMOKER = 1,
+	ZC_INVALID = -1,
+	ZC_INFECTED, // just a zombie
+	ZC_SMOKER,
 	ZC_BOOMER,
 	ZC_HUNTER,
-	ZC_UNKNOWN,
+	ZC_WITCH, // ZC_UNKNOWN
 	ZC_TANK,
 	ZC_SIZE
 }
 
 enum
 {
-	ZC2_SMOKER = 1,
+	ZC2_INVALID = ZC_INVALID,
+	ZC2_INFECTED,
+	ZC2_SMOKER,
 	ZC2_BOOMER,
 	ZC2_HUNTER,
 	ZC2_SPITTER,
@@ -74,14 +82,52 @@ enum
 	ZC2_TANK,
 	ZC2_SIZE
 }
+// Public variables
+stock const char L4D_LIB_INFECTED_CHARACTER_NAME[ZC_SIZE][] =
+{
+	"Infected",
+    "Smoker",
+    "Boomer",
+    "Hunter",
+    "Witch",
+    "Tank"
+};
+
+stock const char L4D2_LIB_INFECTED_CHARACTER_NAME[ZC2_SIZE][] =
+{
+	"Infected",
+    "Smoker",
+    "Boomer",
+    "Hunter",
+    "Spitter",
+    "Jockey",
+    "Charger",
+    "Witch",
+    "Tank"
+};
 /*
 |--------------------------------------------------------------------------
-| PUBLIC VARIABLES
+| SURVIVORS STRUCTURE
 |--------------------------------------------------------------------------
 */
-stock const int L4D_SURVIVOR_CHARACTER_OFFSET = 4;
+#define L4D_SURVIVOR_CHARACTER_OFFSET 4
 
-stock const char L4D2_LIB_SURVIVOR_CHARACTER[][] =
+enum
+{
+	SC_INVALID = -1,
+	SC_NICK,
+	SC_ROCHELLE,
+	SC_COACH,
+	SC_ELLIS,
+	SC_BILL,
+	SC_ZOEY,
+	SC_FRANCIS,
+	SC_LOUIS,
+	SC_SIZE
+}
+
+// Public variables
+stock const char L4D2_LIB_SURVIVOR_CHARACTER[SC_SIZE][] =
 {
 	"gambler",
 	"producer",
@@ -93,7 +139,7 @@ stock const char L4D2_LIB_SURVIVOR_CHARACTER[][] =
 	"manager"
 };
 
-stock const char L4D2_LIB_SURVIVOR_CHARACTER_NAME[][] =
+stock const char L4D2_LIB_SURVIVOR_CHARACTER_NAME[SC_SIZE][] =
 {
 	"Nick",
 	"Rochelle",
@@ -105,27 +151,16 @@ stock const char L4D2_LIB_SURVIVOR_CHARACTER_NAME[][] =
 	"Louis"
 };
 
-stock const char L4D_LIB_INFECTED_CHARACTER_NAME[ZC_SIZE][] =
+stock const char L4D2_LIB_SURVIVOR_MDL[SC_SIZE][] =
 {
-	"",
-    "Smoker",
-    "Boomer",
-    "Hunter",
-    "Unknown",
-    "Tank"
-};
-
-stock const char L4D2_LIB_INFECTED_CHARACTER_NAME[ZC2_SIZE][] =
-{
-	"",
-    "Smoker",
-    "Boomer",
-    "Hunter",
-    "Spitter",
-    "Jockey",
-    "Charger",
-    "Witch",
-    "Tank"
+	"models/survivors/survivor_gambler.mdl",
+	"models/survivors/survivor_producer.mdl",
+	"models/survivors/survivor_coach.mdl",
+	"models/survivors/survivor_mechanic.mdl",
+	"models/survivors/survivor_namvet.mdl", // L4D_SURVIVOR_CHARACTER_OFFSET
+	"models/survivors/survivor_teenangst.mdl",
+	"models/survivors/survivor_biker.mdl",
+	"models/survivors/survivor_manager.mdl"
 };
 /*
 |--------------------------------------------------------------------------
@@ -214,9 +249,23 @@ stock bool IsPlayerGhost(int client)
 	return !!GetEntProp(client, Prop_Send, "m_isGhost");
 }
 
+// @return Player class only! Use GetZombieClass to get Witch, infected or invalid class.
 stock int GetPlayerClass(int client)
 {
 	return GetEntProp(client, Prop_Send, "m_zombieClass");
+}
+
+stock int GetZombieClass(int entity)
+{
+	if (entity > MPS){
+		if (IsWitch(entity))
+			return IsL4DGameEx() ? ZC_WITCH : ZC2_WITCH;
+		else if (IsCommonInfected(entity))
+			return ZC_INFECTED;
+		else
+			return ZC_INVALID;
+	}
+	return GetEntProp(entity, Prop_Send, "m_zombieClass");
 }
 
 stock int GetFrustration(int client)
@@ -451,31 +500,59 @@ stock bool IsServerEmpty()
 
 stock bool GetCharacterName(int client, char[] dest, int len)
 {
-	g_iTemp = GetCharStrIndex(client);
-	return g_iTemp < 0 ? false : !!strcopy(dest, len, L4D2_LIB_SURVIVOR_CHARACTER_NAME[g_iTemp]);
+	g_iTemp = GetSurvivorIndex(client);
+	return g_iTemp == SC_INVALID ? false : !!strcopy(dest, len, L4D2_LIB_SURVIVOR_CHARACTER_NAME[g_iTemp]);
 }
 
 stock bool GetCharacter(int client, char[] dest, int len)
 {
-	g_iTemp = GetCharStrIndex(client);
-	return g_iTemp < 0 ? false : !!strcopy(dest, len, L4D2_LIB_SURVIVOR_CHARACTER[g_iTemp]);
+	g_iTemp = GetSurvivorIndex(client);
+	return g_iTemp == SC_INVALID ? false : !!strcopy(dest, len, L4D2_LIB_SURVIVOR_CHARACTER[g_iTemp]);
 }
 
+// @return Player class names only! Use GetZombieName to get Witch or infected names.
 stock bool GetInfectedName(int client, char[] dest, int len)
 {
 	g_iTemp = GetEntProp(client, Prop_Send, "m_zombieClass");
 	return !!strcopy(dest, len, IsL4DGameEx() ? L4D_LIB_INFECTED_CHARACTER_NAME[g_iTemp] : L4D2_LIB_INFECTED_CHARACTER_NAME[g_iTemp]);
 }
-// @return L4D_LIB_SURVIVOR_CHARACTER string index
-stock int GetCharStrIndex(int client)
+
+stock bool GetZombieName(int entity, char[] dest, int len)
 {
-	static int strIndex;
-	strIndex = GetEntProp(client, Prop_Send, "m_survivorCharacter");
-	if (strIndex < 0)
-		return -1;
-	if (IsL4DGameEx())
-		strIndex += L4D_SURVIVOR_CHARACTER_OFFSET;
-	return strIndex;
+	g_iTemp = GetZombieClass(entity);
+	if (g_iTemp == ZC_INVALID)
+		return false;
+	return !!strcopy(dest, len, IsL4DGameEx() ? L4D_LIB_INFECTED_CHARACTER_NAME[g_iTemp] : L4D2_LIB_INFECTED_CHARACTER_NAME[g_iTemp]);
+}
+
+// @return SC_ enum index
+stock int GetSurvivorIndex(int client)
+{
+	if (IsL4DGameEx()){
+		static int survIndex;
+		survIndex = GetEntProp(client, Prop_Send, "m_survivorCharacter");
+		return survIndex < 0 ? SC_INVALID : survIndex + L4D_SURVIVOR_CHARACTER_OFFSET;
+	}
+	GetClientModel(client, SZF(g_sTemp));
+	switch (g_sTemp[29]){
+		case 'b':
+			return SC_NICK;
+		case 'd':
+			return SC_ROCHELLE;
+		case 'c':
+			return SC_COACH;
+		case 'h':
+			return SC_ELLIS;
+		case 'v':
+			return SC_BILL;
+		case 'n':
+			return SC_ZOEY;
+		case 'e':
+			return SC_FRANCIS;
+		case 'a':
+			return SC_LOUIS;
+	}
+	return SC_INVALID;
 }
 
 stock void PrintToTeam(int team, int msgType, const char[] text, any ...)
@@ -572,7 +649,7 @@ stock bool IsL4DEngineEx(bool bL4D2 = false)
 
 #include <r2comp_api>
 
-int stock bool g_bLoadLater;
+stock bool g_bLoadLater;
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
