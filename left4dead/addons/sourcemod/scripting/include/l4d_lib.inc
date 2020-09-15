@@ -6,7 +6,7 @@
  *  File:			l4d_lib.inc
  *  Language:       SourcePawn
  *  Description:	Stock of l4d & l4d2 functions.
- *  Version:        2.0
+ *  Version:        2.4
  *  Credits:        SilverShot for GetTempHealth func (https://forums.alliedmods.net/showthread.php?p=1658852)
  *
  *  Copyright (C) 2012-2020 raziEiL [disawar1] <mr.raz4291@gmail.com>
@@ -30,12 +30,17 @@
 #if defined _l4d_lib_
   #endinput
 #endif
-#define _l4d_lib_
+#define _l4d_lib_ "2.4"
 
 #include <sourcemod>
 #include <sdktools>
-
+/*
+|--------------------------------------------------------------------------
+| LOCAL TEMP VARIABLES
+|--------------------------------------------------------------------------
+*/
 static char g_sTemp[1024];
+static int g_iTemp;
 /*
 |--------------------------------------------------------------------------
 | MACROS
@@ -45,31 +50,118 @@ static char g_sTemp[1024];
 #define MPS 33 // l4d max players + 1
 #define CID(%0) 	GetClientOfUserId(%0)
 #define UID(%0) 	GetClientUserId(%0)
+#define IsIncaped(%1) IsIncapacitated(%1)
 /*
 |--------------------------------------------------------------------------
-| ZOMBIE CLASSES
+| ZOMBIE STRUCTURE
 |--------------------------------------------------------------------------
 */
 enum
 {
-	ZC_SMOKER = 1,
+	ZC_INVALID = -1,
+	ZC_INFECTED, // just a zombie
+	ZC_SMOKER,
 	ZC_BOOMER,
 	ZC_HUNTER,
-	ZC_UNKNOWN,
-	ZC_TANK
+	ZC_WITCH, // ZC_UNKNOWN
+	ZC_TANK,
+	ZC_SIZE
 }
 
 enum
 {
-	ZC2_SMOKER = 1,
+	ZC2_INVALID = ZC_INVALID,
+	ZC2_INFECTED,
+	ZC2_SMOKER,
 	ZC2_BOOMER,
 	ZC2_HUNTER,
 	ZC2_SPITTER,
 	ZC2_JOCKEY,
 	ZC2_CHARGER,
 	ZC2_WITCH,
-	ZC2_TANK
+	ZC2_TANK,
+	ZC2_SIZE
 }
+// Public variables
+stock const char L4D_LIB_INFECTED_CHARACTER_NAME[ZC_SIZE][] =
+{
+	"Infected",
+    "Smoker",
+    "Boomer",
+    "Hunter",
+    "Witch",
+    "Tank"
+};
+
+stock const char L4D2_LIB_INFECTED_CHARACTER_NAME[ZC2_SIZE][] =
+{
+	"Infected",
+    "Smoker",
+    "Boomer",
+    "Hunter",
+    "Spitter",
+    "Jockey",
+    "Charger",
+    "Witch",
+    "Tank"
+};
+/*
+|--------------------------------------------------------------------------
+| SURVIVORS STRUCTURE
+|--------------------------------------------------------------------------
+*/
+#define L4D_SURVIVOR_CHARACTER_OFFSET 4
+
+enum
+{
+	SC_INVALID = -1,
+	SC_NICK,
+	SC_ROCHELLE,
+	SC_COACH,
+	SC_ELLIS,
+	SC_BILL,
+	SC_ZOEY,
+	SC_FRANCIS,
+	SC_LOUIS,
+	SC_SIZE
+}
+
+// Public variables
+stock const char L4D2_LIB_SURVIVOR_CHARACTER[SC_SIZE][] =
+{
+	"gambler",
+	"producer",
+	"coach",
+	"mechanic",
+	"namvet", // L4D_SURVIVOR_CHARACTER_OFFSET
+	"teengirl",
+	"biker",
+	"manager"
+};
+
+stock const char L4D2_LIB_SURVIVOR_CHARACTER_NAME[SC_SIZE][] =
+{
+	"Nick",
+	"Rochelle",
+	"Coach",
+	"Ellis",
+	"Bill", // L4D_SURVIVOR_CHARACTER_OFFSET
+	"Zoey",
+	"Francis",
+	"Louis"
+};
+
+stock const char L4D2_LIB_SURVIVOR_MDL[SC_SIZE][] =
+{
+	"models/survivors/survivor_gambler.mdl",
+	"models/survivors/survivor_producer.mdl",
+	"models/survivors/survivor_coach.mdl",
+	"models/survivors/survivor_mechanic.mdl",
+	"models/survivors/survivor_namvet.mdl", // L4D_SURVIVOR_CHARACTER_OFFSET
+	"models/survivors/survivor_teenangst.mdl",
+	"models/survivors/survivor_biker.mdl",
+	"models/survivors/survivor_manager.mdl"
+};
 /*
 |--------------------------------------------------------------------------
 | CLIENT
@@ -100,25 +192,40 @@ stock bool IsSpectator(int client)
 	return IsClientInGame(client) && GetClientTeam(client) == 1;
 }
 
+stock bool IsInfectedAndInGame(int client)
+{
+	return IsClient(client) && IsInfected(client);
+}
+
+stock bool IsSurvivorAndInGame(int client)
+{
+	return IsClient(client) && IsSurvivor(client);
+}
+
+stock bool IsSpectatorAndInGame(int client)
+{
+	return IsClient(client) && IsSpectator(client);
+}
+
 stock bool IsPlayerBussy(int client, int team)
 {
-	return team == 2 && (!IsPlayerAlive(client) || IsSurvivorBussy(client) || IsIncapacitated(client) || IsHandingFromLedge(client)) ||
-		(!IsInfectedAlive(client) || IsInfectedBussy(client));
+	return !IsPlayerAlive(client) || (team == 2 ? (IsSurvivorBussy(client) || IsIncapacitated(client) || IsHandingFromLedge(client)) :
+		IsInfectedBussy(client));
 }
 
 stock bool IsSurvivorBussy(int client)
 {
-	return GetEntProp(client, Prop_Send, "m_tongueOwner") > 0 || GetEntProp(client, Prop_Send, "m_pounceAttacker") > 0 || !IsL4DGameEx() && (GetEntProp(client, Prop_Send, "m_pummelAttacker") > 0 || GetEntProp(client, Prop_Send, "m_jockeyAttacker") > 0);
+	return GetEntProp(client, Prop_Send, "m_tongueOwner") > 0 || GetEntProp(client, Prop_Send, "m_pounceAttacker") > 0 || (IsL4DGameEx() ? false : GetEntProp(client, Prop_Send, "m_pummelAttacker") > 0 || GetEntProp(client, Prop_Send, "m_jockeyAttacker") > 0);
 }
 
 stock bool IsInfectedBussy(int client)
 {
-	return GetEntProp(client, Prop_Send, "m_tongueVictim") > 0 || GetEntProp(client, Prop_Send, "m_pounceVictim") > 0 || !IsL4DGameEx() && (GetEntProp(client, Prop_Send, "m_pummelVictim") > 0 || GetEntProp(client, Prop_Send, "m_jockeyVictim") > 0);
+	return GetEntProp(client, Prop_Send, "m_tongueVictim") > 0 || GetEntProp(client, Prop_Send, "m_pounceVictim") > 0 || (IsL4DGameEx() ? false : GetEntProp(client, Prop_Send, "m_pummelVictim") > 0 || GetEntProp(client, Prop_Send, "m_jockeyVictim") > 0);
 }
 
-stock int IsIncapacitated(int client)
+stock bool IsIncapacitated(int client)
 {
-	return GetEntProp(client, Prop_Send, "m_isIncapacitated");
+	return !!GetEntProp(client, Prop_Send, "m_isIncapacitated");
 }
 
 stock bool IsHandingFromLedge(int client)
@@ -126,6 +233,7 @@ stock bool IsHandingFromLedge(int client)
 	return GetEntProp(client, Prop_Send, "m_isHangingFromLedge") || GetEntProp(client, Prop_Send, "m_isFallingFromLedge");
 }
 
+#pragma deprecated Use IsPlayerAlive(int client) instead.
 stock bool IsInfectedAlive(int client)
 {
 	return GetEntProp(client, Prop_Send, "m_iHealth") > 1;
@@ -136,14 +244,28 @@ stock bool IsPlayerTank(int client)
 	return GetEntProp(client, Prop_Send, "m_zombieClass") == (IsL4DGameEx() ? ZC_TANK : ZC2_TANK);
 }
 
-stock int IsPlayerGhost(int client)
+stock bool IsPlayerGhost(int client)
 {
-	return GetEntProp(client, Prop_Send, "m_isGhost");
+	return !!GetEntProp(client, Prop_Send, "m_isGhost");
 }
 
+// @return Player class only! Use GetZombieClass to get Witch, infected or invalid class.
 stock int GetPlayerClass(int client)
 {
 	return GetEntProp(client, Prop_Send, "m_zombieClass");
+}
+
+stock int GetZombieClass(int entity)
+{
+	if (entity > MPS){
+		if (IsWitch(entity))
+			return IsL4DGameEx() ? ZC_WITCH : ZC2_WITCH;
+		else if (IsCommonInfected(entity))
+			return ZC_INFECTED;
+		else
+			return ZC_INVALID;
+	}
+	return GetEntProp(entity, Prop_Send, "m_zombieClass");
 }
 
 stock int GetFrustration(int client)
@@ -376,23 +498,61 @@ stock bool IsServerEmpty()
 	return true;
 }
 
-stock bool GetCharacterName(int client, char[] sSurvivor, int len)
+stock bool GetCharacterName(int client, char[] dest, int len)
 {
-	switch (GetEntProp(client, Prop_Send, "m_survivorCharacter"))
-	{
-		case 0:
-			strcopy(sSurvivor, len, "Bill");
-		case 1:
-			strcopy(sSurvivor, len, "Zoey");
-		case 2:
-			strcopy(sSurvivor, len, "Francis");
-		case 3:
-			strcopy(sSurvivor, len, "Louis");
-		default:
-			return false;
-	}
+	g_iTemp = GetSurvivorIndex(client);
+	return g_iTemp == SC_INVALID ? false : !!strcopy(dest, len, L4D2_LIB_SURVIVOR_CHARACTER_NAME[g_iTemp]);
+}
 
-	return true;
+stock bool GetCharacter(int client, char[] dest, int len)
+{
+	g_iTemp = GetSurvivorIndex(client);
+	return g_iTemp == SC_INVALID ? false : !!strcopy(dest, len, L4D2_LIB_SURVIVOR_CHARACTER[g_iTemp]);
+}
+
+// @return Player class names only! Use GetZombieName to get Witch or infected names.
+stock bool GetInfectedName(int client, char[] dest, int len)
+{
+	g_iTemp = GetEntProp(client, Prop_Send, "m_zombieClass");
+	return !!strcopy(dest, len, IsL4DGameEx() ? L4D_LIB_INFECTED_CHARACTER_NAME[g_iTemp] : L4D2_LIB_INFECTED_CHARACTER_NAME[g_iTemp]);
+}
+
+stock bool GetZombieName(int entity, char[] dest, int len)
+{
+	g_iTemp = GetZombieClass(entity);
+	if (g_iTemp == ZC_INVALID)
+		return false;
+	return !!strcopy(dest, len, IsL4DGameEx() ? L4D_LIB_INFECTED_CHARACTER_NAME[g_iTemp] : L4D2_LIB_INFECTED_CHARACTER_NAME[g_iTemp]);
+}
+
+// @return SC_ enum index
+stock int GetSurvivorIndex(int client)
+{
+	if (IsL4DGameEx()){
+		static int survIndex;
+		survIndex = GetEntProp(client, Prop_Send, "m_survivorCharacter");
+		return survIndex < 0 ? SC_INVALID : survIndex + L4D_SURVIVOR_CHARACTER_OFFSET;
+	}
+	GetClientModel(client, SZF(g_sTemp));
+	switch (g_sTemp[29]){
+		case 'b':
+			return SC_NICK;
+		case 'd':
+			return SC_ROCHELLE;
+		case 'c':
+			return SC_COACH;
+		case 'h':
+			return SC_ELLIS;
+		case 'v':
+			return SC_BILL;
+		case 'n':
+			return SC_ZOEY;
+		case 'e':
+			return SC_FRANCIS;
+		case 'a':
+			return SC_LOUIS;
+	}
+	return SC_INVALID;
 }
 
 stock void PrintToTeam(int team, int msgType, const char[] text, any ...)
@@ -489,7 +649,7 @@ stock bool IsL4DEngineEx(bool bL4D2 = false)
 
 #include <r2comp_api>
 
-int stock bool g_bLoadLater;
+stock bool g_bLoadLater;
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
