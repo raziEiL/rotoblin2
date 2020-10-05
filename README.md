@@ -6,6 +6,7 @@ Read more about roto2 on [official website](https://code.google.com/archive/p/ro
 Unfortunately the mod is not supported by Rotoblin 2 Team since 2015, therefore some features may doesn't work properly. However, if you want to install this mod it is highly recommended to use [multilang](https://github.com/raziEiL/rotoblin2/tree/multilang "multilang") or [dev](https://github.com/raziEiL/rotoblin2/tree/dev "dev") branch.
 
 ## URL
+[Roto2 Standalone plugins](https://github.com/raziEiL/r2comp-standalone/blob/master/sourcemod/scripting/r2comp_unscramble.sp "Roto2 Standalone plugins")  
 [Roto2 plugins description](https://github.com/raziEiL/rotoblin2/blob/wiki/Plugins.md "Roto2 plugin description")  
 [Roto2 configs table](https://github.com/raziEiL/rotoblin2/blob/wiki/ConfigsTable.md "Configs Table")  
 [Left 4 Downtown Extension](https://bitbucket.org/disawar1/left4downtown/downloads/ " l4downtown extension")  
