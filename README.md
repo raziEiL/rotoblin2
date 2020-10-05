@@ -1,5 +1,5 @@
 # Rotoblin 2 (Roto2/R2 CompMod)
-The competitive mod developed in 2012 for [Left 4 Dead](http://www.l4d.com/blog/ "Left 4 Dead") 1 game under [SourceMod](https://www.sourcemod.net/ "SourceMod") platform (SourcePawn).
+The competitive mod developed in 2012 for [Left 4 Dead](http://www.l4d.com/blog/ "Left 4 Dead") 1 game under [SourceMod](https://www.sourcemod.net/ "SourceMod") platform (SourcePawn).  
 Read more about roto2 on [official website](https://code.google.com/archive/p/rotoblin2/ "official website") or [here](https://github.com/raziEiL/rotoblin2/blob/wiki/ProjectHome.md "here").
 
 ## Status 
