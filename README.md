@@ -14,7 +14,7 @@ Unfortunately the mod is not supported by Rotoblin 2 Team since 2015, therefore 
 [l4d_direct](https://github.com/raziEiL/l4d_direct-port "l4d_direct")  
 
 ## Rotoblin 2 Team (Roles and Contribution)
-[@raziEiL](https://github.com/raziEiL "@raziEiL"): Programming, reverse engineering, level design, mapping, stripper.  
+[@raziEiL [disawar1]](https://github.com/raziEiL "@raziEiL [disawar1]"): Programming, reverse engineering, level design, mapping, stripper.  
 [@Alma](https://steamcommunity.com/id/Almo4ka/ "@Alma"): Idea to make a map modification, mapping.  
 [@Electr0](https://forums.alliedmods.net/member.php?u=152668 "Electr0"): Providing a tool for mapping, mapping.  
 [@Scratchy (RU: Царапка)](https://steamcommunity.com/id/Myavuka/ "@Scratchy (RU: Царапка)"): Localization, plugins ideas, testing.  
