@@ -1,7 +1,7 @@
 # Rotoblin 2 (Roto2/R2 CompMod)
 The competitive mod developed in 2012 for [Left 4 Dead](http://www.l4d.com/blog/ "Left 4 Dead") 1 game under [SourceMod](https://www.sourcemod.net/ "SourceMod") platform (SourcePawn).
 
-Read more about roto2 on [offical webise](https://code.google.com/archive/p/rotoblin2/ "offical webise") or [here](https://github.com/raziEiL/rotoblin2/blob/wiki/ProjectHome.md "here").
+Read more about roto2 on [official website](https://code.google.com/archive/p/rotoblin2/ "official website") or [here](https://github.com/raziEiL/rotoblin2/blob/wiki/ProjectHome.md "here").
 
 ## Status 
 Unfortunately the mod is not supported by Rotoblin 2 Team since 2015, therefore some features may doesn't work properly. However, if you want to install this mod it is highly recommended to use [multilang](https://github.com/raziEiL/rotoblin2/tree/multilang "multilang") or [dev](https://github.com/raziEiL/rotoblin2/tree/dev "dev") branch.
