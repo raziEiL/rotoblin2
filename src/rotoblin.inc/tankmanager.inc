@@ -7,7 +7,7 @@
  *  Type:			Helper
  *  Description:	Keep track of the current tank player
  *
- *  Copyright (C) 2012-2015  raziEiL <war4291@mail.ru>
+ *  Copyright (C) 2012-2015, 2021  raziEiL [disawar1] <mr.raz4291@gmail.com>
  *  Copyright (C) 2010  Mr. Zero <mrzerodk@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -304,7 +304,7 @@ public FindTankClient()
 {
 	for (new i = 0; i < InfectedCount; i++)
 	{
-		if (InfectedIndex[i] <= 0 || !IsClientInGame(InfectedIndex[i]) || !IsInfectedAlive(InfectedIndex[i]) || !IsPlayerTank(InfectedIndex[i]) || IsIncapacitated(InfectedIndex[i])) continue;
+		if (InfectedIndex[i] <= 0 || !IsClientInGame(InfectedIndex[i]) || !IsPlayerAlive(InfectedIndex[i]) || !IsPlayerTank(InfectedIndex[i]) || IsIncapacitated(InfectedIndex[i])) continue;
 
 		return InfectedIndex[i];
 	}

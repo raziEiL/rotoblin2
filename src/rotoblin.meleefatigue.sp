@@ -27,7 +27,7 @@
  *
  *	Credits/Based on:	http://forums.alliedmods.net/showthread.php?t=138496 (AtomicStryker)
  *
- *  Copyright (C) 2012-2015  raziEiL <war4291@mail.ru>
+ *  Copyright (C) 2012-2015, 2021  raziEiL [disawar1] <mr.raz4291@gmail.com>
  *  Copyright (C) 2010  Defrag <mjsimpson@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -84,7 +84,7 @@ static Handle:g_hCvarMeleeControlFlags, Handle:g_hCvarNoDeadStop, Handle:g_hPoun
 _MeleeFatigue_OnPluginStart()
 {
 	g_hNonFatiguedMeleePenalty_CVAR = CreateConVarEx("melee_penalty", "0", "Sets the Shove penalty for each non-fatigued melee swipe", _, true, 0.0, true, 4.0);
-	g_hCvarMeleeControlFlags = CreateConVarEx("melee_flags", "0", "Blocks melee effect on infected. Flag (add together): 0=Disable, 2=Smoker, 4=Boomer, 8=Hunter, 16=CI, 30=all", _, true, 0.0, true, 30.0);
+	g_hCvarMeleeControlFlags = CreateConVarEx("melee_flags", "0", "Blocks melee effect on infected. Flag (add together): 0=Disable, 1=Common, 2=Smoker, 4=Boomer, 8=Hunter, 15=all", _, true, 0.0, true, 15.0);
 	g_hCvarNoDeadStop = CreateConVarEx("melee_deadstop", "0", "Blocks deadstop feature", _, true, 0.0, true, 1.0);
 
 	AddConVarToReport(g_hNonFatiguedMeleePenalty_CVAR); // Add to report status module
@@ -253,7 +253,7 @@ public Action:_MF_t_GroundTouchCheck(Handle:timer, any:client)
 {
 	if (IsClientInGame(client)){
 
-		if (!(GetEntityFlags(client) & FL_ONGROUND || !IsInfectedAlive(client)))
+		if (!(GetEntityFlags(client) & FL_ONGROUND || !IsPlayerAlive(client)))
 			return Plugin_Continue;
 	}
 
@@ -263,28 +263,26 @@ public Action:_MF_t_GroundTouchCheck(Handle:timer, any:client)
 
 public Action:L4D_OnEntityShoved(client, entity, weapon, const Float:vector[3])
 {
-	if ((g_iCvarMeleeControlFlags || g_bCvarNoDeadStop) && IsClient(client) && IsSurvivor(client)){
+	if ((g_iCvarMeleeControlFlags || g_bCvarNoDeadStop) && IsSurvivorAndInGame(client)){
 
-		if (IsClient(entity) && IsInfected(entity)){
+		new iClass = GetZombieClass(entity);
 
-			new iClass = GetPlayerClass(entity);
+		if (iClass == ZC_INVALID)
+			return Plugin_Continue;
 
-			if (iClass == ZC_HUNTER && g_hPouncing[entity] != INVALID_HANDLE){
+		if (iClass == ZC_HUNTER && g_hPouncing[entity] != INVALID_HANDLE){
 
-				if (g_bCvarNoDeadStop){
+			if (g_bCvarNoDeadStop){
 
-					KillTimer(g_hPouncing[entity]);
-					g_hPouncing[entity] = CreateTimer(0.2, _MF_t_GroundTouchCheck, entity, TIMER_REPEAT);
+				KillTimer(g_hPouncing[entity]);
+				g_hPouncing[entity] = CreateTimer(0.2, _MF_t_GroundTouchCheck, entity, TIMER_REPEAT);
 
-					return Plugin_Handled;
-				}
-				return Plugin_Continue;
-			}
-
-			if (g_iCvarMeleeControlFlags & (1 << iClass))
 				return Plugin_Handled;
+			}
+			return Plugin_Continue;
 		}
-		else if (g_iCvarMeleeControlFlags & (1 << ZC_UNKNOWN) && IsCommonInfected(entity))
+
+		if (g_iCvarMeleeControlFlags & (1 << iClass))
 			return Plugin_Handled;
 	}
 

@@ -35,7 +35,7 @@ rotoblin_limit_pumpshotgun                                         : Maximum num
 rotoblin_limit_submachinegun                                       : Maximum number of SMGs that can be equipped by the Survivor team. (-1: unlimited, 0: not allowed, > 0: limits in according with cvar value).
 rotoblin_max_witches                                               : Maximum number of Witches are allowed to spawn. (0: director settings, > 0: maximum limit to cvar value)
 rotoblin_melee_penalty                                             : Sets the Shove penalty for each non-fatigued melee swipe
-rotoblin_melee_flags                                               : Blocks melee effect on infected. Flag (add together): 0=Disable, 2=Smoker, 4=Boomer, 8=Hunter, 16=CI, 30=all
+rotoblin_melee_flags                                               : Blocks melee effect on infected. Flag (add together): 0=Disable, 1=Common, 2=Smoker, 4=Boomer, 8=Hunter, 15=all
 rotoblin_melee_deadstop                                            : Blocks deadstop feature
 rotoblin_molotov_before_tank                                       : Sets whether (If possible) a molotov will spawn on the map before the Tank spawns.
 rotoblin_molotov_limit                                             : Limits the number of molotovs on each map outside of the safe room. (-1: remove all, 0: director settings, > 0: limit to cvar value)

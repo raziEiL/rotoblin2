@@ -7,7 +7,7 @@
  *  Type:			Helper
  *  Description:	Provides debug functions for modules
  *
- *  Copyright (C) 2012-2015  raziEiL <war4291@mail.ru>
+ *  Copyright (C) 2012-2015, 2021  raziEiL [disawar1] <mr.raz4291@gmail.com>
  *  Copyright (C) 2010  Mr. Zero <mrzerodk@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -238,19 +238,17 @@ static bool:SetupModule()
 	decl Handle:cvar;
 	cvar = CreateConVarEx("debug_channel",
 		"0",
-		"The Sum of the debug channel. Flags: -1 - Log all channels, 0 - General channel only, 0+ - Log channel of flag",
-		FCVAR_PLUGIN);
+		"The Sum of the debug channel. Flags: -1 - Log all channels, 0 - General channel only, 0+ - Log channel of flag");
 	g_iChannelFlags = GetConVarInt(cvar);
 	HookConVarChange(cvar, _H_D_Channel_CvarChange);
 
 	cvar = CreateConVarEx("debug_output",
 		"0",
-		"The Sum of the debug output. Flags: 0 - No logging, 1 - Print to server, 2 - Print to chat, 4 - Log to SM logs",
-		FCVAR_PLUGIN);
+		"The Sum of the debug output. Flags: 0 - No logging, 1 - Print to server, 2 - Print to chat, 4 - Log to SM logs");
 	g_iOutputFlags = GetConVarInt(cvar);
 	HookConVarChange(cvar, _H_D_Output_CvarChange);
 
-	RegAdminCmdEx("debug_status", _H_D_Status_Command, ADMFLAG_ROOT, "Writes report of channels and what is current listen to", _, FCVAR_PLUGIN);
+	RegAdminCmdEx("debug_status", _H_D_Status_Command, ADMFLAG_ROOT, "Writes report of channels and what is current listen to");
 
 	#if DEBUG_COMMANDS
 		RegAdminCmd("r2comp_dump_cvar_status", Command_DumpCvars, ADMFLAG_ROOT);

@@ -9,7 +9,7 @@
  *  Version:        2.4
  *  Credits:        SilverShot for GetTempHealth func (https://forums.alliedmods.net/showthread.php?p=1658852)
  *
- *  Copyright (C) 2012-2020 raziEiL [disawar1] <mr.raz4291@gmail.com>
+ *  Copyright (C) 2012-2021 raziEiL [disawar1] <mr.raz4291@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@
 #if defined _l4d_lib_
   #endinput
 #endif
-#define _l4d_lib_ "2.4"
+#define _l4d_lib_ "2.5"
 
 #include <sourcemod>
 #include <sdktools>
@@ -255,17 +255,20 @@ stock int GetPlayerClass(int client)
 	return GetEntProp(client, Prop_Send, "m_zombieClass");
 }
 
-stock int GetZombieClass(int entity)
+stock int GetZombieClass(int entity, bool validate = true)
 {
 	if (entity > MPS){
-		if (IsWitch(entity))
-			return IsL4DGameEx() ? ZC_WITCH : ZC2_WITCH;
-		else if (IsCommonInfected(entity))
-			return ZC_INFECTED;
-		else
-			return ZC_INVALID;
+		if (!validate || IsValidEntity(entity)){
+			if (IsWitch(entity))
+				return IsL4DGameEx() ? ZC_WITCH : ZC2_WITCH;
+			else if (IsCommonInfected(entity))
+				return ZC_INFECTED;
+		}
 	}
-	return GetEntProp(entity, Prop_Send, "m_zombieClass");
+	else if (!validate || IsInfectedAndInGame(entity))
+		return GetEntProp(entity, Prop_Send, "m_zombieClass");
+
+	return ZC_INVALID;
 }
 
 stock int GetFrustration(int client)

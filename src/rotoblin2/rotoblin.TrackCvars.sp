@@ -7,7 +7,7 @@
  *  Type:			Module
  *  Description:	...
  *
- *  Copyright (C) 2012-2015 raziEiL <war4291@mail.ru>
+ *  Copyright (C) 2012-2015, 2021 raziEiL [disawar1] <mr.raz4291@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,20 +27,22 @@
 
 #define		TC_TAG		"[TrackCvars]"
 #define		SILENCE		1
+#define		STATIC_VARS_SIZE 3
 
 static		Handle:g_hConVarArray, Handle:g_hConVarArrayEx, Handle:g_hSilentMode, bool:g_bCvarSilentMode, bool:g_bLockConVars;
 
-enum CVAR_STRUCTURE
+static const char g_sStaticCvars[STATIC_VARS_SIZE][] =
 {
-	String:sCVar[64],
-	iCVar
+	"versus_force_start_time",
+	"director_transition_timeout",
+	"sv_hibernate_when_empty"
 };
 
-static const g_aStaticVars[][CVAR_STRUCTURE] =
+static const int g_iStaticValues[STATIC_VARS_SIZE] =
 {
-	{ "versus_force_start_time",		 9999 },
-	{ "director_transition_timeout",		0 },
-	{ "sv_hibernate_when_empty",			0 }
+	9999,
+	0,
+	0
 };
 
 //-----------------------------------------------------------------------------
@@ -61,8 +63,8 @@ _TrackCvars_OnPluginStart()
 	g_hConVarArrayEx = CreateArray(64);
 
 	// make rotoblin loading when server starts
-	new Handle:hCvarHibernate = FindConVar(g_aStaticVars[2][sCVar]);
-	SetConVarInt(hCvarHibernate, g_aStaticVars[2][iCVar]);
+	new Handle:hCvarHibernate = FindConVar(g_sStaticCvars[2]);
+	SetConVarInt(hCvarHibernate, g_iStaticValues[2]);
 	HookConVarChange(hCvarHibernate, OnStatic_ConVarChange);
 }
 
@@ -299,19 +301,15 @@ static StaticVars(bool:bHook)
 	else if (!bHook)
 		bHooked = false;
 
-	new iMaxSize = sizeof(g_aStaticVars);
 	decl Handle:hCvar;
+	for (new INDEX; INDEX < STATIC_VARS_SIZE - 1; INDEX++){
 
-	for (new INDEX; INDEX < iMaxSize; INDEX++){
-
-		if (INDEX == 2) continue;
-		DebugLog("%s StaticConVar \"%s\" \"%d\" now is %s", TC_TAG, g_aStaticVars[INDEX][sCVar], g_aStaticVars[INDEX][iCVar], bHook ? "blocked" : "reseted");
-
-		hCvar = FindConVar(g_aStaticVars[INDEX][sCVar]);
+		DebugLog("%s StaticConVar \"%s\" \"%d\" now is %s", TC_TAG, g_sStaticCvars[INDEX], g_iStaticValues[INDEX], bHook ? "blocked" : "reseted");
+		hCvar = FindConVar(g_sStaticCvars[INDEX]);
 
 		if (bHook){
 
-			SetConVarInt(hCvar, g_aStaticVars[INDEX][iCVar]);
+			SetConVarInt(hCvar, g_iStaticValues[INDEX]);
 			HookConVarChange(hCvar, OnStatic_ConVarChange);
 		}
 		else {

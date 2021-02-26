@@ -10,7 +10,7 @@
  *	Credits:		Greyscale & rhelgeby for their template "project base"
  *					(http://forums.alliedmods.net/showthread.php?t=117191).
  *
- *  Copyright (C) 2012-2015  raziEiL <war4291@mail.ru>
+ *  Copyright (C) 2012-2015, 2021  raziEiL [disawar1] <mr.raz4291@gmail.com>
  *  Copyright (C) 2010  Mr. Zero <mrzerodk@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -56,7 +56,7 @@ new const String:MAIN_TAG[]		=	"[Rotoblin]";
 #define PLUGIN_SHORTNAME			"rotoblin"								// Shorter version of the full name, used in file paths, and other things
 #define PLUGIN_AUTHOR				"Rotoblin Team, raziEiL [disawar1]"		// Author of the plugin
 #define PLUGIN_DESCRIPTION			"A Fresh competitive mod for L4D"		// Description of the plugin
-#define PLUGIN_VERSION				"1.3 dev"							// http://wiki.eclipse.org/Version_Numbering
+#define PLUGIN_VERSION				"1.4"							// http://wiki.eclipse.org/Version_Numbering
 #define PLUGIN_URL					"https://code.google.com/p/rotoblin2/"	// URL associated with the project
 #define PLUGIN_CVAR_PREFIX			PLUGIN_SHORTNAME					// Prefix for cvars
 #define PLUGIN_CMD_PREFIX			PLUGIN_SHORTNAME					// Prefix for cmds

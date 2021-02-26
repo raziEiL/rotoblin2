@@ -7,7 +7,7 @@
  *  Type:			Module
  *  Description:	Adds a limit to hunting rifles for the survivors.
  *
- *  Copyright (C) 2012-2015  raziEiL <war4291@mail.ru>
+ *  Copyright (C) 2012-2015, 2021  raziEiL [disawar1] <mr.raz4291@gmail.com>
  *  Copyright (C) 2010  Mr. Zero <mrzerodk@gmail.com
  *
  *  Rotoblin is free software: you can redistribute it and/or modify

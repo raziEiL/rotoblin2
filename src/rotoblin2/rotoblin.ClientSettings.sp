@@ -8,7 +8,7 @@
  *  Description:	...
  *  Credits:		Most of credits goes to Confogl (http://code.google.com/p/confogl/)
  *
- *  Copyright (C) 2012-2015 raziEiL <war4291@mail.ru>
+ *  Copyright (C) 2012-2015, 2021 raziEiL [disawar1] <mr.raz4291@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
  *
  * ============================================================================
  */
- 
+
 #define CS_TAG				"[ClientSettings]"
 #define CLS_CVAR_MAXLEN	64
 
@@ -33,25 +33,25 @@ enum CLSAction
 {
 	CLSA_Kick=0,
 	CLSA_Log,
-	CLSA_Set
+	CLSA_Spec
 };
 
-enum CLSEntry
+enum struct CLSEntry
 {
-	bool:CLSE_hasMin,
-	Float:CLSE_min,
-	bool:CLSE_hasMax,
-	Float:CLSE_max,
-	CLSAction:CLSE_action,
-	String:CLSE_cvar[CLS_CVAR_MAXLEN]
-};
+	bool CLSE_hasMin;
+	float CLSE_min;
+	bool CLSE_hasMax;
+	float CLSE_max;
+	CLSAction CLSE_action;
+	char CLSE_cvar[CLS_CVAR_MAXLEN];
+}
 
 static Handle:ClientSettingsArray;
 static Handle:ClientSettingsCheckTimer;
 
 _ClientSettings_OnPluginStart()
 {
-	ClientSettingsArray = CreateArray(_:CLSEntry);
+	ClientSettingsArray = CreateArray(sizeof(CLSEntry));
 	RegConsoleCmd("rotoblin_clientsettings", _ClientSettings_Cmd, "List Client settings enforced by rotoblin");
 	/* Using Server Cmd instead of admin because these shouldn't really be changed on the fly */
 	RegServerCmd("rotoblin_trackclientcvar", _TrackClientCvar_Cmd, "Add a Client CVar to be tracked and enforced by rotoblin");
@@ -62,15 +62,6 @@ _ClientSettings_OnPluginStart()
 _CS_OnPluginDisabled()
 {
 	_ResetTracking_Cmd(0);
-}
-
-stock static ClearCLSEntry(entry[CLSEntry])
-{
-	entry[CLSE_hasMin]=false;
-	entry[CLSE_min]=0.0;
-	entry[CLSE_hasMax]=false;
-	entry[CLSE_max]=0.0;
-	entry[CLSE_cvar][0]=0;
 }
 
 public Action:_CheckClientSettings_Timer(Handle:timer)
@@ -94,11 +85,11 @@ static EnforceCliSettings(client)
 	new iArraySize = GetArraySize(ClientSettingsArray);
 	if (!iArraySize) return;
 
-	new clsetting[CLSEntry];
+	CLSEntry clsetting;
 	for(new i = 0; i < iArraySize; i++)
 	{
-		GetArrayArray(ClientSettingsArray, i, clsetting[0]);
-		QueryClientConVar(client, clsetting[CLSE_cvar], _EnforceCliSettings_QueryReply, i);
+		GetArrayArray(ClientSettingsArray, i, clsetting);
+		QueryClientConVar(client, clsetting.CLSE_cvar, _EnforceCliSettings_QueryReply, i);
 	}
 }
 
@@ -122,38 +113,47 @@ public _EnforceCliSettings_QueryReply(QueryCookie:cookie, client, ConVarQueryRes
 
 	new Float:fCvarVal = StringToFloat(cvarValue);
 	new clsetting_index = value;
-	decl clsetting[CLSEntry];
-	GetArrayArray(ClientSettingsArray, clsetting_index, clsetting[0]);
+	CLSEntry clsetting;
+	GetArrayArray(ClientSettingsArray, clsetting_index, clsetting);
 
-	if((clsetting[CLSE_hasMin] && fCvarVal < clsetting[CLSE_min])
-		|| (clsetting[CLSE_hasMax] && fCvarVal > clsetting[CLSE_max]))
+	if((clsetting.CLSE_hasMin && fCvarVal < clsetting.CLSE_min)
+		|| (clsetting.CLSE_hasMax && fCvarVal > clsetting.CLSE_max))
 	{
-		switch (clsetting[CLSE_action])
+		switch (clsetting.CLSE_action)
 		{
 			case CLSA_Kick:
 			{
 				DebugLog("%s Kicking %L for bad %s value (%f). Min: %d %f Max: %d %f", \
-					CS_TAG, client, cvarName, fCvarVal, clsetting[CLSE_hasMin], clsetting[CLSE_min], clsetting[CLSE_hasMax], clsetting[CLSE_max]);
-				PrintToChatAll("!!! [Rotoblin] Kicking %L for having an illegal value for %s (%f) !!!", client, cvarName, fCvarVal);
-				new String:kickMessage[256] = "Illegal Client Value for ";
-				Format(kickMessage, sizeof(kickMessage), "%s%s (%.2f)", kickMessage, cvarName, fCvarVal);
-				if (clsetting[CLSE_hasMin])
-					Format(kickMessage, sizeof(kickMessage), "%s, Min %.2f", kickMessage, clsetting[CLSE_min]);
-				if (clsetting[CLSE_hasMax])
-					Format(kickMessage, sizeof(kickMessage), "%s, Max %.2f", kickMessage, clsetting[CLSE_max]);
-				KickClient(client, "%s", kickMessage);
+					CS_TAG, client, cvarName, fCvarVal, clsetting.CLSE_hasMin, clsetting.CLSE_min, clsetting.CLSE_hasMax, clsetting.CLSE_max);
+				PrintToChatAll("%s %t", MAIN_TAG, "R2CompMod #25", client, cvarName, fCvarVal);
+				decl String:kickMessage[256];
+				FormatEx(kickMessage, sizeof(kickMessage), "%T %s (%.2f)", "R2CompMod #26", client, cvarName, fCvarVal);
+				if (clsetting.CLSE_hasMin)
+					Format(kickMessage, sizeof(kickMessage), "%s, Min %.2f", kickMessage, clsetting.CLSE_min);
+				if (clsetting.CLSE_hasMax)
+					Format(kickMessage, sizeof(kickMessage), "%s, Max %.2f", kickMessage, clsetting.CLSE_max);
+				KickClient(client, kickMessage);
 			}
 			case CLSA_Log:
 			{
 				DebugLogEx("%s Client %L has a bad %s value (%f). Min: %d %f Max: %d %f", \
-					CS_TAG, client, cvarName, fCvarVal, clsetting[CLSE_hasMin], clsetting[CLSE_min], clsetting[CLSE_hasMax], clsetting[CLSE_max]);
+					CS_TAG, client, cvarName, fCvarVal, clsetting.CLSE_hasMin, clsetting.CLSE_min, clsetting.CLSE_hasMax, clsetting.CLSE_max);
 			}
-			case CLSA_Set:
+			case CLSA_Spec:
 			{
-				ClientCommand(client, "%s %f", cvarName, clsetting[CLSE_hasMax] ? clsetting[CLSE_max] : clsetting[CLSE_min]);
-				DebugLog("%s Change %L has a bad %s value (%f). Min: %d %f Max: %d %f. Cvar force changed to %f", \
-					CS_TAG, client, cvarName, fCvarVal, clsetting[CLSE_hasMin], clsetting[CLSE_min], clsetting[CLSE_hasMax], clsetting[CLSE_max], \
-					clsetting[CLSE_hasMax] ? clsetting[CLSE_max] : clsetting[CLSE_min]);
+				if (GetClientTeam(client) != 1){
+					decl String:message[256];
+					FormatEx(message, sizeof(message), "%T %s (%.2f)", "R2CompMod #27", client, cvarName, fCvarVal);
+					if (clsetting.CLSE_hasMin)
+						Format(message, sizeof(message), "%s, Min %.2f", message, clsetting.CLSE_min);
+					if (clsetting.CLSE_hasMax)
+						Format(message, sizeof(message), "%s, Max %.2f", message, clsetting.CLSE_max);
+
+					ChangeClientTeam(client, 1);
+					PrintToChat(client, "%s %s", MAIN_TAG, message);
+					DebugLog("%s Moving to spec %L for bad %s value (%f). Min: %d %f Max: %d %f", \
+						CS_TAG, client, cvarName, fCvarVal, clsetting.CLSE_hasMin, clsetting.CLSE_min, clsetting.CLSE_hasMax, clsetting.CLSE_max);
+				}
 			}
 		}
 	}
@@ -162,24 +162,24 @@ public _EnforceCliSettings_QueryReply(QueryCookie:cookie, client, ConVarQueryRes
 public Action:_ClientSettings_Cmd(client, args)
 {
 	new clscount = GetArraySize(ClientSettingsArray);
+	CLSEntry clsetting;
+	decl String:message[256], String:shortbuf[64];
 	ReplyToCommand(client, "[Rotoblin] Tracked Client CVars (Total %d)", clscount);
 	for(new i = 0; i < clscount; i++)
 	{
-		static clsetting[CLSEntry];
-		static String:message[256], String:shortbuf[64];
-		GetArrayArray(ClientSettingsArray, i, clsetting[0]);
-		Format(message, sizeof(message), "[Rotoblin] Client CVar: %s ", clsetting[CLSE_cvar]);
-		if(clsetting[CLSE_hasMin])
+		GetArrayArray(ClientSettingsArray, i, clsetting);
+		FormatEx(message, sizeof(message), "[Rotoblin] Client CVar: %s ", clsetting.CLSE_cvar);
+		if(clsetting.CLSE_hasMin)
 		{
-			Format(shortbuf, sizeof(shortbuf), "Min: %f ", clsetting[CLSE_min]);
+			FormatEx(shortbuf, sizeof(shortbuf), "Min: %f ", clsetting.CLSE_min);
 			StrCat(message, sizeof(message), shortbuf);
 		}
-		if(clsetting[CLSE_hasMax])
+		if(clsetting.CLSE_hasMax)
 		{
-			Format(shortbuf, sizeof(shortbuf), "Max: %f ", clsetting[CLSE_max]);
+			FormatEx(shortbuf, sizeof(shortbuf), "Max: %f ", clsetting.CLSE_max);
 			StrCat(message, sizeof(message), shortbuf);
 		}
-		switch(clsetting[CLSE_action])
+		switch(clsetting.CLSE_action)
 		{
 			case CLSA_Kick:
 			{
@@ -189,9 +189,9 @@ public Action:_ClientSettings_Cmd(client, args)
 			{
 				StrCat(message, sizeof(message), "Action: Log");
 			}
-			case CLSA_Set:
+			case CLSA_Spec:
 			{
-				StrCat(message, sizeof(message), "Action: Change back");
+				StrCat(message, sizeof(message), "Action: Move to spec");
 			}
 		}
 		ReplyToCommand(client, message);
@@ -313,28 +313,28 @@ static _AddClientCvar(const String:cvar[], bool:hasMin, Float:min, bool:hasMax, 
 
 	new iArraySize = GetArraySize(ClientSettingsArray);
 
-	decl newEntry[CLSEntry];
+	CLSEntry newEntry;
 	for(new i = 0; i < iArraySize; i++)
 	{
-		GetArrayArray(ClientSettingsArray, i, newEntry[0]);
-		if(StrEqual(newEntry[CLSE_cvar], cvar, false))
+		GetArrayArray(ClientSettingsArray, i, newEntry);
+		if(StrEqual(newEntry.CLSE_cvar, cvar, false))
 		{
 			DebugLog("%s Attempt to track CVar %s, which is already being tracked.", CS_TAG, cvar);
 			return;
 		}
 	}
 
-	newEntry[CLSE_hasMin]=hasMin;
-	newEntry[CLSE_min]=min;
-	newEntry[CLSE_hasMax]=hasMax;
-	newEntry[CLSE_max]=max;
-	newEntry[CLSE_action]=action;
-	strcopy(newEntry[CLSE_cvar], CLS_CVAR_MAXLEN, cvar);
+	newEntry.CLSE_hasMin=hasMin;
+	newEntry.CLSE_min=min;
+	newEntry.CLSE_hasMax=hasMax;
+	newEntry.CLSE_max=max;
+	newEntry.CLSE_action=action;
+	strcopy(newEntry.CLSE_cvar, CLS_CVAR_MAXLEN, cvar);
 
 	if(IsDebugEnabled())
 	{
 		DebugLog("%s Tracking Cvar %s Min %d %f Max %d %f Action %d", CS_TAG, cvar, hasMin, min, hasMax, max, action);
 	}
 
-	PushArrayArray(ClientSettingsArray, newEntry[0]);
+	PushArrayArray(ClientSettingsArray, newEntry);
 }

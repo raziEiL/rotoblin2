@@ -3,7 +3,7 @@
  *
  * This file is part of the Rotoblin 2 project.
  *
- *  Copyright (C) 2012-2015 raziEiL <war4291@mail.ru>
+ *  Copyright (C) 2012-2015, 2021 raziEiL [disawar1] <mr.raz4291@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -110,10 +110,11 @@ new const String:g_sWeapSpawns[WEAPID_LIMIT][INFO][] =
 
 #define WEAPONS_LIMIT			5
 
-enum ATTRIBUTES
+enum
 {
 	CLIP_SIZE,
-	MAX_AMMO
+	MAX_AMMO,
+	ATTRIBUTES
 };
 
 new g_iWeapAttributes[WEAPONS_LIMIT][ATTRIBUTES] =
@@ -145,11 +146,12 @@ new g_iWeapAttributes[WEAPONS_LIMIT][ATTRIBUTES] =
 	}
 };
 
-enum INFO
+enum 
 {
 	CLASS, // classname
 	NAME,	// printname
-	CVAR	// convarname
+	CVAR,	// convarname
+	INFO
 };
 
 #define WEAPINDEX_SMG		0

@@ -5,7 +5,7 @@
  *  Type:			Module
  *  Description:	...
  *
- *  Copyright (C) 2012-2015 raziEiL <war4291@mail.ru>
+ *  Copyright (C) 2012-2015, 2021 raziEiL [disawar1] <mr.raz4291@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -310,7 +310,7 @@ static bool:HUD_DrawTankPanel()
 				sBuffer = "     Dead";
 			else {
 				iHealth = GetClientHealth(iTanksIndex[0]);
-				iPercent = RoundToFloor(FloatMul(FloatDiv(float(iHealth), g_fTankHealth), 100.0));
+				iPercent = RoundToFloor(float(iHealth) / g_fTankHealth * 100.0);
 				if (iPercent != 100 && iHealth == RoundToFloor(g_fTankHealth))
 					iPercent = 100;
 				FormatEx(sBuffer, 256, "     %d (%d%%)", iHealth, iPercent ? iPercent : 1);
@@ -354,7 +354,7 @@ static bool:HUD_DrawTankPanel()
 				FormatEx(sBuffer, 256, " Health         : Dead");
 			else {
 				iHealth = GetClientHealth(iTanksIndex[0]);
-				iPercent = RoundToFloor(FloatMul(FloatDiv(float(iHealth), g_fTankHealth), 100.0));
+				iPercent = RoundToFloor(float(iHealth) / g_fTankHealth * 100.0);
 				if (iPercent != 100 && iHealth == RoundToFloor(g_fTankHealth))
 					iPercent = 100;
 				FormatEx(sBuffer, 256, " Health         : %d (%d%%)", iHealth, iPercent ? iPercent : 1);
@@ -453,7 +453,7 @@ public HUD_OnCvarChange_TankHealth(Handle:hHandle, const String:sOldVal[], const
 {
 	if (StrEqual(sOldVal, sNewVal)) return;
 
-	g_fTankHealth = FloatMul(GetConVarFloat(g_hTankHealth), IsVersusMode() ? GetConVarFloat(g_hVsBonusHealth) : GetCoopMultiplie());
+	g_fTankHealth = GetConVarFloat(g_hTankHealth) * (IsVersusMode() ? GetConVarFloat(g_hVsBonusHealth) : GetCoopMultiplie());
 	g_fBurnDmg = g_fTankHealth / GetConVarFloat(g_hBurnLifeTime);
 }
 
@@ -483,7 +483,7 @@ public HUD_OnCvarChange_TankHud(Handle:hHandle, const String:sOldVal[], const St
 static HUD_GetCvars()
 {
 	g_bCvarTwoTanks = GetConVarBool(g_hCvarTwoTanks);
-	g_fTankHealth = FloatMul(GetConVarFloat(g_hTankHealth), IsVersusMode() ? GetConVarFloat(g_hVsBonusHealth) : GetCoopMultiplie());
+	g_fTankHealth = GetConVarFloat(g_hTankHealth) * (IsVersusMode() ? GetConVarFloat(g_hVsBonusHealth) : GetCoopMultiplie());
 	g_bCvarCompactHud = GetConVarBool(g_hCvarCompactHud);
 	g_fBurnDmg = g_fTankHealth / GetConVarFloat(g_hBurnLifeTime);
 	g_bCvarAllowSpecHud = GetConVarBool(g_hCvarAllowSpecHud);
@@ -492,7 +492,7 @@ static HUD_GetCvars()
 
 /*--------------------------------------
 SURVIVORS: 56 (150)
-raziEiL		(100)	[pumpshotgun 6/120]
+raziEiL [disawar1]		(100)	[pumpshotgun 6/120]
 Alma		(59)	[SMG 43/350]
 Scratchy	(250)	[Down 1/2]
 Electr0		(Dead)	[N/A]
@@ -652,7 +652,7 @@ public Action:HUD_t_SpecTimer(Handle:timer)
 
 			if (g_bBlackSpot) return Plugin_Continue;
 
-			iTempValb = IsInfectedAlive(InfectedIndex[i]);
+			iTempValb = IsPlayerAlive(InfectedIndex[i]);
 
 			if (!IsFakeClient(InfectedIndex[i])){
 

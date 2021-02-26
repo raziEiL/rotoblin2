@@ -7,7 +7,7 @@
  *  Type:			Module
  *  Description:	Survivor/Infected expolit fixes.
  *
- *  Copyright (C) 2012-2015 raziEiL <war4291@mail.ru>
+ *  Copyright (C) 2012-2015, 2021 raziEiL [disawar1] <mr.raz4291@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -211,7 +211,7 @@ public Action:_EF_t_CheckDuckingExpolit(Handle:timer)
 
 		client = InfectedIndex[i];
 
-		if (!IsInfectedBashed(client) && IsTrueClient(client) && IsInfectedAlive(client) && !IsOnLadder(client) && !IsInfectedBussy(client) && IsUseDuckingExpolit(client)){
+		if (!IsInfectedBashed(client) && IsTrueClient(client) && IsPlayerAlive(client) && !IsOnLadder(client) && !IsInfectedBussy(client) && IsUseDuckingExpolit(client)){
 
 			if (!(g_iCvarExpolitFixes & (1 << GhostDuckBlock)) && IsPlayerGhost(client)) continue;
 

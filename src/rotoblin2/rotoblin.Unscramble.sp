@@ -7,7 +7,7 @@
  *  Type:			Module
  *  Credits:		Scratchy (Idea)
  *
- *  Copyright (C) 2012-2015 raziEiL <war4291@mail.ru>
+ *  Copyright (C) 2012-2015, 2021 raziEiL [disawar1] <mr.raz4291@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -318,7 +318,7 @@ static AS_KeepTeams()
 	{
 		if (((!(bInGame = IsClientInGame(i)) && IsClientConnected(i)) || bInGame) && !IsFakeClient(i))
 		{
-			if (GetClientAuthString(i, sSteamID, 32))
+			if (GetClientAuthId(i, AuthId_Steam2, sSteamID, 32))
 			{
 				iTeam = 1;
 
@@ -372,7 +372,7 @@ public Action:AS_t_UnscrabbleMe(Handle:timer, any:client)
 		return Plugin_Continue;
 
 	decl String:sSteamID[32], iLTeam;
-	GetClientAuthString(client, sSteamID, 32);
+	GetClientAuthId(client, AuthId_Steam2, sSteamID, 32);
 
 	if (GetTrieValue(g_hTrine, sSteamID, iLTeam)){
 

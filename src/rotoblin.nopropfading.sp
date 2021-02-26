@@ -8,7 +8,7 @@
  *  Description:	Disables propfading while tank is active, and renabled
  *					once the tank is dead.
  *
- *  Copyright (C) 2012-2015  raziEiL <war4291@mail.ru>
+ *  Copyright (C) 2012-2015, 2021  raziEiL [disawar1] <mr.raz4291@gmail.com>
  *  Copyright (C) 2010  Mr. Zero <mrzerodk@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -218,7 +218,7 @@ public Action:_NPF_PropFadeSingle_Timer(Handle:timer, Handle:pack)
 
 	if (!IsPluginEnabled() || !IsValidTankProp(entity)) return Plugin_Stop;
 
-	new bool:isInvisible = bool:ReadPackCell(pack);
+	new bool:isInvisible = ReadPackCell(pack);
 	new curLoop = ReadPackCell(pack);
 
 	curLoop++;
@@ -241,7 +241,7 @@ public Action:_NPF_PropFadeSingle_Timer(Handle:timer, Handle:pack)
 
 	ResetPack(pack, true);
 	WritePackCell(pack, entity);
-	WritePackCell(pack, int:isInvisible);
+	WritePackCell(pack, isInvisible);
 	WritePackCell(pack, curLoop);
 
 	return Plugin_Continue;

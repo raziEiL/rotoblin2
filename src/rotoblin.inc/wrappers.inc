@@ -7,7 +7,7 @@
  *  Type:			Helper
  *  Description:	Provides wrapper functions for modules
  *
- *  Copyright (C) 2012-2015  raziEiL <war4291@mail.ru>
+ *  Copyright (C) 2012-2015, 2021  raziEiL [disawar1] <mr.raz4291@gmail.com>
  *  Copyright (C) 2010  Mr. Zero <mrzerodk@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -67,7 +67,7 @@ stock Handle:CreateConVarEx(const String:name[], const String:defaultValue[], co
 {
 	decl String:buffer[256];
 	FormatEx(buffer, sizeof(buffer), "%s_%s", PLUGIN_CVAR_PREFIX, name);
-	return CreateConVar(buffer, defaultValue, description, FCVAR_PLUGIN|FCVAR_NOTIFY|flags, hasMin, min, hasMax, max);
+	return CreateConVar(buffer, defaultValue, description, FCVAR_NOTIFY|flags, hasMin, min, hasMax, max);
 }
 
 /**

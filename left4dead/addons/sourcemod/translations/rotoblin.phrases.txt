@@ -130,6 +130,22 @@
 		"en"		"Voting is not enabled until unscramble is completed"
 		"ru"		"Во время подключения игроков голосования не доступны"
 	}
+	"R2CompMod #25"
+	{
+		"#format"	"{1:L},{2:s},{3:.2f}"
+		"en"		"Kicking {1} for having an illegal value for {2} ({3})!"
+		"ru"		"{1} кикнут за недопустимые настройки {2} ({3})!"
+	}
+	"R2CompMod #26"
+	{
+		"en"		"Illegal Client Value for"
+		"ru"		"Недопустимые настройки"
+	}
+	"R2CompMod #27"
+	{
+		"en"		"You was moved to spectate for illegal value for"
+		"ru"		"Вы перемещены в наблюдатели за недопустимые настройки"
+	}
 	"Survivors"
 	{
 		"en"		"Survivors"
