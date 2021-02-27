@@ -38,7 +38,7 @@
 //       Public
 // --------------------
 
-new		SurvivorIndex[MAXPLAYERS+1], InfectedIndex[MAXPLAYERS+1], SpectateIndex[MAXPLAYERS+1], DeadSurvivorIndex[MAXPLAYERS+1],
+new		SurvivorIndex[MPS], InfectedIndex[MPS], SpectateIndex[MPS], DeadSurvivorIndex[MPS],
 		SpectateCount, SurvivorCount, InfectedCount, DeadSurvivorCount,
 		bool:g_bBlackSpot = true;
 

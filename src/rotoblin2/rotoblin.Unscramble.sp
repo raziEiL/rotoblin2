@@ -34,8 +34,8 @@ static String:g_sLogPatch[128];
 
 #define MAX_UNSRAMBLE_TIME 45.0
 
-static	Handle:g_hTrine, Handle:g_hCvarNotify, Handle:g_hCvarEnable, Handle:g_fwdOnUnscrambleEnd, Handle:g_hCvarUnlocker, bool:g_bCvarUnlocker, bool:g_bCvarASEnable, bool:g_bCheked[MAXPLAYERS+1], bool:g_bJoinTeamUsed[MAXPLAYERS+1],
-		g_iFailureCount[MAXPLAYERS+1], bool:g_bMapTranslition, bool:g_bTeamLock, g_isOldTeamFlipped, g_isNewTeamFlipped, g_iTrineSize, Handle:g_hCvarNoVotes, bool:g_bCvarNoVotes;
+static	Handle:g_hTrine, Handle:g_hCvarNotify, Handle:g_hCvarEnable, Handle:g_fwdOnUnscrambleEnd, Handle:g_hCvarUnlocker, bool:g_bCvarUnlocker, bool:g_bCvarASEnable, bool:g_bCheked[MPS], bool:g_bJoinTeamUsed[MPS],
+		g_iFailureCount[MPS], bool:g_bMapTranslition, bool:g_bTeamLock, g_isOldTeamFlipped, g_isNewTeamFlipped, g_iTrineSize, Handle:g_hCvarNoVotes, bool:g_bCvarNoVotes;
 
 _Unscramble_OnPluginStart()
 {

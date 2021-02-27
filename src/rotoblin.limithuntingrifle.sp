@@ -39,7 +39,7 @@
  */
 
 static	const	Float:	TIP_TIMEOUT						= 8.0;
-static			bool:	g_bHaveTipped[MAXPLAYERS + 1];
+static			bool:	g_bHaveTipped[MPS];
 
 static Handle:g_hLimit[WEAPONS_LIMIT], g_iCvarLimit[WEAPONS_LIMIT];
 

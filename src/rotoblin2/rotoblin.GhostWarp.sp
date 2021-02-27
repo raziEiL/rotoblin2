@@ -26,7 +26,7 @@
  * ============================================================================
  */
 
-static 	Handle:g_hWarpEnable, bool:g_bWarpEnable, bool:g_bDelay[MAXPLAYERS+1], g_iLastTarget[MAXPLAYERS+1];
+static 	Handle:g_hWarpEnable, bool:g_bWarpEnable, bool:g_bDelay[MPS], g_iLastTarget[MPS];
 
 _GhostWarp_OnPluginStart()
 {

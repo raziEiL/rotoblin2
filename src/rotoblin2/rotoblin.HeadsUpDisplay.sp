@@ -24,8 +24,8 @@
  */
 
 static	Handle:g_hCvarAllowSpecHud, Handle:g_hCvarTwoTanks, Handle:g_hTankHealth, Handle:g_hVsBonusHealth, Handle:g_hLotteryTime, Handle:g_hCvarCompactHud, Handle:g_hBurnLifeTime, Float:g_fBurnDmg,
-		bool:g_bCvarAllowSpecHud, bool:g_bCvarTwoTanks, bool:g_bCvarCompactHud, Float:g_fTankHealth = 6000.0, bool:g_bShowTankHud[MAXPLAYERS+1], bool:g_bHudEnabled, Handle:g_hDifficulty, Handle:g_hGameMode,
-		g_iStasis, Handle:g_hSpecHudTimer, bool:g_bShowSpecHud[MAXPLAYERS+1], g_iSISpawnTime[MAXPLAYERS+1][2], bool:g_bBlockSpecHUD, bool:g_bTips[MAXPLAYERS+1][2], Handle:g_hCvarAllowTankHud, bool:g_bCvarAllowTankHud;
+		bool:g_bCvarAllowSpecHud, bool:g_bCvarTwoTanks, bool:g_bCvarCompactHud, Float:g_fTankHealth = 6000.0, bool:g_bShowTankHud[MPS], bool:g_bHudEnabled, Handle:g_hDifficulty, Handle:g_hGameMode,
+		g_iStasis, Handle:g_hSpecHudTimer, bool:g_bShowSpecHud[MPS], g_iSISpawnTime[MPS][2], bool:g_bBlockSpecHUD, bool:g_bTips[MPS][2], Handle:g_hCvarAllowTankHud, bool:g_bCvarAllowTankHud;
 
 static stock bool:g_bTankKilled;
 
