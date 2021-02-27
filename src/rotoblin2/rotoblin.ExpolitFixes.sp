@@ -124,7 +124,7 @@ static _EF_DoAmmoPilesFix(client, bool:bUse = false)
 	}
 }
 
-static g_bTriggerCrouch[MAXPLAYERS+1];
+static g_bTriggerCrouch[MPS];
 
 
 _EF_OnClientPutInServer(client)

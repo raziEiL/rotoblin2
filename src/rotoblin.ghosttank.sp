@@ -41,15 +41,15 @@ static			Handle:	g_hSelectionTimeCvar				= INVALID_HANDLE;
 
 static	const	String:	WEAPON_TANK_ROCK[]					= "tank_rock";	// Tank rock weapon name
 static	const	Float:	BLOCK_USE_TIME						= 1.5;			// After a survivor have been "rock'd", how long is use blocked
-static			bool:	g_bBlockUse[MAXPLAYERS +1]			= {false};
-static			Handle:	g_hBlockUse_Timer[MAXPLAYERS +1]	= {INVALID_HANDLE};
+static			bool:	g_bBlockUse[MPS]			= {false};
+static			Handle:	g_hBlockUse_Timer[MPS]	= {INVALID_HANDLE};
 
 static			bool:	g_bIsTankFireImmune;								// Boolean for fire immunity
 
 static					g_iDebugChannel							= 0;
 static	const	String:	DEBUG_CHANNEL_NAME[]					= "GhostTank";
 
-static		Handle:g_hTankBoss, Handle:g_hNoPropDmg, Handle:g_hHittableDmg, Float:OVERHIT_TIME = 1.2, g_bOverHit[MAXPLAYERS+1];
+static		Handle:g_hTankBoss, Handle:g_hNoPropDmg, Handle:g_hHittableDmg, Float:OVERHIT_TIME = 1.2, g_bOverHit[MPS];
 
 // **********************************************
 //                   Forwards
