@@ -197,7 +197,7 @@ static _MC_StartMobTimer()
 public Action:_MC_t_SpawnMob(Handle:timer)
 {
 	SetStartTime();
-	L4DDirect_SetPendingMobCount(L4DDirect_GetPendingMobCount() + g_iCvarHordeSize);
+	L4D2Direct_SetPendingMobCount(L4D2Direct_GetPendingMobCount() + g_iCvarHordeSize);
 }
 
 static SetStartTime()

@@ -261,7 +261,7 @@ public Action:_MF_t_GroundTouchCheck(Handle:timer, any:client)
 	return Plugin_Stop;
 }
 
-public Action:L4D_OnEntityShoved(client, entity, weapon, const Float:vector[3])
+public Action:L4D2_OnEntityShoved(client, entity, weapon, Float:vector[3], bool:bIsHighPounce)
 {
 	if ((g_iCvarMeleeControlFlags || g_bCvarNoDeadStop) && IsSurvivorAndInGame(client)){
 

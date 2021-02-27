@@ -313,9 +313,9 @@ static IC_RadomizeItems(&Handle:hArray, iCvar, const String:sClassName[], bool:b
 
 		bFlowSpawn = false;
 
-		if (L4DDirect_GetVSTankToSpawnThisRound(!FirstRound())){
+		if (L4D2Direct_GetVSTankToSpawnThisRound(!FirstRound())){
 
-			new Float:fHighestFlow = (L4DDirect_GetVSTankFlowPercent(!FirstRound()) * L4DDirect_GetMapMaxFlowDistance()) - (g_fCvarVSBossBuffer / 2);
+			new Float:fHighestFlow = (L4D2Direct_GetVSTankFlowPercent(!FirstRound()) * L4D2Direct_GetMapMaxFlowDistance()) - (g_fCvarVSBossBuffer / 2);
 			DebugLog("%s  - @L4DDirect: trying to keep molotov before tank spawn. tank flow %f (units)", IC_TAG, fHighestFlow);
 
 			if (fHighestFlow > 0){
@@ -328,11 +328,11 @@ static IC_RadomizeItems(&Handle:hArray, iCvar, const String:sClassName[], bool:b
 					iVal = GetRandomInt(0, iMoloArraySize - 1);
 					GetArrayArray(hMoloArray, iVal, vOrg);
 
-					fItemFlow = L4DDirect_GetTerrorNavAreaFlow(L4DDirect_GetTerrorNavArea(vOrg));
-					if (!fItemFlow)
-						fItemFlow = L4DDirect_GetTerrorNavAreaFlow(L4DDirect_GetNearestNavArea(vOrg));
+					fItemFlow = L4D2Direct_GetTerrorNavAreaFlow(L4D2Direct_GetTerrorNavArea(vOrg));
+					if (fItemFlow <= 0)
+						fItemFlow = L4D2Direct_GetTerrorNavAreaFlow(Address:L4D_GetNearestNavArea(vOrg));
 
-					if (fItemFlow && fItemFlow < fHighestFlow){
+					if (fItemFlow > 0 && fItemFlow < fHighestFlow){
 
 						bFlowSpawn = true;
 						PushArrayArray(hRandomItemArray, vOrg);

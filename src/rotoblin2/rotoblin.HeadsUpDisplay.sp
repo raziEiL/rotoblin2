@@ -221,7 +221,7 @@ static bool:HUD_DrawTankPanel()
 
 	static Handle:hHUD, String:sNameA[32], String:sNameB[32], iPassCount;
 
-	iPassCount = L4DDirect_GetTankPassedCount();
+	iPassCount = L4D2Direct_GetTankPassedCount();
 	if (iPassCount > 2) iPassCount = 2;
 	hHUD = CreatePanel();
 

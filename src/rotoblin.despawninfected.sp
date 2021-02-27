@@ -175,7 +175,7 @@ public Action:_DI_Check_Timer(Handle:timer)
 
 	for (new i = 0; i < SurvivorCount; i++)
 	{
-		checkAgainst = L4DDirect_GetFlowDistance(SurvivorIndex[i]);
+		checkAgainst = L4D2Direct_GetFlowDistance(SurvivorIndex[i]);
 
 		if (checkAgainst < lastSurvivorFlow || lastSurvivorFlow == 0.0)
 		{
@@ -286,15 +286,20 @@ static DespawningCommons(Float:lastSurvivorFlow, firstSurvivor)
 		return;
 	}
 
-	decl Float:commonFlow;
+	decl Float:commonFlow, Float:vOrigin[3];
 	new entity = -1;
-
+	
 	while ((entity = FindEntityByClassname(entity, CLASSNAME_INFECTED)) != INVALID_ENT_REFERENCE)
 	{
 		if (g_fCommonLifetime[entity] == 0.0) continue;
 
-		commonFlow = L4DDirect_GetFlowDistance(entity, true);
-		if (commonFlow < 0) continue; // common is in a infected-only areas, continue
+		GetEntPropVector(entity, Prop_Send, "m_vecOrigin", vOrigin);
+		commonFlow = L4D2Direct_GetTerrorNavAreaFlow(L4D2Direct_GetTerrorNavArea(vOrigin));
+
+		if (commonFlow <= 0)
+			commonFlow = L4D2Direct_GetTerrorNavAreaFlow(Address:L4D_GetNearestNavArea(vOrigin));
+		
+		if (commonFlow <= 0) continue; // common is in a infected-only areas, continue
 
 		if ((lastSurvivorFlow - DESPAWN_DISTANCE) <= commonFlow) continue; // common is close to the survivors, continue
 
@@ -466,7 +471,7 @@ Float:GetHighestSurvFlow(bool:bDown = false)
 
 				if (bDown && (IsIncapacitated(i) || IsHandingFromLedge(i))) continue;
 
-				if ((iLastFlow = L4DDirect_GetFlowDistance(i)) > fFlow)
+				if ((iLastFlow = L4D2Direct_GetFlowDistance(i)) > fFlow)
 					fFlow = iLastFlow;
 			}
 		}
@@ -477,7 +482,7 @@ Float:GetHighestSurvFlow(bool:bDown = false)
 
 			if (bDown && (IsIncapacitated(SurvivorIndex[i]) || IsHandingFromLedge(SurvivorIndex[i]))) continue;
 
-			if ((iLastFlow = L4DDirect_GetFlowDistance(SurvivorIndex[i])) > fFlow)
+			if ((iLastFlow = L4D2Direct_GetFlowDistance(SurvivorIndex[i])) > fFlow)
 				fFlow = iLastFlow;
 		}
 	}

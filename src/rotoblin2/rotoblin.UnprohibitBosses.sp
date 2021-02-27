@@ -94,18 +94,18 @@ _UB_OnMapStart()
 
 		new bool:bSpawnTank = IsBossSpawn(iCampaign, true);
 		new Float:fTankFlow =  GetRandomBossFlow(iCampaign);
-		L4DDirect_SetVSTankToSpawnThisRound(0, bSpawnTank);
-		L4DDirect_SetVSTankToSpawnThisRound(1, bSpawnTank);
-		L4DDirect_SetVSTankFlowPercent(0, fTankFlow);
-		L4DDirect_SetVSTankFlowPercent(1, fTankFlow);
+		L4D2Direct_SetVSTankToSpawnThisRound(0, bSpawnTank);
+		L4D2Direct_SetVSTankToSpawnThisRound(1, bSpawnTank);
+		L4D2Direct_SetVSTankFlowPercent(0, fTankFlow);
+		L4D2Direct_SetVSTankFlowPercent(1, fTankFlow);
 	}
 
 	new bool:bSpawnWitch = IsBossSpawn(iCampaign, false);
 	new Float:fWitchFlow = GetRandomBossFlow(iCampaign);
-	L4DDirect_SetVSWitchToSpawnThisRound(0, bSpawnWitch);
-	L4DDirect_SetVSWitchToSpawnThisRound(1, bSpawnWitch);
-	L4DDirect_SetVWitchFlowPercent(0, fWitchFlow);
-	L4DDirect_SetVWitchFlowPercent(1, fWitchFlow);
+	L4D2Direct_SetVSWitchToSpawnThisRound(0, bSpawnWitch);
+	L4D2Direct_SetVSWitchToSpawnThisRound(1, bSpawnWitch);
+	L4D2Direct_SetVSWitchFlowPercent(0, fWitchFlow);
+	L4D2Direct_SetVSWitchFlowPercent(1, fWitchFlow);
 }
 
 static Float:GetRandomBossFlow(iCampaign)

@@ -69,8 +69,7 @@ new const String:MAIN_TAG[]		=	"[Rotoblin]";
 #include <sourcemod>
 #include <sdktools>
 #include <sdkhooks>
-#include <left4downtown>
-#include <l4d_direct>
+#include <left4dhooks>
 #include <r2comp_api>
 
 #undef REQUIRE_PLUGIN
