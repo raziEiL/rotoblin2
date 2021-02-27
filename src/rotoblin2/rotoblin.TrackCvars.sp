@@ -223,10 +223,12 @@ public Action:CmdResetVariable(args)
 static ResetConVars(Handle:hArray, iArraySize, bool:bConVarEx)
 {
 	decl String:sArrayConVar[64], Handle:hConVar;
+	new Handle:hClone = CloneArray(hArray);
+	ClearArray(hArray);
 
 	for (new Index = 0; Index < iArraySize; Index++){
 
-		GetArrayString(hArray, Index, sArrayConVar, 64);
+		GetArrayString(hClone, Index, sArrayConVar, 64);
 		hConVar = FindConVar(sArrayConVar);
 
 		if (!IsValidConVar(hConVar)){
@@ -241,8 +243,7 @@ static ResetConVars(Handle:hArray, iArraySize, bool:bConVarEx)
 		ResetConVar(hConVar);
 		DebugLog("%s ResetConVar \"%s\"", TC_TAG, sArrayConVar);
 	}
-
-	ClearArray(hArray);
+	delete hClone;
 }
 
 static IsConVarTracked(Handle:hArray, const String:sConVar[] = "", bool:bResetConVars = false, bool:bReturnIndex = false)
