@@ -417,8 +417,12 @@ static Replace(entity, const String:classname[], const String:model[], const Str
 	{
 		case 0:
 		{
-			for (new i = 1; i <= 3; i++)
-				RemoveFromArray(g_hDebugArray, GetArraySize(g_hDebugArray) - i);
+			new index;
+			for (new i = 1; i <= 3; i++){
+				index = GetArraySize(g_hDebugArray) - 1;
+				if (index < 0) break;
+				RemoveFromArray(g_hDebugArray, index);
+			}
 		}
 		case -1:
 		{
