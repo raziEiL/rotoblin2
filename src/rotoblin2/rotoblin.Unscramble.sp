@@ -156,6 +156,9 @@ public Action:Command_KeepTeams(client, args)
 
 public Action:AS_cmdh_JoinTeam(client, const String:command[], argc)
 {
+	if (!IsVersusMode())
+		return Plugin_Continue;
+
 	if (g_bTeamLock && !g_bJoinTeamUsed[client]){
 
 		#if UNSCRABBLE_LOG
@@ -272,7 +275,7 @@ _AS_OnMapStart()
 	g_bMapTranslition = false;
 	CreateTimer(0.5, AS_t_TeamsFlipped);
 
-	if (!g_iTrineSize) return;
+	if (!g_iTrineSize || !IsVersusMode()) return;
 
 	g_bTeamLock = true;
 

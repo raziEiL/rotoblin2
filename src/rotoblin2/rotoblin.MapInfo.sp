@@ -34,6 +34,8 @@
 	static	Handle:g_hMarker, g_iLaserCache;
 #endif
 
+static const String:VS_MAP_PREFIX[] = "l4d_vs_";
+
 static 		Handle:g_hKv, String:g_sPatch[PLATFORM_MAX_PATH], Float:g_vStartSafeRoom[3], Float:g_vEndSafeRoom[3], String:g_sMap[64];
 
 _MapInfo_OnPluginStart()
@@ -49,9 +51,10 @@ _MapInfo_OnPluginStart()
 	RegAdminCmd("sm_getmapinfo", Command_GetMapInfo, ADMFLAG_ROOT, "Prints start/end saferoom position from MapInfo");
 
 	#if DEBUG_COMMANDS
-		RegAdminCmd("r2comp_tp",		Command_TeleportToSafeRoom, ADMFLAG_ROOT);
-		RegAdminCmd("r2comp_dis",	Command_Distance, ADMFLAG_ROOT);
-		RegAdminCmd("r2comp_entdis",	Command_EntityDistance, ADMFLAG_ROOT);
+		RegAdminCmd("r2comp_tp", Command_TeleportToSafeRoom, ADMFLAG_ROOT);
+		RegAdminCmd("r2comp_dis", Command_Distance, ADMFLAG_ROOT);
+		RegAdminCmd("r2comp_entdis", Command_EntityDistance, ADMFLAG_ROOT);
+		RegAdminCmd("r2comp_load", Command_LoadMapData, ADMFLAG_ROOT);
 	#endif
 }
 
@@ -121,21 +124,22 @@ public Action:Command_GetMapInfo(client, args)
 	return Plugin_Handled;
 }
 
+public Action:Command_LoadMapData(client, args)
+{
+	_MI_OnMapStart();
+	return Plugin_Handled;
+}
+
 _MI_OnMapStart()
 {
-	GetCurrentMap(g_sMap, 64);
+	GetCurrentMap(SZF(g_sMap));
 
-	MI_WipeCoordinates();
+	if (!LoadMapData(g_sMap) && !IsVersusMode() && strncmp(g_sMap, VS_MAP_PREFIX, sizeof(VS_MAP_PREFIX) - 1)){
 
-	if (KvJumpToKey(g_hKv, g_sMap)){
-
-		KvGetVector(g_hKv, "start_pos", g_vStartSafeRoom);
-		KvGetVector(g_hKv, "end_pos", g_vEndSafeRoom);
+		DebugLogEx("%s Trying to load versus map data for coop", MODULE_TAG);
+		Format(SZF(g_sMap), "%s%s", VS_MAP_PREFIX, g_sMap[4]);
+		LoadMapData(g_sMap);
 	}
-	else
-		DebugLogEx("%s Couldn't load Rotoblin map data for \"%s\"", MODULE_TAG, g_sMap);
-
-	KvGoBack(g_hKv);
 
 	#if DEBUG_COMMANDS
 		g_iLaserCache = PrecacheModel("materials/sprites/laserbeam.vmt");
@@ -148,14 +152,23 @@ _MI_OnMapStart()
 	#endif
 }
 
-static MI_WipeCoordinates()
+static bool:LoadMapData(const String:map[])
 {
-	g_vStartSafeRoom[0] = 0.0;
-	g_vStartSafeRoom[1] = 0.0;
-	g_vStartSafeRoom[2] = 0.0;
-	g_vEndSafeRoom[0] = 0.0;
-	g_vEndSafeRoom[1] = 0.0;
-	g_vEndSafeRoom[2] = 0.0;
+	KvRewind(g_hKv);
+
+	if (KvJumpToKey(g_hKv, map)){
+
+		KvGetVector(g_hKv, "start_pos", g_vStartSafeRoom);
+		KvGetVector(g_hKv, "end_pos", g_vEndSafeRoom);
+		return true;
+	}
+
+	DebugLogEx("%s Couldn't load Rotoblin map data for \"%s\"", MODULE_TAG, map);
+
+	for (int i; i < 3; i++)
+		g_vStartSafeRoom[i] = g_vEndSafeRoom[i] = 0.0;
+
+	return false;
 }
 
 static MI_RewriteGlobalVar(const Float:vOrg[3], bool:bStartRoom)

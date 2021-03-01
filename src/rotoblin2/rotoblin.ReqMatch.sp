@@ -36,7 +36,7 @@ _ReqMatch_OnPluginStart()
 
 	g_hAllowReq = CreateConVarEx("allow_match_req", "0", "Sets whether any player can request to change the current match mode (!match command)", _, true, 0.0, true, 1.0);
 
-	RegServerCmd("rotoblin_restartmap", CmdRestartMap, "Changelevel to the current map with a 1.5 sec delay");
+	RegServerCmd("rotoblin_restartmap", CmdRestartMap, "Restart a map with 1.5 sec delay (respect the gamemode)");
 
 	RegAdminCmd("sm_forcematch", CmdForceMatch, ADMFLAG_KICK, "Forces the game to use match mode");
 	RegAdminCmd("sm_fmatch", CmdForceMatch, ADMFLAG_KICK, "Forces the game to use match mode");
@@ -73,6 +73,7 @@ public Action:AL_t_RestartMap(Handle:timer)
 	else
 		GetCurrentMap(sMap, 64);
 
+	ConvertMapByGamemode(SZF(sMap));
 	ForceChangeLevel(sMap, "Resetting by Rotoblin 2");
 }
 
@@ -290,4 +291,31 @@ bool:IsMatchExists(const String:sReqMatch[])
 	FormatEx(sBuildPatch, 96, "%s%s%s", sMatchCfg[CFGDIR], sMatchCfg[ROTODIR], sReqMatch);
 
 	return DirExists(sBuildPatch);
+}
+
+/* 
+ * coop gamemode: 
+ * V l4d_vs_hospital01_apartment > l4d_hospital01_apartment
+ * X l4d_garage01_alleys > l4d_garage01_alleys
+ *
+ * vs gamemode: 
+ * X l4d_river01_docks > l4d_river01_docks
+ * V l4d_hospital01_apartment > l4d_vs_hospital01_apartment
+ */
+static ConvertMapByGamemode(String:map[], len)
+{
+	decl String:sMap[64];
+
+	if (IsVersusMode()){
+		if (len > 4 && strncmp(map, "l4d_vs_", 7)){
+			FormatEx(SZF(sMap), "l4d_vs_%s", map[4]);
+			if (IsMapValid(sMap))
+				strcopy(map, len, sMap);
+		}
+	}
+	else if (len > 7 && !strncmp(map, "l4d_vs_", 7)){
+		FormatEx(SZF(sMap), "l4d_%s", map[7]);
+		if (IsMapValid(sMap))
+			strcopy(map, len, sMap);
+	}
 }
