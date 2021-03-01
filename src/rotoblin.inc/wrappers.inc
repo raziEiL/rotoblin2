@@ -370,14 +370,6 @@ stock bool:SafelyRemoveEdict(entity)
 	{
 		return false;
 	}
-
-	// Try and use the entity's kill input first.  If that doesn't work, fall back on SafelyRemoveEdict.
-	// AFAIK, we should always try to use Kill, as I've noticed problems when calling SafelyRemoveEdict (ents sticking around after deletion).
-	// This could be down to my own idiocy, but ... still.
-	if(!AcceptEntityInput(entity, "Kill"))
-	{
-		SafelyRemoveEdict(entity);
-	}
-
+	RemoveEntity(entity);
 	return true;
 }
