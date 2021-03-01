@@ -478,14 +478,12 @@ static CaseWeaponStyle(WEAPON_STYLE:style, const String:classname[])
 static WEAPON_STYLE:GetWeaponStyleByLocation(const Float:vOrg[3])
 {
 	if (IsEntInStartSafeRoom(vOrg)){
+		PushArrayCell(g_hDebugArray, 1);
 
-		if (IsItemTranslationFeature()){
+		if (IsItemTranslationFeature())
 			return WEAPON_STYLE:REPLACE_NO_WEAPONS;
-		}
-		else {
-			PushArrayCell(g_hDebugArray, 1);
-			return WEAPON_STYLE:g_iCvarSSR_Style;
-		}
+
+		return WEAPON_STYLE:g_iCvarSSR_Style;
 	}
 	else if (IsEntInEndSafeRoom(vOrg)){
 
