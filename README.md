@@ -6,7 +6,7 @@ Read more about roto2 on [official website](https://code.google.com/archive/p/ro
 * Left 4 Downtown extension is highly outdated and no longer required! 
 * Rotoblin 2 has been updated to use with SourceMod >= 1.10 and migrated to left4dhooks plugin! 
 
-## Used plugins and dependencies
+## Plugins and dependencies
 [left4dhooks](https://forums.alliedmods.net/showthread.php?p=2684862)  
 [Competitive L4D1 plugins](https://bitbucket.org/disawar1/l4d-competitive-plugins/src/left4dhooks/ "Competitive L4D1 Plugins")  
 [raziEiL](https://github.com/raziEiL/SourceMod)  
