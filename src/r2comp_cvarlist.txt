@@ -178,7 +178,7 @@ allow_weapon_attributes                                            : If set, all
 -- rotoblin_pause_spechud                                          :
 -- rotoblin_reset_variables                                        : Reset all tracked convars to its default value
 -- rotoblin_resetclientcvars                                       : Remove all tracked client cvars
--- rotoblin_restartmap                                             : Changelevel to the current map with a 1.5 sec delay
+-- rotoblin_restartmap                                             : Restart a map with 1.5 sec delay (respect the gamemode)
 -- rotoblin_startclientchecking                                    : Start checking and enforcing client cvars tracked by this plugin
 -- rotoblin_track_variable                                         : Add a convar to track
 -- rotoblin_track_variable_ex                                      : Add a convar to track but ignore a global lock
