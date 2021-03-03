@@ -35,7 +35,9 @@
 #include "rotoblin.inc/clientindexes.inc"
 #include "rotoblin.inc/tankmanager.inc"
 #include "rotoblin.inc/wrappers.inc"
+#if MULTITARGETS
 #include "rotoblin.inc/multitargets.inc"
+#endif
 #include "rotoblin.inc/eventmanager.inc"
 
 // Misc

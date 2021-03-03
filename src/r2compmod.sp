@@ -32,18 +32,19 @@
 // **********************************************
 //        Compiling options (Preprocessor)
 // **********************************************
-#pragma semicolon						1
-#define R2COMP_LOG						0
-#define DEBUG_COMMANDS				0	// r2comp_dump_cvar_status, r2comp_tp, r2comp_dis, r2comp_entdis.
+#pragma semicolon					1
+#define R2COMP_LOG					0
+#define DEBUG_COMMANDS				0 // r2comp_dump_cvar_status, r2comp_tp, r2comp_dis, r2comp_entdis.
 #define UNSCRABBLE_LOG				0
 #define UNSCRABBLE_MAX_FAILURE		3
 #define SCORES_COMMAND				1
+#define MULTITARGETS				0 // include mutltitargets.inc
 
 // **********************************************
 //                   Reference
 // **********************************************
-#define SERVER_INDEX					0 // The client index of the server
-#define FIRST_CLIENT					1 // First valid client index
+#define SERVER_INDEX				0 // The client index of the server
+#define FIRST_CLIENT				1 // First valid client index
 #define TEAM_SPECTATOR				1
 #define TEAM_SURVIVOR				2
 #define TEAM_INFECTED				3
@@ -56,7 +57,7 @@ new const String:MAIN_TAG[]		=	"[Rotoblin]";
 #define PLUGIN_SHORTNAME			"rotoblin"								// Shorter version of the full name, used in file paths, and other things
 #define PLUGIN_AUTHOR				"Rotoblin Team, raziEiL [disawar1]"		// Author of the plugin
 #define PLUGIN_DESCRIPTION			"A Fresh competitive mod for L4D"		// Description of the plugin
-#define PLUGIN_VERSION				"1.4.1"							// http://wiki.eclipse.org/Version_Numbering
+#define PLUGIN_VERSION				"1.4.2"							// http://wiki.eclipse.org/Version_Numbering
 #define PLUGIN_URL					"https://code.google.com/p/rotoblin2/"	// URL associated with the project
 #define PLUGIN_CVAR_PREFIX			PLUGIN_SHORTNAME					// Prefix for cvars
 #define PLUGIN_CMD_PREFIX			PLUGIN_SHORTNAME					// Prefix for cmds
@@ -113,8 +114,9 @@ public OnPluginStart()
 	_H_TankManager_OnPluginStart();
 	_H_ClientIndexes_OnPluginStart();
 	_H_CommandManager_OnPluginStart();
+#if MULTITARGETS
 	_H_MultiTargets_OnPluginStart();
-
+#endif
 	//_AutoUpdate_OnPluginStart();
 	_HealthControl_OnPluginStart();
 	_WeaponControl_OnPluginStart();
