@@ -5,6 +5,7 @@ Read more about roto2 on [official website](https://code.google.com/archive/p/ro
 ## News 
 * Left 4 Downtown extension is highly outdated and no longer required! 
 * Rotoblin 2 has been updated to use with SourceMod >= 1.10 and migrated to left4dhooks plugin! 
+* Co-op gamemode is now supported (partially)!  
 
 ## Plugins and dependencies
 [left4dhooks](https://forums.alliedmods.net/showthread.php?p=2684862)  
