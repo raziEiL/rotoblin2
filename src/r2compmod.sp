@@ -87,7 +87,7 @@ public Plugin:myinfo =
 	url = PLUGIN_URL
 }
 
-static Handle:g_hR2Version, Handle:g_hR2Enable, bool:g_bIsZACKLoaded, bool:g_bIsPluginEnabled, bool:g_bPLend;
+static Handle:g_hR2Version, Handle:g_hR2Enable, bool:g_bZackLibLoaded, bool:g_bMatchVoteLibLoaded, bool:g_bIsPluginEnabled, bool:g_bPLend;
 
 public OnPluginStart()
 {
@@ -157,7 +157,7 @@ public OnAllPluginsLoaded()
 {
 	DebugLog("%s			ON ALL PL LOADED", MAIN_TAG);
 
-	_Zack_OnAllPluginsLoaded();
+	_Libs_OnAllPluginsLoaded();
 	_AutoLoader_OnAllPluginsLoaded();
 }
 
@@ -281,32 +281,42 @@ public OnEntityDestroyed(entity)
 	}
 }
 /*												+==========================================+
-																Zack plugin
+																Custom libs
 												+==========================================+
 */
-_Zack_OnAllPluginsLoaded()
+#define ZACK_LIB "zack"
+#define MATCHVOTE_LIB "l4d_matchvote"
+
+_Libs_OnAllPluginsLoaded()
 {
-	if (LibraryExists("zack")) // If ZACK is loaded on the server
-		g_bIsZACKLoaded = true;
-	else
-		g_bIsZACKLoaded = false;
+	g_bZackLibLoaded = LibraryExists(ZACK_LIB); // If ZACK is loaded on the server
+	g_bMatchVoteLibLoaded = LibraryExists(MATCHVOTE_LIB);
 }
 
 public OnLibraryRemoved(const String:name[])
 {
-	if (StrEqual(name, "zack"))
-		g_bIsZACKLoaded = false;
+	if (StrEqual(name, ZACK_LIB))
+		g_bZackLibLoaded = false;
+	else if (StrEqual(name, MATCHVOTE_LIB))
+		g_bMatchVoteLibLoaded = false;
 }
 
 public OnLibraryAdded(const String:name[])
 {
-	if (StrEqual(name, "zack"))
-		g_bIsZACKLoaded = true;
+	if (StrEqual(name, ZACK_LIB))
+		g_bZackLibLoaded = true;
+	else if (StrEqual(name, MATCHVOTE_LIB))
+		g_bMatchVoteLibLoaded = true;
 }
 
-bool:IsZACKLoaded()
+bool:IsMatchVoteLoaded()
 {
-	return g_bIsZACKLoaded;
+	return g_bMatchVoteLibLoaded;
+}
+
+bool:IsZackLibLoaded()
+{
+	return g_bZackLibLoaded;
 }
 // ===
 

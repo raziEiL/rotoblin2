@@ -114,7 +114,7 @@ public Action:CmdResetMatch(client, args)
 
 public Action:CmdLoad(client, args)
 {
-	if (/*privat*/GetFeatureStatus(FeatureType_Native, "L4D_IsInMatchVoteMenu") == FeatureStatus_Available)
+	if (IsCmdBlocked())
 		return Plugin_Handled;
 
 	ReplyToCommand(client, "%s %t", MAIN_TAG, "R2CompMod #14");
@@ -122,12 +122,18 @@ public Action:CmdLoad(client, args)
 	return Plugin_Handled;
 }
 
+// overloaded by matchvote plugin
+static bool:IsCmdBlocked()
+{
+	return IsMatchVoteLoaded() || CanTestFeatures() && GetFeatureStatus(FeatureType_Native, "L4D_IsInMatchVoteMenu") == FeatureStatus_Available;
+}
+
 static bool:g_bTeamReq, String:g_sReqMatch[2][48]; // 0 - surv, 1 - inf
 
 public Action:CmdReqMatch(client, args)
 {
 	decl iTeam;
-	if (!client || (iTeam = GetClientTeam(client)) == 1 || /*privat*/GetFeatureStatus(FeatureType_Native, "L4D_IsInMatchVoteMenu") == FeatureStatus_Available)
+	if (!client || (iTeam = GetClientTeam(client)) == 1 || IsCmdBlocked())
 		return Plugin_Handled;
 
 	if (!GetConVarBool(g_hAllowReq)){
