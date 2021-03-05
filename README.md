@@ -4,8 +4,19 @@ Read more about roto2 on [official website](https://code.google.com/archive/p/ro
 
 ## News 
 * Left 4 Downtown extension is highly outdated and no longer required! 
-* Rotoblin 2 has been updated to use with SourceMod >= 1.10 and migrated to left4dhooks plugin! 
+* Rotoblin 2 & Competitive plugins has been updated to use with SourceMod >= 1.10 and migrated to left4dhooks plugin! 
 * Co-op gamemode is now supported (partially)!  
+
+## Co-op
+Co-op gamemode specific convars:
+```
+rotoblin_item_translations // Keep items to translations in co-op gamemode
+```
+The following convars only support versus gamemode! So they should be disabled in co-op.
+```
+rotoblin_molotov_before_tank
+rotoblin_boss_unprohibit
+```
 
 ## Plugins and dependencies
 [left4dhooks](https://forums.alliedmods.net/showthread.php?p=2684862)  
