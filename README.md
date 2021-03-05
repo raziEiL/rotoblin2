@@ -1,8 +1,9 @@
+Kill zombies during Covid on your competitive roto server like old days!
 # Rotoblin 2 (Roto2/R2 CompMod)
 The competitive mod developed in 2012 for [Left 4 Dead](http://www.l4d.com/blog/ "Left 4 Dead") 1 game under [SourceMod](https://www.sourcemod.net/ "SourceMod") platform (SourcePawn).  
 Read more about roto2 on [official website](https://code.google.com/archive/p/rotoblin2/ "official website") or [here](https://github.com/raziEiL/rotoblin2/blob/wiki/ProjectHome.md "here").
 
-## 2021 news 
+## News 2021
 * multilanguage & dev branch were merged and brings tons of changes: fixes, features, optimization.  
 * Left 4 Downtown extension is highly outdated and no longer required! 
 * Rotoblin 2 & Competitive plugins has been updated to use with SourceMod >= 1.10 and migrated to left4dhooks plugin! 
