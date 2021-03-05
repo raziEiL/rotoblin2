@@ -8,7 +8,8 @@ Read more about roto2 on [official website](https://code.google.com/archive/p/ro
 * Co-op gamemode is now supported (partially)!  
 
 ## Co-op
-Co-op gamemode specific convars:
+If you load config changed mp_gamemode to `coop` map will be changed from `l4d_vs_` to `l4d_` (and vise verse) by `rotoblin_restartmap` command executed from `rotoblin_main.cfg`.
+## Convars:
 ```
 rotoblin_item_translations // Keep items to translations in co-op gamemode
 ```
