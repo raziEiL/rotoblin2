@@ -29,14 +29,31 @@
 
 #define		RESETTIME		15.0
 
+enum
+{
+	Map_StartIndex,
+	Map_EndIndex,
+	Map_Size
+}
+
 static const String:sMapList[][] =
 {
 	"l4d_vs_hospital01_apartment",
-	"l4d_garage01_alleys",
 	"l4d_vs_airport01_greenhouse",
 	"l4d_vs_smalltown01_caves",
 	"l4d_vs_farm01_hilltop",
-	"l4d_river01_docks"
+	"l4d_garage01_alleys",
+	"l4d_river01_docks",
+	"l4d_hospital01_apartment",
+	"l4d_airport01_greenhouse",
+	"l4d_smalltown01_caves",
+	"l4d_farm01_hilltop"
+};
+
+static const MAP_INDEX[][Map_Size] =
+{
+	{4, 9}, // coop
+	{0, 5} // vs
 };
 
 static 		Handle:g_hAllowLoader, Handle:g_hAllowMatchReset, Handle:g_hAllowMapReset, Handle:g_fwdOnServerEmpty, Handle:g_hResetTimer;
@@ -132,7 +149,8 @@ public Action:AL_t_ResetWhenEmpty(Handle:timer)
 
 public Action:AL_t_ChangeMap(Handle:timer)
 {
-	new iMapIndex = GetRandomInt(0, sizeof(sMapList) - 1);
+	new bool:bVersus = IsVersusMode();
+	new iMapIndex = GetRandomInt(MAP_INDEX[bVersus][Map_StartIndex], MAP_INDEX[bVersus][Map_EndIndex]);
 	
 	if (IsMapValid(sMapList[iMapIndex])){
 
